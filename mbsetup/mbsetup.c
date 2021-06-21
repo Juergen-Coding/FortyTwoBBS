@@ -109,7 +109,7 @@ static void die(int onsig)
 	 */
 	snprintf(temp, PATH_MAX, "%s/etc/golded.inc", getenv("MBSE_ROOT"));
 	if ((fp = fopen(temp, "w")) != NULL) {
-	    fprintf(fp, "; GOLDED.INCc -- Automatically created by mbsetup %s -- do not edit!\n\n", VERSION);
+	    fprintf(fp, "; GOLDED.INC -- Automatically created by mbsetup %s -- do not edit!\n\n", VERSION);
 	    fprintf(fp, "; Basic information.\n;\n");
 	    if (strlen(CFG.sysop_name) && CFG.akavalid[0] && CFG.aka[0].zone) {
 		fprintf(fp, "USERNAME %s\n\n", CFG.sysop_name);
@@ -343,7 +343,7 @@ void site_docs(void)
     readkey(LINES -4, COLS / 2 + 8, LIGHTGRAY, BLACK);
     return;
 }
-\
+
 
 
 void initdatabases(void)
