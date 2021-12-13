@@ -40,6 +40,7 @@
 #if defined(SHADOW_PASSWORD)
 #include <shadow.h>
 #endif
+#if 0 /* disabled */
 #if defined(__NetBSD__)
 #undef HAVE_UTMPX_H
 #endif
@@ -47,6 +48,7 @@
 #include <utmpx.h>
 #endif
 #include <utmp.h>
+#endif /* -disabled- */
 #include <signal.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -68,7 +70,7 @@
 #include "pwdcheck.h"
 #include "pwauth.h"
 #include "loginprompt.h"
-#include "utmp.h"
+/*#include "utmp.h"*/
 #include "limits.h"
 #include "setupenv.h"
 #include "sub.h"
@@ -95,6 +97,7 @@
 const char *hostname = "";
 
 struct	passwd	pwent, *pw;
+#if 0 /* disabled */
 #if HAVE_UTMPX_H
 struct	utmpx	utxent, failent;
 struct	utmp	utent;
@@ -102,6 +105,7 @@ struct	utmp	utent;
 struct	utmp	utent, failent;
 #endif
 struct	lastlog	lastlog;
+#endif /* -disabled- */
 static int preauth_flag = 0;
 
 /*
@@ -443,8 +447,14 @@ int main(int argc, char **argv)
      * but users must "exec login" which will use the existing utmp
      * entry (will not overwrite remote hostname).  --marekm
      */
+	#if 0 /* TODO: REMOVE (MD) */
     checkutmp(!amroot);
     STRFCPY(tty, utent.ut_line);
+	#endif
+	STRFCPY(tty, "/dev/");
+	STRFCPY(tty + 5, ttyname(0));
+	
+	
 
     if (hflg) {
 	/*
@@ -454,11 +464,13 @@ int main(int argc, char **argv)
 	addenv("REMOTEHOST", hostname);
     }
 
+#if 0 /* TODO: REMOVE (MD) */
 #ifdef __linux__ 
 	/* workaround for init/getty leaving junk in ut_host at least in some
 	   version of RedHat.  --marekm */
 	else if (amroot)
 	    memzero(utent.ut_host, sizeof utent.ut_host);
+#endif
 #endif
 
 	openlog("mblogin", LOG_PID|LOG_CONS|LOG_NOWAIT, LOG_AUTHPRIV);
@@ -525,6 +537,7 @@ int main(int argc, char **argv)
 	if (hflg)
 	    cp = hostname;
 	else
+#if 0 /* TODO: Remove (MD) */
 #ifdef	UT_HOST
 	if (utent.ut_host[0])
 	    cp = utent.ut_host;
@@ -535,6 +548,7 @@ int main(int argc, char **argv)
 	    cp = utxent.ut_host;
 	else
 #endif
+#endif /* 0 -disabled- */
 	    cp = "";
 
 	if (*cp)
@@ -718,7 +732,10 @@ auth_ok:
 	if (getenv("IFS"))		/* don't export user IFS ... */
 	    addenv("IFS= \t\n", NULL);  /* ... instead, set a safe IFS */
 
-	setutmp(username, tty, hostname); /* make entry in utmp & wtmp files */
+#if 0
+	 setutmp(username, tty, hostname); /* make entry in utmp & wtmp files */ 
+#endif /* -disabled- */
+	set_lastlogin(username, tty, hostname);
 
 	if (pwent.pw_shell[0] == '*') {	/* subsystem root */
 	    subsystem (&pwent);		/* figure out what to execute */
@@ -734,8 +751,10 @@ auth_ok:
 	    goto top;			/* go do all this all over again */
 	}
 
+#if 0
 	if (getdef_bool("LASTLOG_ENAB")) /* give last login and log this one */
 	    dolastlog(&lastlog, &pwent, utent.ut_line, hostname);
+#endif /* -disabled- */
 
 #ifdef SVR4_SI86_EUA
 	sysi86(SI86LIMUSER, EUA_ADD_USER);	/* how do we test for fail? */
