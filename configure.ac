@@ -195,14 +195,11 @@ fi
 #
 # Support for iconv, check libc first.
 #
-result="no"
-AC_CHECK_FUNC(iconv_open,result=yes,
-#  AC_SEARCH_LIBS(iconv_open,iconv,result=yes,result=no)
-  AC_CHECK_LIB(iconv,iconv_open,result=yes,result=no)
-  if test "$result" = "yes"; then
-    LIBS="$LIBS -liconv"
-  fi
-)
+result=no
+AC_SEARCH_LIBS(libiconv_open,iconv,result=yes,result=no)
+if test "$result" = "no"; then
+  AC_SEARCH_LIBS(iconv_open, iconv,result=yes,result=no)
+fi
 if test "$result" = "yes"; then
   AC_CHECK_HEADERS(iconv.h)
 fi

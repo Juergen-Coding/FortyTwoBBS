@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 
 
@@ -68,7 +67,7 @@ char *aka2str(fidoaddr aka)
 fidoaddr str2aka(char *addr)
 {
 	char		a[256];
-	static char	b[43];
+	static char	b[44];
 	char		*p, *temp = NULL;
 	static fidoaddr	n;
 
@@ -84,7 +83,7 @@ fidoaddr str2aka(char *addr)
 	if (strlen(addr) > 42)
 		return n;
 	
-	snprintf(b, 43, "%s~", addr);
+	snprintf(b, 44, "%.42s~", addr);
 	if ((strchr(b, ':') == NULL) || (strchr(b, '/') == NULL))
 		return n;
 

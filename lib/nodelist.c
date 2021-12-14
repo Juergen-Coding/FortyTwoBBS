@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 #include "nodelist.h"
 
@@ -963,13 +962,13 @@ node *getnlent(faddr *addr)
 	memset(&tbuf, 0, sizeof(tbuf));
 	if (ndrecord && strlen(nd.Nl_hostname)) {
 	    Syslog('n', "getnlent: using override %s for FQDN", nd.Nl_hostname);
-	    snprintf(tbuf, 256, nodebuf.name);
+	    snprintf(tbuf, 256, "%s", nodebuf.name);
 	    nodebuf.url = xstrcat(nodebuf.url, tbuf);
 	} else {
 	    for (tmpa = &nl_search; *tmpa; tmpa=&((*tmpa)->next)) {
 		Syslog('n', "getnlent: search FQDN method %s", (*tmpa)->name);
 		if (strcasecmp((*tmpa)->name, "field3") == 0) {
-		    snprintf(tbuf, 256, nodebuf.name);
+		    snprintf(tbuf, 256, "%s", nodebuf.name);
 		    if (strchr(tbuf, '.')) {
 			/*
 			 * Okay, there are dots, this can be a FQDN or IP address.

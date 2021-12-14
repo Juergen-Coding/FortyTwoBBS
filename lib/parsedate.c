@@ -19,7 +19,6 @@
 /* SUPPRESS 593 on yynewstate *//* Label was not used */
 /* SUPPRESS 595 on yypvt *//* Automatic variable may be used before set */
 
-#include "../config.h"
 #include "mbselib.h"
 
 
@@ -530,7 +529,7 @@ yyparse(YYPARSE_PARAM_ARG)
 #endif
 #endif
 
-  CYYSTYPE yyval;		/*  the variable used to return		*/
+  CYYSTYPE yyval = {0};		/*  the variable used to return		*/
 				/*  semantic values from the action	*/
 				/*  routines				*/
 

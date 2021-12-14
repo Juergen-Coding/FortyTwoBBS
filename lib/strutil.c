@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 
 
@@ -320,10 +319,10 @@ char *GetLocalHMS()
 char *StrDateMDY(time_t *Clock)
 {
 	struct tm *tm;
-	static char cdate[12];
+	static char cdate[15];
 	
 	tm = localtime(Clock);
-	snprintf(cdate, 12, "%02d-%02d-%04d", tm->tm_mon+1, tm->tm_mday, tm->tm_year+1900);
+	strftime(cdate, 15, "%m-%d-%Y", tm);
 	return(cdate);
 }
 
@@ -338,7 +337,7 @@ char *StrDateDMY(time_t date)
 	struct tm	*l_d;
 
 	l_d = localtime(&date);
-	snprintf(tdate, 15, "%02d-%02d-%04d", l_d->tm_mday, l_d->tm_mon+1, l_d->tm_year+1900);
+	strftime(tdate, 15, "%d-%m-%Y", l_d);
 	return tdate;
 }
 
@@ -351,14 +350,7 @@ char *StrDateDMY(time_t date)
  */
 char *GetDateDMY()
 {
-	static char	tdate[15];
-	struct tm	*l_d;
-	time_t		T_Now;
-
-	T_Now = time(NULL);
-	l_d = localtime(&T_Now);
- 	snprintf(tdate, 15, "%02d-%02d-%04d", l_d->tm_mday,l_d->tm_mon+1,l_d->tm_year+1900);
-	return(tdate);
+	return StrDateDMY(time(NULL));
 }
 
 

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 #include "users.h"
 #include "mbsedb.h"
@@ -64,7 +63,7 @@ char *prepbuf(faddr *addr)
 	if ((addr->zone == 0) || (addr->zone == CFG.aka[0].zone))
 	    zpref[0] = '\0';
 	else
-	    snprintf(zpref, 8, ".%03x", addr->zone);
+	    snprintf(zpref, 8, ".%03x", addr->zone & 0xfff);
     } else {
 	/*
 	 * If we got a 5d address we use the given domain, if

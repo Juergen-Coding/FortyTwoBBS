@@ -29,7 +29,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 
 
@@ -95,7 +94,7 @@ char *gmtoffset(time_t now)
 	} else
 		sign = '-';
 
-	hr  = offset / 60L;
+	hr  = (offset / 60L) % 24;
 	min = offset % 60L;
 
 	if (sign == '-')

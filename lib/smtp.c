@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 #include "mbinet.h"
 
@@ -38,7 +37,7 @@ static int		smtpsock = -1;	/* TCP/IP socket		*/
 
 int smtp_connect(void)
 {
-    char                *q, *ipver = NULL, ipstr[INET6_ADDRSTRLEN], temp[41];
+    char                *q, *ipver = NULL, ipstr[INET6_ADDRSTRLEN], temp[61];
     struct addrinfo     hints, *res = NULL, *p;
     int                 rc;
 
@@ -106,7 +105,7 @@ int smtp_connect(void)
 
     Syslog('+', "SMTP: %s", q);
 
-    snprintf(temp, 40, "HELO %s\r\n", CFG.sysdomain);
+    snprintf(temp, 61, "HELO %.36s\r\n", CFG.sysdomain);
     if (smtp_cmd(temp, 250)) {
 	smtp_close();
 	return -1;
@@ -200,7 +199,7 @@ int smtp_cmd(char *cmd, int resp)
 	if (strncmp(p, rsp, strlen(rsp))) {
 		WriteError("SMTP> %s", cmd);
 		WriteError("SMTP< %s", p);
-		memset(&resp, 0, sizeof(rsp));
+		memset(&rsp, 0, sizeof(rsp));
 		strncpy(rsp, p, 3);
 		return atoi(rsp);
 	}

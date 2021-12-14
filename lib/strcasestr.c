@@ -1,5 +1,4 @@
 
-#include "../config.h"
 #include "mbselib.h"
 
 #ifndef HAVE_STRCASESTR
