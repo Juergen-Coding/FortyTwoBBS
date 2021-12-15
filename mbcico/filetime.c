@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "filetime.h"
 
@@ -46,7 +45,7 @@ time_t gmtoff(time_t tt)
 	gt = *gmtime(&tt);
 	offset = gt.tm_yday - lt.tm_yday;
 	if (offset > 1) 
-		offset =- 24;
+		offset = -24;
 	else 
 		if (offset < -1) 
 			offset = 24;

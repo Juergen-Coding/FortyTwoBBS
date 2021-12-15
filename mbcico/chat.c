@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "config.h"
 #include "chat.h"
@@ -47,7 +46,7 @@ char *tranphone(char *Phone)
     for (i = 0; i < 40; i++) 
 	if (strlen(CFG.phonetrans[i].match) || strlen(CFG.phonetrans[i].repl)) {
 	    memset(&buf, 0, sizeof(buf));
-	    strncpy(buf,CFG.phonetrans[i].match,strlen(CFG.phonetrans[i].match));
+		snprintf(buf, 21, "%.20s", CFG.phonetrans[i].match);
 	    ln=strlen(buf);
 	    p = xstrcpy(CFG.phonetrans[i].repl);
 

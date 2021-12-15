@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -414,7 +413,7 @@ int UplinkRequest(faddr *t, faddr *From, int FileMgr, char *cmd)
     cmdline[j] = '\0';
     Mgrlog("%s", cmdline);
     Mgrlog("---");
-    fprintf(qp, TearLine());
+	fputs(TearLine(), qp);
 
     /*
      * Add a warning after the tearline.

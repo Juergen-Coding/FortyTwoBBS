@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -310,7 +309,7 @@ int LoadTic(char *inb, char *tfn, orphans **opl)
 	} else if (strncasecmp(Temp, "crc ", 4) == 0) {
 	    TIC.Crc_Int = strtoul(Temp+4, (char **)NULL, 16);
 	    snprintf(TIC.TicIn.Crc, 9, "%08X", TIC.Crc_Int);
-	    strncpy(T_File.Crc, TIC.TicIn.Crc, 8);
+		memcpy(T_File.Crc, TIC.TicIn.Crc, 9);
 
 	} else if (strncasecmp(Temp, "pw ", 3) == 0) {
 	    strncpy(TIC.TicIn.Pw, Temp+3, 20);
@@ -321,8 +320,8 @@ int LoadTic(char *inb, char *tfn, orphans **opl)
 
 	} else if (strncasecmp(Temp, "desc ", 5) == 0) {
 	    if (!DescCnt) {
-		strncpy(TIC.TicIn.Desc, Temp+5, 1023);
-		strncpy(T_File.Desc, TIC.TicIn.Desc, 255);
+			memccpy(TIC.TicIn.Desc, Temp + 5, '\0', 1023);
+			memccpy(T_File.Desc, TIC.TicIn.Desc, '\0', 255);
 		DescCnt = TRUE;
 	    } else {
 		Syslog('!', "More than one \"Desc\" line");
@@ -484,19 +483,29 @@ int LoadTic(char *inb, char *tfn, orphans **opl)
 	/*
 	 * Try to move the hatched file to the inbound
 	 */
-	snprintf(Temp, bufsize, "%s/%s", TIC.TicIn.Pth, TIC.TicIn.FullName);
-	if (file_exist(Temp, R_OK) == 0) {
-	    strcpy(RealName, TIC.TicIn.FullName);
+	char *path1 = join_paths(TIC.TicIn.Pth, sizeof(TIC.TicIn.Pth), TIC.TicIn.FullName, sizeof(TIC.TicIn.FullName));
+	if (NULL == path1 || 0 != file_exist(path1, R_OK)) {
+		WriteError("Cannot create a joined path or it does not exist: %s/%s", TIC.TicIn.Pth, TIC.TicIn.FullName);
+		tidy_falist(&sbl);
+		return 2;
 	} else {
-	    WriteError("Can't find %s", Temp);
-	    tidy_falist(&sbl);
-	    return 2;
+	    strcpy(RealName, TIC.TicIn.FullName);
 	}
-	snprintf(Temp2, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.FullName);
-	if ((rc = file_mv(Temp, Temp2))) {
-	    WriteError("Can't move %s to inbound: %s", Temp, strerror(rc));
+	char *path2 = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.FullName, sizeof(TIC.TicIn.FullName));
+	if (NULL == path2) {
+		WriteError("Could not join paths %s and %s", TIC.Inbound, TIC.TicIn.FullName);
+		tidy_falist(&sbl);
+		return 1;
+	} else if (0 != (rc = file_mv(path1, path2))) {
+	    WriteError("Can't move %s to inbound: %s", path1, strerror(rc));
 	    tidy_falist(&sbl);
 	    return 1;
+	}
+	if (NULL != path2) {
+		free(path2);
+	}
+	if (NULL != path1) {
+		free(path1);
 	}
 	if (!strlen(TIC.TicIn.File)) {
 	    strcpy(Temp, TIC.TicIn.FullName);
@@ -512,7 +521,7 @@ int LoadTic(char *inb, char *tfn, orphans **opl)
 	strncpy(RealName, TIC.TicIn.File, 255);
 	Syslog('f', "getfilecase(%s, %s)", TIC.Inbound, RealName);
 	if (! getfilecase(TIC.Inbound, RealName)) {
-	    strncpy(RealName, TIC.TicIn.FullName, 255);
+		snprintf(RealName, 256, "%.*s", 255, TIC.TicIn.FullName);
 	    Syslog('f', "getfilecase(%s, %s)", TIC.Inbound, RealName);
 	    if (! getfilecase(TIC.Inbound, RealName)) {
 		memset(&RealName, 0, sizeof(RealName));
@@ -539,7 +548,7 @@ int LoadTic(char *inb, char *tfn, orphans **opl)
 	Syslog('f', "Real filename in inbound is \"%s\"", RealName);
 	if ((strlen(TIC.TicIn.FullName)) == 0) {
 	    Syslog('f', "LFN is empty, create lowercase one");
-	    strncpy(TIC.TicIn.FullName, RealName, 255);
+		memcpy(TIC.TicIn.FullName, RealName, 255);
 	    for (i = 0; i < strlen(TIC.TicIn.FullName); i++)
 		TIC.TicIn.FullName[i] = tolower(TIC.TicIn.FullName[i]);
 	}
@@ -551,16 +560,29 @@ int LoadTic(char *inb, char *tfn, orphans **opl)
 	     * It may be a LFN but also a case difference. The whole tic
 	     * processing is based on 8.3 filenames.
 	     */
-	    snprintf(Temp, bufsize, "%s/%s", TIC.Inbound, RealName);
-	    snprintf(Temp2, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
-	    if (rename(Temp, Temp2))
-		WriteError("$Can't rename %s to %s", Temp, Temp2);
-	    else
-		Syslog('f', "Renamed %s to %s", Temp, Temp2);
+		char *path1 = join_paths(TIC.Inbound, sizeof(TIC.Inbound), RealName, sizeof(RealName));
+		char *path2 = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+		if (NULL == path1 || NULL == path2) {
+			WriteError("Error joining paths on %s with %s or %s", TIC.Inbound, RealName, TIC.TicIn.File);
+		} else {
+			if (0 != rename(path1, path2)) {
+				WriteError("$Can't rename %s to %s", path1, path2);
+			} else {
+				Syslog('f', "Renamed %s to %s", path1, path2);
+			}
+		}
+		if (NULL != path1) {
+			free(path1);
+		}
+		if (NULL != path2) {
+			free(path2);
+		}
 	}
     }
-    strncpy(TIC.NewFile, TIC.TicIn.File, 80);
-    strncpy(TIC.NewFullName, TIC.TicIn.FullName, 255);
+	memccpy(TIC.NewFile, TIC.TicIn.File, '\0', 80);
+	TIC.NewFile[80] = '\0';
+	memccpy(TIC.NewFullName, TIC.TicIn.FullName, '\0', 255);
+	TIC.NewFullName[255] = '\0';
 
     free(Temp2);
     free(Temp);

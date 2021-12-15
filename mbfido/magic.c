@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -46,31 +45,31 @@ int	Magics = 0;		/* Processed magics			    */
 char *Magic_Macro(int);
 char *Magic_Macro(int C)
 {
-    static char	buf[PATH_MAX];
+    static char	buf[PATH_MAX * 2];
 
     buf[0] = '\0';
     switch(toupper(C)) {
-	case 'F':   snprintf(buf, PATH_MAX, "%s/%s", TIC.BBSpath, TIC.NewFile);
+	case 'F':   snprintf(buf, sizeof(buf), "%s/%s", TIC.BBSpath, TIC.NewFile);
 		    break;
-	case 'P':   snprintf(buf, PATH_MAX, "%s", TIC.BBSpath);
+	case 'P':   snprintf(buf, sizeof(buf), "%s", TIC.BBSpath);
 		    break;
-	case 'N':   snprintf(buf, PATH_MAX, "%s", strtok(strdup(TIC.NewFile), "."));
+	case 'N':   snprintf(buf, sizeof(buf), "%s", strtok(strdup(TIC.NewFile), "."));
 		    break;
-	case 'E':   snprintf(buf, PATH_MAX, "%s", strrchr(TIC.NewFile, '.'));
+	case 'E':   snprintf(buf, sizeof(buf), "%s", strrchr(TIC.NewFile, '.'));
 		    break;
-	case 'L':   snprintf(buf, PATH_MAX, "%s", strrchr(TIC.NewFile, '.'));
+	case 'L':   snprintf(buf, sizeof(buf), "%s", strrchr(TIC.NewFile, '.'));
 		    buf[0] = buf[1];
 		    buf[1] = buf[2];
 		    buf[2] = '\0';
 		    break;
-	case 'D':   snprintf(buf, 3, "%03d", Day_Of_Year());
+	case 'D':   snprintf(buf, sizeof(buf), "%03d", Day_Of_Year());
 		    break;
-	case 'C':   snprintf(buf, 3, "%03d", Day_Of_Year());
+	case 'C':   snprintf(buf, sizeof(buf), "%03d", Day_Of_Year());
 		    buf[0] = buf[1];
 		    buf[1] = buf[2];
 		    buf[2] = '\0';
 		    break;
-	case 'A':   snprintf(buf, PATH_MAX, "%s", TIC.TicIn.Area);
+	case 'A':   snprintf(buf, sizeof(buf), "%s", TIC.TicIn.Area);
 		    break;
     }
 
@@ -231,14 +230,15 @@ void Magic_CopyFile(void)
 {
     int	    First = TRUE, rc;
     char    *From, *To;
+	size_t size = PATH_MAX * 2;
 
-    From = calloc(PATH_MAX, sizeof(char));
-    To   = calloc(PATH_MAX, sizeof(char));
+    From = calloc(size, sizeof(char));
+    To   = calloc(size, sizeof(char));
 
     while (GetMagicRec(MG_COPY, First)) {
 	First = FALSE;
-	snprintf(From, PATH_MAX, "%s/%s", TIC.BBSpath, TIC.NewFile);
-	snprintf(To, PATH_MAX, "%s/%s", magic.Path, TIC.NewFile);
+	snprintf(From, size, "%s/%s", TIC.BBSpath, TIC.NewFile);
+	snprintf(To, size, "%s/%s", magic.Path, TIC.NewFile);
 
 	if ((rc = file_cp(From, To) == 0)) {
 	    MagicResult((char *)"%s copied to %s", From, To);
@@ -257,15 +257,16 @@ void Magic_UnpackFile(void)
 {
     int	    rc, First = TRUE;
     char    *Fn, *buf = NULL, *unarc = NULL, *cmd = NULL;
+	size_t size = PATH_MAX * 2;
 
-    Fn = calloc(PATH_MAX, sizeof(char));
+    Fn = calloc(size, sizeof(char));
     while (GetMagicRec(MG_UNPACK, First)) {
 	First = FALSE;
-	buf = calloc(PATH_MAX, sizeof(char));
+	buf = calloc(size, sizeof(char));
 	getcwd(buf, 128);
 
 	if (chdir(magic.Path) == 0) {
-	    snprintf(Fn, PATH_MAX, "%s/%s", TIC.BBSpath, TIC.NewFile);
+	    snprintf(Fn, size, "%s/%s", TIC.BBSpath, TIC.NewFile);
 	    if ((unarc = unpacker(Fn)) != NULL) {
 		if (getarchiver(unarc)) {
 		    cmd = xstrcpy(archiver.munarc);
@@ -318,7 +319,7 @@ void Magic_AdoptFile(void)
     char    *temp;
     FILE    *Tf;
 
-    temp = calloc(PATH_MAX, sizeof(char));
+    temp = calloc(PATH_MAX * 2, sizeof(char));
 
     while (GetMagicRec(MG_ADOPT, First)) {
 	First = FALSE;
@@ -326,7 +327,7 @@ void Magic_AdoptFile(void)
 	if (SearchTic(magic.ToArea)) {
 	    MagicResult((char *)"Adoptfile in %s", magic.ToArea);
 
-	    snprintf(temp, PATH_MAX, "%s/%s", TIC.Inbound, MakeTicName());
+	    snprintf(temp, PATH_MAX * 2, "%s/%s", TIC.Inbound, MakeTicName());
 	    if ((Tf = fopen(temp, "a+")) == NULL)
 		WriteError("$Can't create %s", temp);
 	    else {

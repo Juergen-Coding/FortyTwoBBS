@@ -37,7 +37,6 @@
  *	ZMODEM RLE compression and decompression functions
  */
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "ttyio.h"

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "telnet.h"
 
@@ -60,7 +59,7 @@ void telnet_init(int Fd)
  */
 void telnet_answer(int tag, int opt, int Fd)
 {
-    char    buf[3];
+    unsigned char    buf[3];
     char    *r = (char *)"???";
 	            
     switch (tag) {

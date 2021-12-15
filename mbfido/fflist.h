@@ -1,5 +1,5 @@
 #ifndef _FFLIST_H_
-#define _FFLIST_H
+#define _FFLIST_H_ 1
 
 /* $Id: fflist.h,v 1.3 2007/10/15 12:48:11 mbse Exp $ */
 

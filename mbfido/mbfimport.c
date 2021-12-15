@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -69,7 +68,7 @@ void test_file(char *dirpath, char *search, char *result)
 	    /*
 	     * Found the right file.
 	     */
-	    strncpy(result, de->d_name, 80);
+	    strncpy(result, de->d_name, PATH_MAX);
 	    break;
 	}
     }

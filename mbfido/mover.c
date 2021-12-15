@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "orphans.h"
 #include "tic.h"
@@ -41,23 +40,28 @@ void mover(char *fn)
     char	*From, *To;
     int	rc;
 
-    From = calloc(PATH_MAX, sizeof(char));
-    To   = calloc(PATH_MAX, sizeof(char));
-
-    snprintf(From, PATH_MAX, "%s/%s", TIC.Inbound, fn);
-    snprintf(To,   PATH_MAX, "%s/%s", CFG.badtic, fn);
-    Syslog('+', "Moving %s to %s", From, To);
-
-    if (mkdirs(To, 0770)) {
-	if ((rc = file_mv(From, To))) {
-	    WriteError("Failed to move %s to %s: %s", From, To, strerror(rc));
-	}
+    From = join_paths(TIC.Inbound, sizeof(TIC.Inbound), fn, strlen(fn));
+    To = join_paths(CFG.badtic, sizeof(CFG.badtic), fn, strlen(fn));
+    if (NULL == From || NULL == To) {
+        WriteError("Unable to do move, memory allocation failure for paths in mover.");
     } else {
-	WriteError("Can't create directory for %s", To);
+        Syslog('+', "Moving %s to %s", From, To);
+
+        if (mkdirs(To, 0770)) {
+            if ((rc = file_mv(From, To))) {
+                WriteError("Failed to move %s to %s: %s", From, To, strerror(rc));
+            }
+        } else {
+            WriteError("Can't create directory for %s", To);
+        }
     }
 
-    free(From);
-    free(To);
+    if (NULL != From) {
+        free(From);
+    }
+    if (NULL != To) {
+        free(To);
+    }
 }
 
 

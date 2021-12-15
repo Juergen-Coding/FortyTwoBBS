@@ -2630,6 +2630,11 @@ int  create_tmpwork(void);	    /* Create tmp workdir		*/
  */
 int VirScanFile(char *);		/* VirScan a file		*/
 
+/*
+ * paths.c
+ */
+char *join_paths(const char *, size_t, const char *, size_t);
+
 
 /*************************************************************************
  *

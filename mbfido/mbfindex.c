@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -693,7 +692,7 @@ void HtmlIndex(char *Lang)
 					k += 1;
 				    }
 				    html_massage(fdb.Desc[j], linebuf, 1024);
-				    strncpy(outbuf, chartran(linebuf), 1024);
+					memccpy(outbuf, chartran(linebuf), '\0', 1024);
 				    strncat(desc, outbuf, 19200 -k);
 				    k += strlen(outbuf);
 				}

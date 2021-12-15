@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "session.h"
@@ -206,7 +205,8 @@ SM_STATE(sendblk0)
 	if (telink) 
 		for (i=23;(i>8) && (xmblk.data[i] == '\0');i--)
 			xmblk.data[i]=' ';
-	snprintf(xmblk.data+25, 15, "mbcico %s", VERSION);
+	memcpy(xmblk.data+25, "mbcico ", 7);
+	memcpy(xmblk.data+32, VERSION, 8);
 	xmblk.data[40]=((session_flags & FTSC_XMODEM_SLO) != 0);
 	xmblk.data[41]=((session_flags & FTSC_XMODEM_RES) != 0);
 	xmblk.data[42]=((session_flags & FTSC_XMODEM_XOF) != 0);

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -57,7 +56,7 @@ void ForwardFile(fidoaddr Node, fa_list *sbl)
     }
     Syslog('+', "Forward file to %s %s netmail", aka2str(Node), nodes.Message?"with":"without");
 
-    fwdfile  = calloc(PATH_MAX, sizeof(char));
+    fwdfile  = calloc(PATH_MAX * 2, sizeof(char));
     queuedir = calloc(PATH_MAX, sizeof(char));
     listfile = calloc(PATH_MAX, sizeof(char));
     snprintf(queuedir, PATH_MAX, "%s/%d.%d.%d.%d", CFG.out_queue, Node.zone, Node.net, Node.node, Node.point);
@@ -75,13 +74,13 @@ void ForwardFile(fidoaddr Node, fa_list *sbl)
      * Create the full filename
      */
     if (TIC.PassThru || TIC.SendOrg) {
-	snprintf(fwdfile, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
+	snprintf(fwdfile, PATH_MAX * 2, "%s/%s", TIC.Inbound, TIC.TicIn.File);
 	subject = xstrcpy(TIC.TicIn.File);
     } else {
 	/*
 	 * Make sure the file attach is the 8.3 filename
 	 */
-	snprintf(fwdfile, PATH_MAX, "%s/%s", TIC.BBSpath, TIC.NewFile);
+	snprintf(fwdfile, PATH_MAX * 2, "%s/%s", TIC.BBSpath, TIC.NewFile);
 	subject = xstrcpy(TIC.NewFile);
     }
 

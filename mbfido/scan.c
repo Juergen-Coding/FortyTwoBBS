@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/msg.h"
@@ -783,7 +782,7 @@ void ExportNews(unsigned int MsgNum, fa_list **sbl)
  */
 void ExportNet(unsigned int MsgNum, int UUCPgate)
 {
-    char	    *p, *q, ext[4], fromname[37], flavor, MailFrom[128], MailTo[128];
+    char	    *p, *q, ext[4], fromname[37] = {0}, flavor, MailFrom[128], MailTo[128];
     int		    i, rc, flags = 0, first, is_fmpt = FALSE, is_topt = FALSE, is_intl = FALSE, mypoint = FALSE, empty = TRUE;
     FILE	    *qp, *fp, *fl;
     fidoaddr	    Dest, Route, *dest;
@@ -832,7 +831,7 @@ void ExportNet(unsigned int MsgNum, int UUCPgate)
 	    return;
 	}
 	from = fido2faddr(msgs.Aka);
-	strncpy(fromname, Msg.From, 36);
+	memccpy(fromname, Msg.From, '\0', 36);
 	for (i = 0; i < strlen(fromname); i++)
 	    if (fromname[i] == ' ')
 		    fromname[i] = '_';

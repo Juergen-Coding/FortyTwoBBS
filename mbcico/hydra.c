@@ -40,7 +40,6 @@
  * COPYRIGHT (C) 1991-1993; ALL RIGHTS RESERVED
  */
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "session.h"

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -163,8 +162,8 @@ int Post(char *To, int Area, char *Subj, char *File, char *Flavor)
     /*
      * Start writing the message
      */
-    snprintf(Msg.From, 101, CFG.sysop_name);
-    snprintf(Msg.To, 101, To);
+    snprintf(Msg.From, 101, "%.*s", 100, CFG.sysop_name);
+    snprintf(Msg.To, 101, "%.*s", 100, To);
 
     /*
      * If netmail, clean the To field.
