@@ -30,8 +30,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#if 0
-
 #include "../config.h"
 #include <sys/types.h>
 #include <unistd.h>
@@ -39,10 +37,20 @@
 #include <fcntl.h>
 #include <time.h>
 #include "mblogin.h"
+#if HAVE_UTMP_H
 #include <utmp.h>
+#endif
 #include "log.h"
 
 
+#if defined(__FreeBSD__)
+/* No-Op function to deal with lastlog being different on FreeBSD */
+void dolastlog(const struct passwd *pw, const char *line, const char *host) {
+	(void)pw;
+	(void)line;
+	(void)host;
+}
+#else
 /* 
  * dolastlog - create lastlog entry
  *
@@ -51,7 +59,7 @@
  *	TTY information is gotten from the (struct utmp).
  */
 
-void dolastlog(struct lastlog *ll, const struct passwd *pw, const char *line, const char *host)
+void dolastlog(const struct passwd *pw, const char *line, const char *host)
 {
 	int	fd;
 	off_t	offset;
@@ -84,8 +92,6 @@ void dolastlog(struct lastlog *ll, const struct passwd *pw, const char *line, co
 
 	if (read(fd, (char *) &newlog, sizeof newlog) != sizeof newlog)
 		memzero(&newlog, sizeof newlog);
-	if (ll)
-		*ll = newlog;
 
 	time((time_t *) &newlog.ll_time);
 	strncpy(newlog.ll_line, line, sizeof newlog.ll_line);
@@ -96,5 +102,4 @@ void dolastlog(struct lastlog *ll, const struct passwd *pw, const char *line, co
 		write(fd, (char *) &newlog, sizeof newlog);
 	close(fd);
 }
-
-#endif /* -disabled- */
+#endif
