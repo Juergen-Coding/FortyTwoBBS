@@ -165,7 +165,7 @@ int CountTtyinfo(void)
 
 	    fclose(fil);
 	    chmod(ffile, 0640);
-	    Syslog('+', "Creaded new %s with %d ttys", ffile, count);
+	    Syslog('+', "Created new %s with %d ttys", ffile, count);
 	    free(ffile);
 	    return count;
 	} else {

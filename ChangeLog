@@ -6,3 +6,13 @@ v1.0.7.22	05-May-2021 - Andrew Leary
 		tossed if mbfido is called with the -unp switch.
 
 		2.  Updated copyright notices to 2021.
+
+v1.0.7.23	31-Oct-2021 - Andrew Leary
+
+		1.  Door dropfiles will now list the actual or locked port
+		speed, instead of being forced to 19200 bps.
+
+		2.  Corrected the FidoNet address for FREQing the current
+		release of MBSEBBS.
+
+		3.  A few other minor spelling/grammer corrections.
