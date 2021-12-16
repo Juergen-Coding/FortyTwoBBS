@@ -546,7 +546,7 @@ int main(int argc, char **argv)
 	 * Started under control of mbtask, that means if there is a lock then
 	 * there is something wrong; abort.
 	 */
-	if (do_unprot) {
+	if ((do_unprot) || (CFG.PKTunp)) {
 	    if (! lockdir(CFG.inbound))
 		die(MBERR_NO_PROGLOCK);
 	} else {
@@ -648,7 +648,7 @@ int main(int argc, char **argv)
     }
     if (do_tic || do_toss) {
 	/*
-	 * Do inbound direcory sessions
+	 * Do inbound directory sessions
 	 */
 	if (dirinbound()) {
 	    if (do_tic) {
@@ -738,6 +738,7 @@ int TossMail(void)
 	 */
 	
 	 maxrc = rc = TossPkts();
+	 (void)chdir(inbound);
     }
     
     if (do_unprot)

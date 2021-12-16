@@ -363,6 +363,7 @@ int main(int argc, char **argv)
 	ttyinfo.type = NETWORK;
 	ttyinfo.available = TRUE;
 	ttyinfo.honor_zmh = FALSE;
+	ttyinfo.portspeed = 57600;
 	snprintf(ttyinfo.name,    36, "Network port #%d", iNode);
     } else {
 	/*
