@@ -70,8 +70,8 @@ static char *get_lastlogin_dbname(int *error) {
     // "/opt/mbse/lastlogin.db\0"
 
     strncpy(result, mbse_root, length);
-    *(result + length) = '/';
-    strncpy(result + length + 1, database_name, dbname_length);
+    *(result + length - 1) = '/';
+    strncpy(result + length, database_name, dbname_length);
     *(result + total_length - 1) = '\0';
 
     return result;
@@ -99,7 +99,7 @@ static sqlite3 *open_lastlogin_db(void) {
 
     sqlite3 *db;
     if (SQLITE_OK != sqlite3_open(database_file, &db)) {
-        fprintf(stderr, "Error opening the database: %s\n", sqlite3_errmsg(db));
+        fprintf(stderr, "Error opening the database %s: %s\n", database_file, sqlite3_errmsg(db));
         sqlite3_close(db);
         return NULL;
     }
