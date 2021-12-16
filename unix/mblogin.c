@@ -451,8 +451,7 @@ int main(int argc, char **argv)
     checkutmp(!amroot);
     STRFCPY(tty, utent.ut_line);
 	#endif
-	STRFCPY(tty, "/dev/");
-	STRFCPY(tty + 5, ttyname(0));
+	STRFCPY(tty, ttyname(0) + 5);
 	
 	
 
