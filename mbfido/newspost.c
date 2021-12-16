@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbinet.h"
 #include "newspost.h"
@@ -141,7 +140,7 @@ int newspost(void)
 	    fprintf(ofp, "#! rnews %d\n", count);
 	    while (fgets(buf, 10240, nfp)) {
 		if (strcmp(buf, ".\n")) {
-		    fprintf(ofp, buf);
+			fputs(buf, ofp);
 		} else {
 		    break;
 		}

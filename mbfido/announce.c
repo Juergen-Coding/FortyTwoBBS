@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -100,15 +99,15 @@ void Uploads()
 			Syslog('m', "  %d %s", i, fdb.Name);
 			memset(&T_File, 0, sizeof(T_File));
 			if (strlen(fdb.TicArea))
-			    strncpy(T_File.Echo, fdb.TicArea, sizeof(T_File.Echo) -1);
+			    memccpy(T_File.Echo, fdb.TicArea, '\0', sizeof(T_File.Echo) -1);
 			else
 			    snprintf(T_File.Echo, 21, "AREA %d", i);
-			strncpy(T_File.Group, area.NewGroup, sizeof(T_File.Group) -1);
+			memccpy(T_File.Group, area.NewGroup, '\0', sizeof(T_File.Group) -1);
 			strncpy(T_File.Comment, area.Name, sizeof(T_File.Comment) -1);
-			strncpy(T_File.Name, fdb.Name, sizeof(T_File.Name) -1);
-			strncpy(T_File.LName, fdb.LName, sizeof(T_File.LName) -1);
+			memccpy(T_File.Name, fdb.Name, '\0', sizeof(T_File.Name) -1);
+			memccpy(T_File.LName, fdb.LName, '\0', sizeof(T_File.LName) -1);
 			if (strlen(fdb.Magic))
-			    strncpy(T_File.Magic, fdb.Magic, sizeof(T_File.Magic) -1);
+			    memccpy(T_File.Magic, fdb.Magic, '\0', sizeof(T_File.Magic) -1);
 			T_File.Size = fdb.Size;
 			T_File.SizeKb = fdb.Size / 1024;
 			T_File.Fdate = fdb.FileDate;

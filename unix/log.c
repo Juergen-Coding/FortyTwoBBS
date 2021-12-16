@@ -30,6 +30,8 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
+#if 0
+
 #include "../config.h"
 #include <sys/types.h>
 #include <unistd.h>
@@ -95,3 +97,4 @@ void dolastlog(struct lastlog *ll, const struct passwd *pw, const char *line, co
 	close(fd);
 }
 
+#endif /* -disabled- */

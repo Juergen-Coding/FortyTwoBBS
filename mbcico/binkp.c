@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/nodelist.h"
@@ -1596,7 +1595,7 @@ TrType binkp_transmitter(void)
 
 		bp.tmode = CompNone;
 		extra = (char *)"";
-                if ((bp.CRCwe == Active)) {
+                if (bp.CRCwe == Active) {
                     Syslog('b', "Binkp: CRC mode active - GZ/BZ2 compression disabled");
                 } else {
 		    if ((tmp->compress == CompGZ) || (tmp->compress == CompBZ2)) {
@@ -1622,7 +1621,7 @@ TrType binkp_transmitter(void)
 		Syslog('+', "Binkp: send \"%s\" as \"%s\"", MBSE_SS(tmp->local), MBSE_SS(tmp->remote));
 		Syslog('+', "Binkp: size %u bytes, dated %s, comp %s", 
 			(unsigned int)tmp->size, date(tmp->date), cpstate[bp.tmode]);
-                if ((bp.CRCwe == Active)) {
+                if (bp.CRCwe == Active) {
                     Syslog('b', "Binkp: CRC active - file %s CRC %x", MBSE_SS(tmp->local), (int)tmp->crc32);
                     rc = binkp_send_command(MM_FILE, "%s %u %d %d %x", MBSE_SS(tmp->remote), (unsigned int)tmp->size, (int)tmp->date, (unsigned int)tmp->offset, (int)tmp->crc32);
                     } else {

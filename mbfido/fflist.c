@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/msg.h"
 #include "fflist.h"
@@ -57,17 +56,18 @@ void fill_fflist(ff_list **fdp)
 {
 	char	*b;
 	ff_list	*tmp, *ta;
+	size_t bufflen = 110; /* was 44 */
 
-	b = calloc(44, sizeof(char));
-	snprintf(b, 44, "%s~", Msg.FromAddress);
+	b = calloc(bufflen, sizeof(char));
+	snprintf(b, bufflen, "%s~", Msg.FromAddress);
 
 	/*
 	 *  Add a new record
 	 */
 	tmp = (ff_list *)malloc(sizeof(ff_list));
 	tmp->next = NULL;
-	snprintf(tmp->from, 36, "%s", Msg.From);
-	snprintf(tmp->subject, 72, "%s", Msg.Subject);
+	snprintf(tmp->from, 36, "%.*s", 35, Msg.From);
+	snprintf(tmp->subject, 72, "%.*s", 71, Msg.Subject);
 	if (strchr(b, '.') == NULL) {
 		tmp->zone = atoi(strtok(b, ":"));
 		tmp->net  = atoi(strtok(NULL, "/"));

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "../lib/users.h"
@@ -301,7 +300,8 @@ int main(int argc, char *argv[])
 
     while (argv[optind]) {
 
-	for (p = argv[optind]; (*p) && (*p == '*'); p++);
+	for (p = argv[optind]; (*p) && (*p == '*'); p++)
+    ;
 #ifdef IEMSI
         if (strncasecmp(p, "EMSI_NAKEEC3", 12) == 0) {
 

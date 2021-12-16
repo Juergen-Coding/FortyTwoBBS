@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "../lib/users.h"
@@ -290,7 +289,7 @@ int outstat()
     Syslog('+', "Flavor Try      Size Age    Address");
     for (tmp = alist; tmp; tmp = tmp->next) {
 	if ((tmp->flavors & F_FREQ) || (tmp->size) || 1) {
-	    strcpy(flstr,"......");
+		memcpy(flstr, "......", 6);
 	    if ((tmp->flavors) & F_IMM   ) flstr[0]='D';
 	    if ((tmp->flavors) & F_CRASH ) flstr[1]='C';
 	    if ((tmp->flavors) & F_NORMAL) flstr[2]='N';

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -137,10 +136,10 @@ int toss_onemsg(char *msgname)
 	return 2;
     }
     
-    strncpy(fromUserName, (char *)buf, 36);
-    strncpy(toUserName, (char *)buf+0x24, 36);
-    strncpy(subject, (char *)buf+0x48, 72);
-    strncpy(DateTime, (char *)buf+0x90, 20);
+    memccpy(fromUserName, (char *)buf, '\0', 36);
+    memccpy(toUserName, (char *)buf+0x24, '\0', 36);
+    memccpy(subject, (char *)buf+0x48, '\0', 72);
+    memccpy(DateTime, (char *)buf+0x90, '\0', 20);
 
     Syslog('m', "From \"%s\"", printable(fromUserName, 0));
     Syslog('m', "To   \"%s\"", printable(toUserName, 0));

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "orphans.h"
 #include "tic.h"
@@ -77,7 +76,7 @@ int Day_Of_Year()
 int Rearc(char *unarc)
 {
     int	    i = 0, j = 0, k = 0;
-    char    temp[PATH_MAX], *cmd = NULL;
+    char    temp[PATH_MAX * 2], *cmd = NULL;
 
     Syslog('f', "Entering Rearc(%s)", unarc);
 
@@ -113,7 +112,7 @@ int Rearc(char *unarc)
 
     Syslog('f' , "NewFile=\"%s\", NewFullName=\"%s\"", TIC.NewFile, TIC.NewFullName);
 	
-    snprintf(temp, PATH_MAX, "%s/%s .", TIC.Inbound, TIC.NewFile);
+    snprintf(temp, sizeof(temp), "%s/%s .", TIC.Inbound, TIC.NewFile);
     if (execute_str(cmd, temp, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null") == 0) {
 	free(cmd);
 	return TRUE;
@@ -122,8 +121,8 @@ int Rearc(char *unarc)
     /*
      * Restore filenames
      */
-    strncpy(TIC.NewFile, TIC.TicIn.File, sizeof(TIC.NewFile) -1);
-    strncpy(TIC.NewFullName, TIC.TicIn.FullName, sizeof(TIC.NewFullName) -1);
+    memccpy(TIC.NewFile, TIC.TicIn.File, '\0', sizeof(TIC.NewFile) -1);
+    memccpy(TIC.NewFullName, TIC.TicIn.FullName, '\0', sizeof(TIC.NewFullName) -1);
 
     free(cmd);
     WriteError("Rearc(%s) Failed", unarc);

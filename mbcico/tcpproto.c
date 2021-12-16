@@ -32,7 +32,6 @@
         contributed by Stanislav Voronyi <stas@uanet.kharkov.ua>
 */
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "ttyio.h"

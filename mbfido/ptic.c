@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -68,8 +67,8 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 {
     int		    First, Listed = FALSE, DownLinks = 0, MustRearc = FALSE;
     int		    UnPacked = FALSE, IsArchive = FALSE, rc, i, j, k;
-    char	    *Temp, *unarc = NULL, *cmd = NULL;
-    char	    temp1[PATH_MAX], temp2[PATH_MAX], sbe[24], TDesc[1024];
+    char	    *unarc = NULL, *cmd = NULL;
+    char	    sbe[24], TDesc[1024];
     unsigned int    crc, crc2, Kb;
     sysconnect	    Link;
     FILE	    *fp;
@@ -85,8 +84,6 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	return 1;
     }
 
-    Temp = calloc(PATH_MAX, sizeof(char));
-
     if (!do_quiet) {
 	mbse_colour(LIGHTGREEN, BLACK);
 	printf("Checking  \b\b\b\b\b\b\b\b\b\b");
@@ -96,14 +93,18 @@ int ProcessTic(fa_list **sbl, orphans **opl)
     if (TIC.Orphaned) {
 	fill_orphans(opl, TIC.TicName, TIC.TicIn.Area, TIC.TicIn.File, TRUE, FALSE);
 	Syslog('+', "File not in inbound: %s", TIC.TicIn.File);
-	free(Temp);
 	return 2;
     }
 
-    snprintf(Temp, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
-    crc = file_crc(Temp, CFG.slow_util && do_quiet);
-    TIC.FileSize = file_size(Temp);
-    TIC.FileDate = file_time(Temp);
+    char *path_tic = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+	if (NULL == path_tic) {
+		WriteError("Unable to join paths %s and %s", TIC.Inbound, TIC.TicIn.File);
+		free(path_tic);
+		return 2;
+	}
+    crc = file_crc(path_tic, CFG.slow_util && do_quiet);
+    TIC.FileSize = file_size(path_tic);
+    TIC.FileDate = file_time(path_tic);
 
     if (TIC.TicIn.Size) {
 	if (TIC.TicIn.Size != TIC.FileSize)
@@ -121,16 +122,16 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	    fill_orphans(opl, TIC.TicName, TIC.TicIn.Area, TIC.TicIn.File, FALSE, TRUE);
 	    if (check_crc) {
 		Syslog('+', "Bad CRC, will check this ticfile later");
-		free(Temp);
+		free(path_tic);
 		return 1;
 	    } else {
 		Syslog('!', "CRC: error, recalculating crc");
-		ReCalcCrc(Temp);
+		ReCalcCrc(path_tic);
 	    }
 	}
     } else {
 	Syslog('+', "CRC: missing, calculating CRC");
-	ReCalcCrc(Temp);
+	ReCalcCrc(path_tic);
     }
 
     /*
@@ -142,7 +143,7 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	p_from = fido2faddr(TIC.Aka);
 	if (!create_ticarea(TIC.TicIn.Area, p_from)) {
 	    Bad((char *)"Unknown file area %s", TIC.TicIn.Area);
-	    free(Temp);
+	    free(path_tic);
 	    tidy_faddr(p_from);
 	    return 1;
 	}
@@ -152,7 +153,7 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	 */
 	if (!SearchTic(TIC.TicIn.Area)) {
 	    Bad((char *)"Reload of new created file area %s failed", TIC.TicIn.Area);
-	    free(Temp);
+	    free(path_tic);
 	    return 1;
 	}
     }
@@ -169,52 +170,60 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	}
 	if (!Listed) {
 	    Bad((char *)"%s NOT connected to %s", aka2str(TIC.Aka), TIC.TicIn.Area);
-	    free(Temp);
+	    free(path_tic);
 	    return 1;
 	}
     }
 
     if ((!SearchNode(TIC.Aka)) && (!TIC.TicIn.Hatch)) {
 	Bad((char *)"%s NOT known", aka2str(TIC.Aka));
-	free(Temp);
+	free(path_tic);
 	return 1;
     }
 
     if (!TIC.TicIn.Hatch) {
 	if (strcasecmp(TIC.TicIn.Pw, nodes.Fpasswd)) {
 	    Bad((char *)"Pwd error, got %s, expected %s", TIC.TicIn.Pw, nodes.Fpasswd);
-	    free(Temp);
+	    free(path_tic);
 	    return 1;
 	}
     } else {
 	if (strcasecmp(TIC.TicIn.Pw, CFG.hatchpasswd)) {
 	    Bad((char *)"Password error in local Hatch");
 	    WriteError("WARNING: it might be a Trojan in your inbound");
-	    free(Temp);
+	    free(path_tic);
 	    return 1;
 	}
     }
 
     if (Magic_DeleteFile()) {
-	snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicName);
-	file_rm(temp1);
-	Syslog('+', "Deleted file %s", temp1);
-	file_rm(Temp);
-	free(Temp);
-	return 0;
+		char *path_tmp = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicName, sizeof(TIC.TicName));
+		if (NULL == path_tmp) {
+			WriteError("Unable to join paths for file deletion: %s/%s", TIC.Inbound, TIC.TicName);
+			file_rm(path_tic);
+			free(path_tic);
+			return 0;
+		} else {
+			file_rm(path_tmp);
+			Syslog('+', "Deleted file %s", path_tmp);
+			file_rm(path_tic);
+			free(path_tic);
+			free(path_tmp);
+			return 0;
+		}
     }
 
 
     if (Magic_MoveFile()) {
 	if (!SearchTic(TIC.TicIn.Area)) {
 	    Bad((char *)"Unknown Area: %s", TIC.TicIn.Area);
-	    free(Temp);
+	    free(path_tic);
 	    return 1;
 	}
     }
 
-    strncpy(T_File.Echo, tic.Name, 20);
-    strncpy(T_File.Group, tic.Group, 12);
+    memcpy(T_File.Echo, tic.Name, 20);
+    memcpy(T_File.Group, tic.Group, 12);
     TIC.KeepNum = tic.KeepLatest;
 
     Magic_Keepnum();
@@ -224,25 +233,34 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	strcpy(TIC.BBSpath, CFG.ticout);
 	strcpy(TIC.BBSdesc, tic.Comment);
     } else {
-	snprintf(Temp, PATH_MAX, "%s/etc/fareas.data", getenv("MBSE_ROOT"));
-	if ((fp = fopen(Temp, "r")) == NULL) {
+		free(path_tic);
+		char *root = getenv("MBSE_ROOT");
+		size_t root_len = strlen(root);
+		const char fareas_data[] = "/etc/fareas.data";
+		char *path_tmp = join_paths(root, root_len, fareas_data, sizeof(fareas_data));
+		if (NULL == path_tmp) {
+			WriteError("Could not join paths %s and %s", root, fareas_data);
+			return 1;
+		}
+	if ((fp = fopen(path_tmp, "r")) == NULL) {
 	    WriteError("Can't access fareas.data area: %ld", tic.FileArea);
-	    free(Temp);
+	    free(path_tmp);
 	    return 1;
 	}
 	fread(&areahdr, sizeof(areahdr), 1, fp);
 	if (fseek(fp, ((tic.FileArea -1) * areahdr.recsize) + areahdr.hdrsize, SEEK_SET)) {
 	    fclose(fp);
 	    WriteError("Can't seek area %ld in fareas.data", tic.FileArea);
-	    free(Temp);
+	    free(path_tmp);
 	    return 1;
 	}
 	if (fread(&area, areahdr.recsize, 1, fp) != 1) {
 	    fclose(fp);
 	    WriteError("Can't read area %ld in fareas.data", tic.FileArea);
-	    free(Temp);
+	    free(path_tmp);
 	    return 1;
 	}
+	free(path_tmp);
 	fclose(fp);
 	strcpy(TIC.BBSpath, area.Path);
 	strcpy(TIC.BBSdesc, area.Name);
@@ -252,9 +270,9 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	 * the group to that name.
 	 */
 	if (strlen(area.NewGroup))
-	    strncpy(T_File.Group, area.NewGroup, 12);
+	    memcpy(T_File.Group, area.NewGroup, 12);
     }
-    strncpy(T_File.Comment, tic.Comment, 55);
+    memcpy(T_File.Comment, tic.Comment, 55);
 
     /*
      * Check if the destination area really exists, it may be that
@@ -263,20 +281,23 @@ int ProcessTic(fa_list **sbl, orphans **opl)
     if (tic.FileArea && access(TIC.BBSpath, W_OK)) {
 	WriteError("No write access to \"%s\"", TIC.BBSpath);
 	Bad((char *)"Dest directory not available");
-	free(Temp);
 	return 1;
     }
 
     if ((tic.DupCheck) && (check_dupe)) {
-	snprintf(Temp, PATH_MAX, "%s%s", TIC.TicIn.Area, TIC.TicIn.Crc);
-	crc2 = 0xffffffff;
-	crc2 = upd_crc32(Temp, crc2, strlen(Temp));
-	if (CheckDupe(crc2, D_FILEECHO, CFG.tic_dupes)) {
-	    Bad((char *)"Duplicate file");
-	    tic_dup++;
-	    free(Temp);
-	    return 1;
-	}
+		char *path_tmp = join_paths(TIC.TicIn.Area, sizeof(TIC.TicIn.Area), TIC.TicIn.Crc, sizeof(TIC.TicIn.Crc));
+		if (NULL == path_tmp) {
+			WriteError("Unable to join paths on %s and %s", TIC.TicIn.Area, TIC.TicIn.Crc);
+			return 1;
+		}
+		crc2 = 0xffffffff;
+		crc2 = upd_crc32(path_tmp, crc2, strlen(path_tmp));
+		if (CheckDupe(crc2, D_FILEECHO, CFG.tic_dupes)) {
+			Bad((char *)"Duplicate file");
+			tic_dup++;
+			free(path_tmp);
+			return 1;
+		}
     }
 
     /*
@@ -339,7 +360,6 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	 * Create tmp workdir
 	 */
 	if (create_tmpwork()) {
-	    free(Temp);
 	    tidy_qualify(&qal);
 	    return 1;
 	}
@@ -359,120 +379,179 @@ int ProcessTic(fa_list **sbl, orphans **opl)
      * it's a passthru area.
      */
     if (((tic.SendOrg) && (MustRearc || strlen(tic.Banner))) || (!tic.FileArea)) {
-	snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
-	snprintf(temp2, PATH_MAX, "%s/%s", CFG.ticout, TIC.TicIn.File);
-	if ((rc = file_cp(temp1, temp2) == 0)) {
-	    TIC.SendOrg = TRUE;
-	} else {
-	    WriteError("Copy %s to %s failed: %s", temp1, temp2, strerror(rc));
-	}
+		char *path1 = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+		char *path2 = join_paths(CFG.ticout, sizeof(CFG.ticout), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+		if (NULL == path1) {
+			WriteError("Unable to join path on %s and %s", TIC.Inbound, TIC.TicIn.File);
+			if (NULL != path2) {
+				free(path2);
+			}
+		} else if (NULL == path2) {
+			WriteError("Unable to join path on %s and %s", CFG.ticout, TIC.TicIn.File);
+			free(path1);
+		} else {
+			if ((rc = file_cp(path1, path2) == 0)) {
+				TIC.SendOrg = TRUE;
+			} else {
+				WriteError("Copy %s to %s failed: %s", path1, path2, strerror(rc));
+			}
+			free(path1);
+			free(path2);
+		}
     }
 
     if (MustRearc && IsArchive) {
+		char *root = getenv("MBSE_ROOT");
+		size_t root_len = strlen(root);
+		char arc_buffer[32];
+		snprintf(arc_buffer, 32, "/tmp/arc%d", (int)getpid());
 
-	snprintf(temp2, PATH_MAX, "%s/tmp/arc%d", getenv("MBSE_ROOT"), (int)getpid());
-	if (!checkspace(temp2, TIC.TicIn.File, UNPACK_FACTOR)) {
-	    Bad((char *)"Not enough free diskspace left");
-	    free(Temp);
-	    tidy_qualify(&qal);
-	    clean_tmpwork();
-	    return 1;
-	}
+		char *path = join_paths(root, root_len, arc_buffer, sizeof(arc_buffer));
+		if (NULL == path) {
+			WriteError("Unable to join path on %s and %s", root, arc_buffer);
+			tidy_qualify(&qal);
+			clean_tmpwork();
+			return 1;
+		}
+		if (!checkspace(path, TIC.TicIn.File, UNPACK_FACTOR)) {
+			Bad((char *)"Not enough free diskspace left");
+			free(path);
+			tidy_qualify(&qal);
+			clean_tmpwork();
+			return 1;
+		}
 
-	if (chdir(temp2) != 0) {
-	    WriteError("$Can't change to %s", temp2);
-	    free(Temp);
-	    tidy_qualify(&qal);
-	    clean_tmpwork();
-	    return 1;
-	}
+		if (chdir(path) != 0) {
+			WriteError("$Can't change to %s", path);
+			free(path);
+			tidy_qualify(&qal);
+			clean_tmpwork();
+			return 1;
+		}
 
-	if (!getarchiver(unarc)) {
-	    WriteError("Can't get archiver for %s", unarc);
-	    chdir(TIC.Inbound);
-	    free(Temp);
-	    tidy_qualify(&qal);
-	    clean_tmpwork();
-	    return 1;
-	}
+		if (!getarchiver(unarc)) {
+			WriteError("Can't get archiver for %s", unarc);
+			chdir(TIC.Inbound);
+			free(path);
+			tidy_qualify(&qal);
+			clean_tmpwork();
+			return 1;
+		}
 
-	if (strlen(archiver.funarc) == 0) {
-	    Syslog('!', "No unarc command available");
-	} else {
-	    cmd = xstrcpy(archiver.funarc);
-	    snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
-	    if (execute_str(cmd, temp1, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null") == 0) {
-		UnPacked = TRUE;
-	    } else {
-		chdir(TIC.Inbound);
-		Bad((char *)"Archive maybe corrupt");
-		free(Temp);
-		clean_tmpwork();
-		return 1;
-	    }
-	    free(cmd);
-	}
+		if (strlen(archiver.funarc) == 0) {
+			Syslog('!', "No unarc command available");
+		} else {
+			cmd = xstrcpy(archiver.funarc);
+			char *exec_path = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+			if (NULL == exec_path) {
+				WriteError("Unable to join paths %s and %s", TIC.Inbound, TIC.TicIn.File);
+				free(path);
+				clean_tmpwork();
+				return 1;
+			}
+			if (execute_str(cmd, exec_path, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null") == 0) {
+				UnPacked = TRUE;
+			} else {
+				chdir(TIC.Inbound);
+				Bad((char *)"Archive maybe corrupt");
+				free(path);
+				free(exec_path);
+				clean_tmpwork();
+				return 1;
+			}
+			free(cmd);
+			free(exec_path);
+		}
+		free(path);
     }
 
     /*
      * Scan file for viri.
      */
     if (tic.VirScan) {
+		char *path = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+		if (NULL == path) {
+			WriteError("Unable to join paths %s and %s", TIC.Inbound, TIC.TicIn.File);
+			tidy_qualify(&qal);
+			clean_tmpwork();
+			return 1;
+		}
+		if (!do_quiet) {
+			printf("Virscan   \b\b\b\b\b\b\b\b\b\b");
+			fflush(stdout);
+		}
 
-	snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
+		if (VirScanFile(path)) {
+			chdir(TIC.Inbound);
+			Bad((char *)"Possible virus found!");
+			free(path);
+			tidy_qualify(&qal);
+			clean_tmpwork();
+			return 1;
+		}
 
-	if (!do_quiet) {
-	    printf("Virscan   \b\b\b\b\b\b\b\b\b\b");
-	    fflush(stdout);
-	}
-
-	if (VirScanFile(temp1)) {
-	    chdir(TIC.Inbound);
-	    Bad((char *)"Possible virus found!");
-	    free(Temp);
-	    tidy_qualify(&qal);
-	    clean_tmpwork();
-	    return 1;
-	}
-
-	if (!do_quiet) {
-	    printf("Checking  \b\b\b\b\b\b\b\b\b\b");
-	    fflush(stdout);
-	}
+		if (!do_quiet) {
+			printf("Checking  \b\b\b\b\b\b\b\b\b\b");
+			fflush(stdout);
+		}
 
     }
 
     if (tic.FileId && tic.FileArea && IsArchive) {
-	if (UnPacked) {
-	    snprintf(temp1, PATH_MAX, "%s/tmp/arc%d", getenv("MBSE_ROOT"), (int)getpid());
-	    snprintf(Temp, PATH_MAX, "FILE_ID.DIZ");
-	    if (getfilecase(temp1, Temp)) {
-		Syslog('f', "Found %s", Temp);
-		snprintf(temp1, PATH_MAX, "%s/tmp/arc%d/%s", getenv("MBSE_ROOT"), (int)getpid(), Temp);
-		snprintf(temp2, PATH_MAX, "%s/tmp/FILE_ID.DIZ", getenv("MBSE_ROOT"));
-	    } else {
-		Syslog('f', "Didn't find a FILE_ID.DIZ");
-	    }
-	} else {
-	    if (!getarchiver(unarc)) {
-		chdir(TIC.Inbound);
-	    } else {
-		cmd = xstrcpy(archiver.iunarc);
-
-		if (cmd == NULL) {
-		    WriteError("No unarc command available");
+		char *root = getenv("MBSE_ROOT");
+		size_t root_len = strlen(root);
+		if (UnPacked) {
+			char arc_buffer[32];
+			snprintf(arc_buffer, 32, "/tmp/arc%d", (int)getpid());
+			char *path = join_paths(root, root_len, arc_buffer, sizeof(arc_buffer));
+			if (NULL == path) {
+				WriteError("Unable to join paths %s and %s", root, arc_buffer);
+			} else {
+				if (getfilecase(path, (char *)"FILE_ID.DIZ")) {
+					Syslog('f', "Found a FILE_ID.DIZ");
+				} else {
+					Syslog('f', "Didn't find a FILE_ID.DIZ");
+				}
+				free(path);
+			}
 		} else {
-		    snprintf(temp1, PATH_MAX, "%s/tmp", getenv("MBSE_ROOT"));
-		    chdir(temp1);
-		    snprintf(temp1, PATH_MAX, "%s/%s FILE_ID.DIZ", TIC.Inbound, TIC.TicIn.File);
-		    if (execute_str(cmd, temp1, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null")) {
-			snprintf(temp1, PATH_MAX, "%s/%s file_id.diz", TIC.Inbound, TIC.TicIn.File);
-			execute_str(cmd, temp1, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null");
-		    }
-		    free(cmd);
-		}
-	    } /* if getarchiver */
-	} /* if not unpacked */
+			if (!getarchiver(unarc)) {
+				chdir(TIC.Inbound);
+			} else {
+				cmd = xstrcpy(archiver.iunarc);
+
+				if (cmd == NULL) {
+					WriteError("No unarc command available");
+				} else {
+					char *path = join_paths(root, root_len, "/tmp", sizeof("/tmp"));
+					if (NULL == path) {
+						WriteError("Unable to join paths %s and %s", root, "/tmp");
+					} else {
+						chdir(path);
+						free(path);
+						char *tic_file = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+						if (NULL == tic_file) {
+							WriteError("Unable to join paths %s and %s", TIC.Inbound, TIC.TicIn.File);
+						} else {
+							size_t len = strlen(tic_file) + 20;
+							char *tmp = (char *)calloc(len, sizeof(char));
+							if (NULL == tmp) {
+								WriteError("Memory allocation error when creating space to hold %s and FILE_ID.DIZ", tic_file);
+							} else {
+								snprintf(tmp, len, "%s FILE_ID.DIZ", tic_file);
+								if (execute_str(cmd, tmp, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null")) {
+									snprintf(tmp, len, "%s file_id.diz", tic_file);
+									execute_str(cmd, tmp, (char *)NULL, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null");
+								}
+								free(tmp);
+							}
+							free(tic_file);
+						}
+					}
+					free(cmd);
+				}
+			} /* if getarchiver */
+		} /* if not unpacked */
     } /* if need FILE_ID.DIZ and not passthru */
 
     /*
@@ -513,7 +592,7 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 		    if (TIC.File_Id_Ct == 23)
 			break;
 		}
-		strncpy(TIC.File_Id[TIC.File_Id_Ct], TDesc, 48);
+		memcpy(TIC.File_Id[TIC.File_Id_Ct], TDesc, 48);
 		Syslog('f', "%2d/%2d: \"%s\"", TIC.File_Id_Ct, strlen(TIC.File_Id[TIC.File_Id_Ct]), TIC.File_Id[TIC.File_Id_Ct]);
 		TIC.File_Id_Ct++;
 	    }
@@ -538,16 +617,21 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	    /*
 	     * Get new filesize for import and announce
 	     */
-	    snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.NewFile);
-	    TIC.FileSize = file_size(temp1);
-	    T_File.Size = TIC.FileSize;
-	    T_File.SizeKb = TIC.FileSize / 1024;
-	    /*
-	     * Calculate the CRC if we must send the new archived file.
-	     */
-	    if (!TIC.SendOrg) {
-		ReCalcCrc(temp1);
-	    }
+		char *path = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.NewFile, sizeof(TIC.NewFile));
+		if (NULL == path) {
+			WriteError("Rearc failed, memory allocation error");
+		} else {
+			TIC.FileSize = file_size(path);
+			T_File.Size = TIC.FileSize;
+			T_File.SizeKb = TIC.FileSize / 1024;
+			/*
+			* Calculate the CRC if we must send the new archived file.
+			*/
+			if (!TIC.SendOrg) {
+				ReCalcCrc(path);
+			}
+			free(path);
+		}
 	} else {
 	    WriteError("Rearc failed");
 	} /* if Rearc() */
@@ -557,23 +641,38 @@ int ProcessTic(fa_list **sbl, orphans **opl)
      * Change banner if needed.
      */
     if ((strlen(tic.Banner)) && IsArchive) {
-	cmd = xstrcpy(archiver.barc);
-	if ((cmd == NULL) || (!strlen(cmd))) {
-	    Syslog('+', "No banner command for %s", archiver.name);
-	} else {
-	    snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.NewFile);
-	    snprintf(Temp, PATH_MAX, "%s/etc/%s", getenv("MBSE_ROOT"), tic.Banner);
-	    if (execute_str(cmd, temp1, (char *)NULL, Temp, (char *)"/dev/null", (char *)"/dev/null")) {
-		WriteError("Changing the banner failed");
-	    } else {
-		Syslog('+', "New banner %s", tic.Banner);
-		TIC.FileSize = file_size(temp1);
-		T_File.Size = TIC.FileSize;
-		T_File.SizeKb = TIC.FileSize / 1024;
-		ReCalcCrc(temp1);
-		DidBanner = TRUE;
-	    }
-	}
+		cmd = xstrcpy(archiver.barc);
+		if ((cmd == NULL) || (!strlen(cmd))) {
+			Syslog('+', "No banner command for %s", archiver.name);
+		} else {
+			char *path = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.NewFile, sizeof(TIC.NewFile));
+			if (NULL == path) {
+				WriteError("Unable to join paths %s and %s in banner command", TIC.Inbound, TIC.NewFile);
+			} else {
+				char *root = getenv("MBSE_ROOT");
+				size_t root_len = strlen(root);
+
+				char etc_buff[sizeof(tic.Banner) + 6];
+				snprintf(etc_buff, sizeof(etc_buff), "/etc/%s", tic.Banner);
+				char *banner_path = join_paths(root, root_len, etc_buff, sizeof(etc_buff));
+				if (NULL == banner_path) {
+					WriteError("Unable to join paths %s and %s in banner command", root, etc_buff);
+				} else {
+					if (execute_str(cmd, path, (char *)NULL, banner_path, (char *)"/dev/null", (char *)"/dev/null")) {
+						WriteError("Changing the banner failed");
+					} else {
+						Syslog('+', "New banner %s", tic.Banner);
+						TIC.FileSize = file_size(path);
+						T_File.Size = TIC.FileSize;
+						T_File.SizeKb = TIC.FileSize / 1024;
+						ReCalcCrc(path);
+						DidBanner = TRUE;
+					}
+					free(banner_path);
+				}
+				free(path);
+			}
+		}
     }
     clean_tmpwork();
     chdir(TIC.Inbound);
@@ -582,20 +681,26 @@ int ProcessTic(fa_list **sbl, orphans **opl)
      * If the file is converted, we set the date of the original
      * received file as the file creation date.
      */
-    snprintf(Temp, PATH_MAX, "%s/%s", TIC.Inbound, TIC.NewFile);
-    if ((MustRearc || DidBanner) && CFG.ct_KeepDate) {
-	if ((tic.Touch) && (tic.FileArea)) {
-	    ut.actime = mktime(localtime(&TIC.FileDate));
-	    ut.modtime = mktime(localtime(&TIC.FileDate));
-	    utime(Temp, &ut);
-	    Syslog('-', "Restamp filedate %s to %s", Temp, rfcdate(ut.modtime));
+
+	char *path_tmp = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.NewFile, sizeof(TIC.NewFile));
+	if (NULL == path_tmp) {
+		WriteError("Unable to join paths %s and %s in creation date check", TIC.Inbound, TIC.NewFile);
+	} else {
+		if ((MustRearc || DidBanner) && CFG.ct_KeepDate) {
+			if ((tic.Touch) && (tic.FileArea)) {
+				ut.actime = mktime(localtime(&TIC.FileDate));
+				ut.modtime = mktime(localtime(&TIC.FileDate));
+				utime(path_tmp, &ut);
+				Syslog('-', "Restamp filedate %s to %s", path_tmp, rfcdate(ut.modtime));
+			}
+		}
+		/*
+		* Now make sure the file timestamp is updated. The file may be restamped,
+		* altered by banners etc.
+		*/
+		TIC.FileDate = file_time(path_tmp);
+		free(path_tmp);
 	}
-    }
-    /*
-     * Now make sure the file timestamp is updated. The file may be restamped,
-     * altered by banners etc.
-     */
-    TIC.FileDate = file_time(Temp);
 
     /*
      * If not passthru, import in the BBS.
@@ -607,7 +712,6 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 
 	if (!BBS_Imp) {
 	    Bad((char *)"File Import Error");
-	    free(Temp);
 	    tidy_qualify(&qal);
 	    clean_tmpwork();
 	    return 1;
@@ -629,8 +733,8 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	    strncpy(T_File.LDesc[i], TIC.File_Id[i], 48);
 	T_File.TotLdesc = TIC.File_Id_Ct;
 	T_File.Announce = tic.Announce;
-	strncpy(T_File.Name, TIC.NewFile, 12);
-	strncpy(T_File.LName, TIC.NewFullName, 80);
+	memccpy(T_File.Name, TIC.NewFile, '\0', 12);
+	memccpy(T_File.LName, TIC.NewFullName, '\0', 80);
 	T_File.Fdate = TIC.FileDate;
 	Add_ToBeRep(T_File);
     }
@@ -641,9 +745,14 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 	 * file in the inbound anymore so it can be
 	 * deleted.
 	 */
-	snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicIn.File);
-	if (file_rm(temp1) == 0)
-	    Syslog('f', "Deleted %s", temp1);
+		char *path = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicIn.File, sizeof(TIC.TicIn.File));
+		if (NULL == path) {
+			WriteError("Unable to join paths %s and %s in passthru check", TIC.Inbound, TIC.TicIn.File);
+		} else {
+			if (file_rm(path) == 0)
+				Syslog('f', "Deleted %s", path);
+			free(path);
+		}
     }
 
     if (DownLinks) {
@@ -698,13 +807,17 @@ int ProcessTic(fa_list **sbl, orphans **opl)
     Magic_UnpackFile();
     Magic_AdoptFile();
 
-    
-    snprintf(Temp, PATH_MAX, "%s/%s", TIC.Inbound, TIC.TicName);
-    if (unlink(Temp)) {
-	WriteError("$Can't delete %s", Temp);
-    }
 
-    free(Temp);
+	path_tic = join_paths(TIC.Inbound, sizeof(TIC.Inbound), TIC.TicName, sizeof(TIC.TicName));
+	if (NULL == path_tic) {
+		WriteError("$Can't delete %s/%s, allocation error", TIC.Inbound, TIC.TicName);
+	} else {
+		if (unlink(path_tic)) {
+			WriteError("$Can't delete %s", path_tic);
+		}
+		free(path_tic);
+	}
+
     tidy_qualify(&qal);
     return 0;
 }

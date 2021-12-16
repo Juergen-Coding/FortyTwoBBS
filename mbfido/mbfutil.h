@@ -1,7 +1,7 @@
 /* $Id: mbfutil.h,v 1.7 2005/12/03 14:52:35 mbse Exp $ */
 
 #ifndef _MBFUTIL_H_
-#define _MBFUTIL_H
+#define _MBFUTIL_H_
 
 void	ProgName(void);			/* Program name header		*/
 void	die(int onsig);			/* Shutdown and cleanup		*/

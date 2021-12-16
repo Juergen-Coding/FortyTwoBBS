@@ -36,7 +36,6 @@
  * - added support for 16 bit product code
  */
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "../lib/users.h"
@@ -503,7 +502,7 @@ void fillhello(unsigned short capabilities, char *password)
 			best->domain, 58-strlen(name));		    /* domain		*/
     } else 
 	strncpy((char*)hello.data + 22, best->domain, 47);	    /* domain		*/
-    strncpy((char*)hello.data+70, CFG.sysop_name,19);		    /* sysop		*/
+    memcpy(hello.data+70, CFG.sysop_name, 19); /* sysop */
     hello.data[90] = best->zone&0xff;				    /* zone		*/
     hello.data[91] = best->zone>>8;				    /* zone		*/
     hello.data[92] = best->net&0xff;				    /* net		*/
@@ -617,7 +616,7 @@ int checkhello(void)
     else	
 	Syslog('+', "    uses: %s [%04X] version %d.%d", prodnm, hello2.product, majver, minver);
     Syslog('+', "  system: %s",(char*)hello2.my_name);
-    strncpy(history.system_name, (char *)hello2.my_name, 35);
+    snprintf(history.system_name, 36, "%.35s", hello2.my_name);
     Syslog('+', "   sysop: %s",(char*)hello2.sysop);
     strncpy(history.sysop, (char *)hello2.sysop, 35);
     snprintf(history.location, 10, "Somewhere");

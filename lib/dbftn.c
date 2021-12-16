@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 #include "users.h"
 #include "mbsedb.h"
@@ -104,9 +103,9 @@ char *GetFidoDomain(unsigned short zone)
     memset(&domain, 0, sizeof(domain));
 
     if (SearchFidonet(zone) == FALSE)
-	return NULL;
+	    return NULL;
 
-    strncpy(domain, fidonet.domain, 8);
+    snprintf(domain, 9, "%.8s", fidonet.domain);
     return domain;
 }
 

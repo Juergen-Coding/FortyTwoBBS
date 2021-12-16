@@ -29,6 +29,7 @@
  * along with MBSE BBS; see the file COPYING.  If not, write to the Free
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
+#if 0
 
 #include "../config.h"
 #include "mblogin.h"
@@ -501,3 +502,5 @@ void setutmp(const char *name, const char *line)
 }
 
 #endif /* SVR4 */
+
+#endif /* 0 -disabled- */

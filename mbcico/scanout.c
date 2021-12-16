@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -217,7 +216,7 @@ int scanout(int (*fn)(faddr *, char, int, char *))
 					 */
 					if (fidonet.zone[j]) {
 						if (j) {
-							snprintf(fext, 5, ".%03x", fidonet.zone[j]);
+							snprintf(fext, 5, ".%03x", fidonet.zone[j] & 0xfff);
 							p = xstrcat(p, fext);
 						}
 						Syslog('o', "Zone %d Dir %s", fidonet.zone[j], p);

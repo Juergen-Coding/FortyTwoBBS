@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbinet.h"
@@ -448,7 +447,7 @@ int get_xover(char *grpname, int startnr, int endnr, List **art)
 		 */
 		while (*ptr != '\0' && *ptr != '<')
 		    ptr++;
-		if(ptr != '\0') {
+		if(ptr != NULL) {
 		    ptr2 = ptr;
 		    while(*ptr2 != '\0' && *ptr2 != '>')
 			ptr2++;

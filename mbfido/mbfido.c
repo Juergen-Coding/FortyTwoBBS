@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -751,7 +750,7 @@ int TossMail(void)
      * Skip tossing netmail packets again if we already did them.
      */
 
-    if (!do_unprot & CFG.PKTunp) {
+    if ((!do_unprot) & CFG.PKTunp) {
     	Syslog('+', "Pass: toss netmail (%s)", inbound);
 
 	if (chdir(inbound) == -1) {

@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/nodelist.h"
 #include "session.h"
@@ -432,7 +431,7 @@ SM_STATE(checktelink)
 
 	Syslog('x', "checktelink got \"%s\"",printable((char *)xmblk.data,45));
 	if (tmpfname[0] == '\0') {
-		strncpy(tmpfname,(char *)xmblk.data+8,16);
+		memcpy(tmpfname, xmblk.data+8, 16);
 		/*
 		 *  Some systems fill the rest of the filename with spaces, sigh.
 		 */

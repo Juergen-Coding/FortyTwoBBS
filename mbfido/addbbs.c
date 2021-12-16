@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -54,7 +53,7 @@ int Add_BBS(qualify **qal)
 {
     struct FILE_record	    frec;
     int			    rc, i, Found = FALSE, Keep = 0, DidDelete = FALSE;
-    char		    temp1[PATH_MAX], temp2[PATH_MAX], *fname, *lname, *p;
+    char		    temp1[PATH_MAX * 2 + 2], temp2[PATH_MAX * 2 + 2], *fname, *lname, *p;
     fd_list		    *fdl = NULL;
     struct _fdbarea	    *fdb_area = NULL;
     qualify		    *tmpq;
@@ -69,8 +68,8 @@ int Add_BBS(qualify **qal)
     if ((fdb_area = mbsedb_OpenFDB(tic.FileArea, 30))) {
 	while (fread(&frec, fdbhdr.recsize, 1, fdb_area->fp) == 1) {
 	    if (strcmp(frec.Name, TIC.NewFile) == 0) {
-		snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.NewFile);
-		snprintf(temp2, PATH_MAX, "%s/%s", TIC.BBSpath, TIC.NewFile);
+		snprintf(temp1, sizeof(temp1), "%s/%s", TIC.Inbound, TIC.NewFile);
+		snprintf(temp2, sizeof(temp2), "%s/%s", TIC.BBSpath, TIC.NewFile);
 		mkdirs(temp2, 0755);
 		if ((rc = file_cp(temp1, temp2))) {
 		    WriteError("Copy to %s failed: %s", temp2, strerror(rc));
@@ -78,7 +77,8 @@ int Add_BBS(qualify **qal)
 		    return FALSE;
 		}
 		chmod(temp2, 0644);
-		strncpy(frec.TicArea, TIC.TicIn.Area, sizeof(frec.TicArea) -1);
+		memccpy(frec.TicArea, TIC.TicIn.Area, '\0', sizeof(frec.TicArea));
+		frec.TicArea[sizeof(frec.TicArea) - 1] = '\0';
 		frec.Size = TIC.FileSize;
 		frec.Crc32 = TIC.Crc_Int;
 		frec.Announced = TRUE;
@@ -109,18 +109,18 @@ int Add_BBS(qualify **qal)
      * Create filedatabase record.
      */
     memset(&frec, 0, sizeof(frec));
-    strncpy(frec.Name, TIC.NewFile, sizeof(frec.Name) -1);
+	memccpy(frec.Name, TIC.NewFile, '\0', sizeof(frec.Name) - 1);
     if (strlen(TIC.NewFullName)) {
-	strncpy(frec.LName, TIC.NewFullName, sizeof(frec.LName) -1);
+		memccpy(frec.LName, TIC.NewFullName, '\0', sizeof(frec.LName) - 1);
     } else {
 	/*
 	 * No LFN, fake it with a lowercase copy of the 8.3 filename.
 	 */
-	strncpy(frec.LName, TIC.NewFile, sizeof(frec.LName) -1);
+	memccpy(frec.LName, TIC.NewFile, '\0', sizeof(frec.LName) - 1);
 	for (i = 0; i < strlen(frec.LName); i++)
 	    frec.LName[i] = tolower(frec.LName[i]);
     }
-    strncpy(frec.TicArea, TIC.TicIn.Area, 20);
+	memccpy(frec.TicArea, TIC.TicIn.Area, '\0', 20);
     frec.Size = TIC.FileSize;
     frec.Crc32 = TIC.Crc_Int;
     frec.Announced = TRUE;
@@ -133,11 +133,11 @@ int Add_BBS(qualify **qal)
 	    break;
     }
     if (strlen(TIC.TicIn.Magic)) {
-	strncpy(frec.Magic, TIC.TicIn.Magic, sizeof(frec.Magic) -1);
+		memccpy(frec.Magic, TIC.TicIn.Magic, '\0', sizeof(frec.Magic) - 1);
     }
 
-    snprintf(temp1, PATH_MAX, "%s/%s", TIC.Inbound, TIC.NewFile);
-    snprintf(temp2, PATH_MAX, "%s/%s", TIC.BBSpath, frec.Name);
+    snprintf(temp1, sizeof(temp1), "%s/%s", TIC.Inbound, TIC.NewFile);
+    snprintf(temp2, sizeof(temp2), "%s/%s", TIC.BBSpath, frec.Name);
     mkdirs(temp2, 0755);
 
     if ((rc = file_cp(temp1, temp2))) {
@@ -284,10 +284,10 @@ int Add_BBS(qualify **qal)
 	if ((fdb_area = mbsedb_OpenFDB(tic.FileArea, 30))) {
 	    while (fread(&fdb, fdbhdr.recsize, 1, fdb_area->fp) == 1) {
 		if (fdb.Deleted) {
-		    snprintf(temp2, PATH_MAX, "%s/%s", area.Path, fdb.LName);
+		    snprintf(temp2, sizeof(temp2), "%s/%s", area.Path, fdb.LName);
 		    if (unlink(temp2) != 0)
 		        WriteError("$Can't unlink file %s", temp2);
-		    snprintf(temp2, PATH_MAX, "%s/%s", area.Path, fdb.Name);
+		    snprintf(temp2, sizeof(temp2), "%s/%s", area.Path, fdb.Name);
 
 		    /*
 		     * With the path to the 8.3 name, we can check if this file
@@ -305,7 +305,7 @@ int Add_BBS(qualify **qal)
 
 		    if (unlink(temp2) != 0)
 		        WriteError("$Can't unlink file %s", temp2);
-		    snprintf(temp2, PATH_MAX, "%s/.%s", area.Path, fdb.Name);
+		    snprintf(temp2, sizeof(temp2), "%s/.%s", area.Path, fdb.Name);
 		    unlink(temp2); /* Thumbnail, no logging if there is an error */
 		}
 	    }

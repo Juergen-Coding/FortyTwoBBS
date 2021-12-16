@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -449,10 +448,13 @@ int compile(char *nlname, unsigned short zo, unsigned short ne, unsigned short n
 	    continue;
 	}
 
-	if (*(p=buf+strlen(buf) -1) == '\n') 
-	    *p-- = '\0';
-	if (*p == '\r') 
-	    *p = '\0';
+	for (p = buf + strlen(buf) - 1; p > buf; p--) {
+		if (*p == '\r' || *p == '\n') {
+			*p = '\0';
+		} else {
+			break;
+		}
+	}
 	if ((buf[0] == ';') || (buf[0] == '\032') || (buf[0] == '\0'))
 	    continue;
 
@@ -713,7 +715,7 @@ void fill_fdlist(fd_list **fdp, char *filename, time_t filedate)
 
     tmp = (fd_list *)malloc(sizeof(fd_list));
     tmp->next = *fdp;
-    snprintf(tmp->fname, 65, "%s", filename);
+    snprintf(tmp->fname, 65, "%.*s", 64, filename);
     tmp->fdate = filedate;
     *fdp = tmp;
 }

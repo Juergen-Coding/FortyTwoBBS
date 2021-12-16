@@ -37,7 +37,7 @@ struct sockaddr_un      clntaddr;       /* Client socket address        */
 struct sockaddr_un      servaddr;       /* Server socket address        */
 struct sockaddr_un      from;           /* From socket address          */
 socklen_t		fromlen;
-static char		*myname='\0';	/* my program name		*/
+static char		*myname=NULL;	/* my program name		*/
 char			spath[108];     /* Server socket path           */
 char			cpath[108];     /* Client socket path           */
 int		iNode;	    /* Current node number  */

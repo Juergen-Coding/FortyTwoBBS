@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/msg.h"
 #include "../lib/users.h"
@@ -242,9 +241,9 @@ int CheckEchoGroup(char *Area, int SendUplink, faddr *f)
 		msgs.WRSec = mgroup.WRSec;
 		msgs.SYSec = mgroup.SYSec;
 		msgs.LinkSec = mgroup.LinkSec;
-		strncpy(msgs.Group, mgroup.Name, 12);
+		memccpy(msgs.Group, mgroup.Name, '\0', 12);
 		msgs.Aka = mgroup.UseAka;
-		strncpy(msgs.Origin, CFG.origin, 50);
+		memccpy(msgs.Origin, CFG.origin, '\0', 50);
 		msgs.Aliases = mgroup.Aliases;
 		msgs.NetReply = mgroup.NetReply;
 		msgs.Active = TRUE;

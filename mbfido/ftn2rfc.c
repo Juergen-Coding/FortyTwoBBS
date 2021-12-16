@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -1050,9 +1049,9 @@ int ftn2rfc(faddr *f, faddr *t, char *subj, char *origline, time_t mdate, int fl
     else if ((p=hdr((char *)"Message-ID",kmsg)))
 	snprintf(temp,32768, "Message-ID: %s",p);
     else if ((p=hdr((char *)"RFCID",kmsg))) {
-	if ((p[0]=='<')) {
+	if (p[0]=='<') {
 	    /* "^aRFCID: <local@machine>" */
-	    if ((p[strlen(p)-2]=='>')) {
+	    if (p[strlen(p)-2]=='>') {
 		snprintf(temp,32768, "Message-ID: %s",p);
 		/* "^aRFCID: <local@machine" */
 		/* I saw it on some IntToss gated articles

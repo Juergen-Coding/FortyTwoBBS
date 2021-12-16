@@ -30,7 +30,6 @@
  *****************************************************************************/
 
 
-#include "../config.h"
 #include "mbselib.h"
 #include "users.h"
 #include "mbsedb.h"

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -314,9 +313,9 @@ int CheckTicGroup(char *Area, int SendUplink, faddr *f)
     area.UPSec = fgroup.UPSec;
     area.LTSec = fgroup.LTSec;
     area.New = area.Dupes = area.Free = area.AddAlpha = area.FileFind = area.Available = area.FileReq = TRUE;
-    strncpy(area.BbsGroup, fgroup.BbsGroup, 12);
-    strncpy(area.NewGroup, fgroup.AnnGroup, 12);
-    strncpy(area.Archiver, fgroup.Convert, 5);
+    memccpy(area.BbsGroup, fgroup.BbsGroup, '\0', 12);
+    memccpy(area.NewGroup, fgroup.AnnGroup, '\0', 12);
+    memccpy(area.Archiver, fgroup.Convert, '\0', 5);
     area.Upload = fgroup.Upload;
     fwrite(&area, sizeof(area), 1, fp);
     fclose(fp);
@@ -340,11 +339,11 @@ int CheckTicGroup(char *Area, int SendUplink, faddr *f)
     strncpy(tic.Name, tag, 20);
     strncpy(tic.Comment, desc, 55);
     tic.FileArea = AreaNr;
-    strncpy(tic.Group, fgroup.Name, 12);
+    memccpy(tic.Group, fgroup.Name, '\0', 12);
     tic.AreaStart = time(NULL);
     tic.Aka = fgroup.UseAka;
-    strncpy(tic.Convert, fgroup.Convert, 5);
-    strncpy(tic.Banner, fgroup.Banner, 14);
+    memccpy(tic.Convert, fgroup.Convert, '\0', 5);
+    memccpy(tic.Banner, fgroup.Banner, '\0', 14);
     tic.Replace = fgroup.Replace;
     tic.DupCheck = fgroup.DupCheck;
     tic.Secure = fgroup.Secure;

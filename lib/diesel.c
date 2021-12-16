@@ -326,7 +326,6 @@ documented above, in outstring.
     
 */
 
-#include "../config.h"
 #include "mbselib.h"
 #include "diesel.h"
 
@@ -1632,7 +1631,7 @@ static int macrovalue(int nargs, char *args, char *output)
 	       message, make up a general-purpose message here. */
 
 	    if (mstat == FALSE) {
-		V snprintf(output, MAXSTR, " @(%s,%c%c) ", macname, '?', '?');
+		V snprintf(output, MAXSTR, " @(%.*s,%c%c) ", MAXSTR - 9, macname, '?', '?');
 	    }
 	    if (mstat != TRUE) {
 #ifdef DIESEL_TRACE
@@ -1650,7 +1649,7 @@ static int macrovalue(int nargs, char *args, char *output)
 	    return TRUE;
 	}
     }
-    V snprintf(output, MAXSTR, " @(%s)?? ", macname);
+    V snprintf(output, MAXSTR, " @(%.*s)?? ", MAXSTR - 8, macname);
 #ifdef DIESEL_TRACE
     if (tracing) {
 	 V printf("Err:  %s\n", output);

@@ -1,4 +1,4 @@
-#ifndef _MBFIFF_H
+#ifndef _MBDIFF_H
 #define	_MBDIFF_H
 
 

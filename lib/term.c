@@ -29,7 +29,6 @@
  *****************************************************************************/
 
 
-#include "../config.h"
 #include "mbselib.h"
 #include "users.h"
 
@@ -145,7 +144,7 @@ void mbse_mvprintw(int y, int x, const char *format, ...)
     va_end(va_ptr);
 
     mbse_locate(y, x);
-    fprintf(stdout, outputstr);
+	fputs(outputstr, stdout);
     free(outputstr);
     fflush(stdout);
 }

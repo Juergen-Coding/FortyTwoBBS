@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 #include "diesel.h"
 
@@ -128,7 +127,7 @@ char *ParseMacro( const char *line, int *dieselrc)
 		}
 		i--;
 		snprintf(tmp2, MAXSTR, "@(GETVAR,%c)",code);
-		if (!diesel(tmp2,tmp3)==0){
+		if ((!diesel(tmp2,tmp3))==0){
 		    snprintf(tmp3, MAXSTR, "%c%c",'@',code);
 		}
 		if (l>2){
@@ -157,7 +156,7 @@ char *ParseMacro( const char *line, int *dieselrc)
 	for (j=2; ((tmp1[j]!='}') && (tmp1[j]!='\0'));j++){
 	    i++;
 	}
-	if ( (tmp1[j]=='}') ){
+	if ( tmp1[j]=='}' ){
 	    i++;
 	    res[0]='\0';
 	    if (j>2)

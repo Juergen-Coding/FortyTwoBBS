@@ -187,7 +187,7 @@ struct icmp_filter {
 /*
  * Pragma pack is to make all databases portable
  */
-#pragma pack(1)
+#pragma pack(push, 1)
 
 
 /*****************************************************************************
@@ -2630,6 +2630,11 @@ int  create_tmpwork(void);	    /* Create tmp workdir		*/
  */
 int VirScanFile(char *);		/* VirScan a file		*/
 
+/*
+ * paths.c
+ */
+char *join_paths(const char *, size_t, const char *, size_t);
+
 
 /*************************************************************************
  *
@@ -2724,4 +2729,5 @@ extern struct	_ibcsrvhdr	ibcsrvhdr;		/* IBC servers		    */
 extern struct	_ibcsrv		ibcsrv;
 
 
+#pragma pack(pop)
 #endif

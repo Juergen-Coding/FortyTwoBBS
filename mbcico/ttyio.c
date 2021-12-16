@@ -31,7 +31,6 @@
 /* ### Modified by P.Saratxaga on 25 Oct 1995 ###
  * - Added if (inetaddr) code from T. Tanaka
  */
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "ttyio.h"
 #include "lutil.h"

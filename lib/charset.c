@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "mbselib.h"
 
 
@@ -229,7 +228,7 @@ char *get_ic_rfc(int val)
 {
     static char ic_rfcname[21];
  
-    snprintf(ic_rfcname, 20, getrfcchrs(val));
+    snprintf(ic_rfcname, 21, "%s", getrfcchrs(val));
     tu(ic_rfcname);
     return ic_rfcname;
 }

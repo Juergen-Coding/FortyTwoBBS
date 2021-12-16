@@ -3,6 +3,7 @@
 #ifndef	_UTMP_HH
 #define	_UTMP_HH
 
+#if 0
 
 void checkutmp(int);
 
@@ -26,4 +27,5 @@ void setutmp(const char *, const char *, const char *);
 void setutmp(const char *, const char *);
 #endif
 
+#endif /* 0 -disabled- */
 #endif

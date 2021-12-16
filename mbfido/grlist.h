@@ -1,5 +1,5 @@
 #ifndef _GRLIST_H_
-#define _GRLIST_H
+#define _GRLIST_H_ 1
 
 
 typedef struct _gr_list {		/* Announce array		   */

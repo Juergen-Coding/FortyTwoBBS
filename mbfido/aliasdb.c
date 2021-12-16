@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "aliasdb.h"
 
@@ -141,7 +140,7 @@ int registrate(char *freename, char *address)
 		}
 	}
 	
-	snprintf(key.freename, MAXNAME, "%s", buf);
+	snprintf(key.freename, MAXNAME, "%.*s", 34, buf);
 	snprintf(key.address, 128, "%s", address);
 	key.dtime = time(NULL);
 
