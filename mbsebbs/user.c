@@ -30,7 +30,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -233,7 +232,7 @@ void user(void)
 	}
 	strncpy(LastName, token, sizeof(LastName)-1);
     } else
-	strncpy(FirstName, UserName, sizeof(FirstName)-1);
+    snprintf(FirstName, sizeof(FirstName), "%.*s", (int)(sizeof(FirstName) - 1), UserName);
     strncpy(UserName, usrconfig.sUserName, sizeof(UserName)-1);
     Syslog('+', "%s On-Line from \"%s\", node %d", UserName, ttyinfo.comment, iNode);
     IsDoing("Just Logged In");
@@ -505,10 +504,8 @@ void user(void)
 	/*
 	 * Displays file if it exists DD-MM.A??
 	 */
-	snprintf(temp, PATH_MAX, "%s", (char *) GetDateDMY());
-	strcpy(temp1, "");
-	strncat(temp1, temp, 5);
-	snprintf(temp, PATH_MAX, "%s", temp1);
+    time_t t = time(NULL);
+    strftime(temp, 5, "%d-%m", localtime(&t));
 	DisplayFile(temp);
 	
 	/*

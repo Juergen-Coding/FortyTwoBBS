@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/msg.h"
@@ -81,7 +80,7 @@ char *make_msgid(char *msgid)
 {
     static char	buf[100];
 
-    snprintf(buf, 100, "<%08x$%s@%s>", StringCRC32(msgid), currentgroup, CFG.sysdomain);
+    snprintf(buf, 100, "<%08x$%.52s@%.35s>", StringCRC32(msgid), currentgroup, CFG.sysdomain);
     return buf;
 }
 

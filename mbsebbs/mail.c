@@ -34,7 +34,6 @@
  *
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -421,7 +420,9 @@ void Post_Msg()
 
     Enter(1);
     /* Posting message in area: */
-    snprintf(msg, 81, "%s\"%s\"", (char *) Language(156), sMsgAreaDesc);
+	char msg_buf[PATH_MAX + 512] = {0};
+    snprintf(msg_buf, sizeof(msg_buf), "%s\"%s\"", (char *) Language(156), sMsgAreaDesc);
+	snprintf(msg, 80, "%.79s", msg_buf);
     pout(LIGHTBLUE, BLACK, msg);
     Enter(1);
 
@@ -518,7 +519,7 @@ void Post_Msg()
                         pout(GREEN, BLACK, msg);
                         thisNode = nodesSysop;
                         while ( thisNode != NULL ){
-                                snprintf(msg, 81, "(%d:%d/%d:%d) %s @ %s\r\n",
+                                snprintf(msg, 81, "(%d:%d/%d:%d) %.30s @ %.30s\r\n",
                                         thisNode->addr.zone, thisNode->addr.net,
                                         thisNode->addr.node, thisNode->addr.point,
                                         thisNode->Name, thisNode->Location);
@@ -947,7 +948,7 @@ void ShowMsgHdr(void)
     Buf3[0] = '\0';
 
     clear();
-    snprintf(msg, 81, "   %-70s", sMsgAreaDesc);
+    snprintf(msg, 81, "   %-70.70s", sMsgAreaDesc);
     pout(BLUE, LIGHTGRAY, msg);
 
     snprintf(msg, 81,"#%-5u", Msg.Id);
@@ -1007,7 +1008,7 @@ void ShowMsgHdr(void)
     colour(color++, BLACK);
     PUTSTR(chartran(Msg.From));
     if (iMsgAreaType != LOCALMAIL) {
-	snprintf(msg, 81, " (%s)", Msg.FromAddress);
+	snprintf(msg, 81, " (%.77s)", Msg.FromAddress);
 	pout(color, BLACK, msg);
     }
     Enter(1);
@@ -1021,7 +1022,7 @@ void ShowMsgHdr(void)
     colour(color++, BLACK);
     PUTSTR(chartran(Msg.To));
     if (iMsgAreaType == NETMAIL) {
-	snprintf(msg, 81, " (%s)", Msg.ToAddress);
+	snprintf(msg, 81, " (%.77s)", Msg.ToAddress);
 	pout(color, BLACK, msg);
     }
     Enter(1);
@@ -1442,8 +1443,10 @@ void Read_Msgs()
     temp = calloc(81, sizeof(char));
     Enter(1);
 	/* Message area \"%s\" contains %lu messages. */
-    snprintf(temp, 81, "%s\"%s\" %s%u %s", (char *) Language(221), sMsgAreaDesc, 
+	char temp_buf[PATH_MAX + 512] = {0};
+    snprintf(temp_buf, sizeof(temp_buf), "%s\"%s\" %s%u %s", (char *) Language(221), sMsgAreaDesc, 
 		(char *) Language(222), MsgBase.Total, (char *) Language(223));
+	snprintf(temp, 80, "%.79s", temp_buf);
     pout(CFG.TextColourF, CFG.TextColourB, temp);
 
     /*
@@ -1607,15 +1610,15 @@ int ReadPanel()
 void Reply_Msg(int IsReply)
 {
     int	    i, j, x, cc;
-    char    to[101], from[101], subj[101], msgid[101], replyto[101], replyaddr[101], *tmp, *buf, qin[6], msg[81];
+    char    to[101] = {0}, from[101] = {0}, subj[101] = {0}, msgid[101], replyto[101] = {0}, replyaddr[101] = {0}, *tmp, *buf, qin[6], msg[81];
     faddr   *Dest = NULL;
 
     if (!Post_Allowed())
-	return;
+	    return;
 
-    strncpy(from, Msg.To, 100);
-    strncpy(to, Msg.From, 100);
-    strncpy(replyto, Msg.ReplyTo, 80);
+	memccpy(from, Msg.To, '\0', 100);
+    memccpy(to, Msg.From, '\0', 100);
+    memccpy(replyto, Msg.ReplyTo, '\0', 80);
 
     /*
      * For some reason there are sometimes spaces at the
@@ -1631,9 +1634,9 @@ void Reply_Msg(int IsReply)
 
     if (strncasecmp(Msg.Subject, "Re:", 3) && strncasecmp(Msg.Subject, "Re^2:", 5) && IsReply) {
 	snprintf(subj, 101, "Re: ");
-	strncpy(subj+4, Msg.Subject, 97);
+	memccpy(subj+4, Msg.Subject, '\0', 97);
     } else {
-	strncpy(subj, Msg.Subject, 101);
+	memccpy(subj, Msg.Subject, '\0', 101);
     }
     Syslog('m', "Reply msg to %s, subject %s", to, subj);
     Syslog('m', "Msgid was %s", Msg.Msgid);
@@ -1642,7 +1645,7 @@ void Reply_Msg(int IsReply)
     x = 0;
     WhosDoingWhat(READ_POST, NULL);
     clear();
-    snprintf(msg, 81, "   %-71s", sMsgAreaDesc);
+    snprintf(msg, 81, "   %-71.71s", sMsgAreaDesc);
     pout(BLUE, LIGHTGRAY, msg);
     snprintf(msg, 81, "#%-5u", MsgBase.Highest + 1);
     pout(RED, LIGHTGRAY, msg);
@@ -1658,9 +1661,9 @@ void Reply_Msg(int IsReply)
 	Message[i] = (char *) calloc(MAX_LINE_LENGTH +1, sizeof(char));
     Msg_New();
 
-    strncpy(Msg.Replyid, msgid, sizeof(Msg.Replyid));
-    strncpy(Msg.ReplyTo, replyto, sizeof(Msg.ReplyTo));
-    strncpy(Msg.ReplyAddr, replyaddr, sizeof(Msg.ReplyAddr));
+    memccpy(Msg.Replyid, msgid, '\0', sizeof(Msg.Replyid));
+    memccpy(Msg.ReplyTo, replyto, '\0', sizeof(Msg.ReplyTo));
+    memccpy(Msg.ReplyAddr, replyaddr, '\0', sizeof(Msg.ReplyAddr));
 
     /* From     : */
     if (Alias_Option()) {
@@ -1895,7 +1898,7 @@ void QuickScan_Msgs()
     if (Msg_Open(sMsgAreaBase)) {
 	for (i = MsgBase.Lowest; i <= MsgBase.Highest; i++) {
             if (Msg_ReadHeader(i) && ((!Msg.Private) ||
-                                     ((Msg.Private) && (!strcasecmp(aka2str(msgs.Aka), Msg.FromAddress) && IsMe(Msg.From) && Msg.Netmail) || 
+                                     ((Msg.Private && (!strcasecmp(aka2str(msgs.Aka), Msg.FromAddress) && IsMe(Msg.From) && Msg.Netmail)) || 
                                                        (!strcasecmp(aka2str(msgs.Aka), Msg.ToAddress) && IsMe(Msg.To) && Msg.Netmail) || 
                                                        ((IsMe(Msg.From) || IsMe(Msg.To)) && (!Msg.Netmail)) ||
                                                        (exitinfo.Security.level >= msgs.SYSec.level)
@@ -1962,15 +1965,18 @@ void Delete_Msg()
     }
 
     temp = calloc(81, sizeof(char));
+	char *string_buf = (char *)calloc(PATH_MAX * 2, sizeof(char));
     Enter(1);
     /* Message area \"%s\" contains %lu messages. */
-    snprintf(temp, 81, "%s\"%s\" %s%u %s", (char *) Language(221), sMsgAreaDesc,
+    snprintf(string_buf, PATH_MAX * 2, "%s\"%s\" %s%u %s", (char *) Language(221), sMsgAreaDesc,
 	    (char *) Language(222), MsgBase.Total, (char *) Language(223));
+	snprintf(temp, 80, "%.79s", string_buf);
     pout(CFG.TextColourF, CFG.TextColourB, temp);
 
     Enter(1);
     /* Please enter a message between */
-    snprintf(temp, 81, "%s(%u - %u): ", (char *) Language(224), MsgBase.Lowest, MsgBase.Highest);
+    snprintf(string_buf, PATH_MAX * 2, "%s(%u - %u): ", (char *) Language(224), MsgBase.Lowest, MsgBase.Highest);
+    snprintf(temp, 80, "%.79s", string_buf);
     pout(WHITE, BLACK, temp);
 
     colour(CFG.InputColourF, CFG.InputColourB);
@@ -1978,6 +1984,7 @@ void Delete_Msg()
     if ((strcmp(temp, "")) != 0)
 	Msgnum = atoi(temp);
     free(temp);
+	free(string_buf);
     
     if (!Msg_Open(sMsgAreaBase)) {
 	WriteError("Error open JAM base %s", sMsgAreaBase);
@@ -2590,7 +2597,7 @@ void CheckMail()
 	    else
 		Color = LIGHTBLUE;
 	    PUTCHAR('\r');
-	    snprintf(msg, 81, "%6s  %-40s", temp, sMsgAreaDesc);
+	    snprintf(msg, 81, "%6s  %-40.40s", temp, sMsgAreaDesc);
 	    pout(Color, BLACK, msg);
 	    Count = 0;
 	    /*
@@ -2634,7 +2641,9 @@ void CheckMail()
 	    if (Count) {
 		Enter(2);
 		/* messages in */
-		snprintf(msg, 81, "%d %s %s", Count, (char *)Language(213), sMsgAreaDesc);
+		char temp_buf[PATH_MAX + 512] = {0};
+		snprintf(temp_buf, sizeof(temp_buf), "%d %s %s", Count, (char *)Language(213), sMsgAreaDesc);
+		snprintf(msg, 80, "%.79s", temp_buf);
 		pout(CFG.TextColourF, CFG.TextColourB, msg);
 		Enter(2);
 		Syslog('m', "  %d messages in %s", Count, sMsgAreaDesc);
@@ -2797,7 +2806,7 @@ void MailStatus()
 		case NEWS:	PUTSTR((char *)" News ");
 				break;
 	    }
-	    snprintf(msg, 81, " %-40s", sMsgAreaDesc);
+	    snprintf(msg, 81, " %-40.40s", sMsgAreaDesc);
 	    pout(LIGHTCYAN, BLACK, msg);
 	    Count = 0;
 

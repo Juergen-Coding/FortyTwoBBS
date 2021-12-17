@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -265,14 +264,14 @@ void DoMenu(int Type)
 
 	case 1:
 		/* Goto another menu */
-		strncpy(Menus[MenuLevel], menus.OptionalData, 14);
+		snprintf(Menus[MenuLevel], 15, "%.*s", 14, menus.OptionalData);
 		break;
 
 	case 2:
 		/* Gosub another menu */
 		if (MenuLevel < 49) {
 		    MenuLevel++;
-		    strncpy(Menus[MenuLevel], menus.OptionalData, 14);
+		    snprintf(Menus[MenuLevel], 15, "%.*s", 14, menus.OptionalData);
 		} else
 		    Syslog('?', "More than 50 menu levels");
 		break;
@@ -313,7 +312,7 @@ void DoMenu(int Type)
 		    else if (*(sPromptBak + x) == '^')
 			strcat(sPrompt, sMsgAreaDesc);
 		    else if (*(sPromptBak + x) == '#')
-			snprintf(sPrompt, 81, "%s%s", sPrompt, (char *) GetLocalHM()); 
+			strcat(sPrompt, GetLocalHM());
 		    else {
 			snprintf(temp, 81, "%c", *(sPromptBak + x));
 			strcat(sPrompt, temp);

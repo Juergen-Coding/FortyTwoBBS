@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -207,7 +206,7 @@ void system_moni(void)
 		snprintf(buf, 128, "GMON:1,0;");
 	    if (eof == 0) {
 		if (socket_send(buf) == 0) {
-		    strncpy(buf, socket_receive(), 128);
+			snprintf(buf, sizeof(buf), "%.*s", (int)(sizeof(buf) - 1), socket_receive());
 		    mbse_locate(y, 1);
 		    clrtoeol();
 		    if (strncmp(buf, "100:0;", 6) == 0) {
@@ -283,7 +282,7 @@ void system_stat(void)
 
 	snprintf(buf, 256, "GSTA:1,%d;", getpid());
 	if (socket_send(buf) == 0) {
-	    strncpy(buf, socket_receive(), 256);
+		snprintf(buf, sizeof(buf), "%.*s", (int)(sizeof(buf) - 1), socket_receive());
 	    set_color(LIGHTGRAY, BLACK);
 	    strtok(buf, ",");
 	    now = atoi(strtok(NULL, ","));
@@ -674,10 +673,10 @@ void Chat(int sysop)
 	    p = xstrcat(p, (char *)",");
 	    p = xstrcat(p, clencode(sbuf));
 	    p = xstrcat(p, (char *)";");
-	    strncpy(buf, p, 200);
+		memccpy(buf, p, '\0', sizeof(buf));
 	    free(p);
 	    if (socket_send(buf) == 0) {
-		strcpy(buf, socket_receive());
+		snprintf(buf, sizeof(buf), "%.*s", (int)(sizeof(buf) - 1), socket_receive());
 		if (strncmp(buf, "100:2,", 6) == 0) {
 		    strncpy(resp, strtok(buf, ":"), 10);    /* Should be 100            */
 		    strncpy(resp, strtok(NULL, ","), 5);    /* Should be 2              */

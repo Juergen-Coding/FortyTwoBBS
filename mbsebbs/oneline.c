@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -124,7 +123,7 @@ void Oneliner_Add()
     Syslog('!', ol.Oneline);
 		
     snprintf(ol.UserName,36,"%s", exitinfo.sUserName);
-    snprintf(ol.DateOfEntry,12,"%02d-%02d-%04d",l_date->tm_mday,l_date->tm_mon+1,l_date->tm_year+1900);
+    strftime(ol.DateOfEntry, 12, "%d-%m-%Y", l_date);
     ol.Available = TRUE;
 
     fwrite(&ol, sizeof(ol), 1, pOneline);

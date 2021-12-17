@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -58,9 +57,9 @@ char *Gdate(time_t tt, int Y2K)
 
         tm = localtime(&tt);
         if (Y2K)
-                snprintf(GLC, 15, "%02d-%02d-%04d", tm->tm_mon +1, tm->tm_mday, tm->tm_year + 1900);
+			strftime(GLC, 15, "%m-%d-%Y", tm);
         else
-                snprintf(GLC, 15, "%02d-%02d-%02d", tm->tm_mon +1, tm->tm_mday, tm->tm_year % 100);
+			strftime(GLC, 15, "%m-%d-%y", tm);
 
         return (GLC);
 }

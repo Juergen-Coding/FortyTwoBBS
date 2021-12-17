@@ -41,7 +41,6 @@
  * - corriged a bug when Organization: has only blanks
  */
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"

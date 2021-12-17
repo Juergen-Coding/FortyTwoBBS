@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -419,7 +418,7 @@ void Masterlist()
 		    snprintf(temp, 81, "%d KB in %d files", NewAreaBytes / 1024, NewAreaFiles);
 		    MidLine(temp, np, nu, NewAreaFiles);
 		    if (popdown) {
-			snprintf(temp, 81, "The ost popular file is: %s", pop);
+			snprintf(temp, 81, "The most popular file is: %.*s", 54, pop);
 			MidLine(temp, fp, fu, TRUE);
 		    }
 

@@ -75,5 +75,5 @@ struct	tm *l_date;		/* Structure for Date			   */
 time_t	ltime;
 time_t	Time_Now;
 
-char	current_language[10];	/* Current language of the user		   */
+char	current_language[11];	/* Current language of the user		   */
 int	utf8;

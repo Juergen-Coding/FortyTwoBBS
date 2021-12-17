@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -131,7 +130,7 @@ void File_List()
 	T.Area   = iAreaNumber;
 	T.Active = FALSE;
 	T.Size   = fdb.Size;
-	strncpy(T.SFile, fdb.Name, 12);
+	memccpy(T.SFile, fdb.Name, '\0', sizeof(T.SFile));
 	strncpy(T.LFile, chartran(fdb.LName), 80);
 	SetTag(T);
 
@@ -202,7 +201,7 @@ void Download(void)
 	return;
     }
 
-    local   = calloc(PATH_MAX, sizeof(char));
+    local   = calloc(PATH_MAX * 2, sizeof(char));
     /* Checking your marked downloads, please wait... */
     pout(LIGHTMAGENTA, BLACK, (char *) Language(255));
     Enter(2);
@@ -229,7 +228,7 @@ void Download(void)
 		Syslog('b', "Found file %s in area %d", fdb.LName, Tag.Area);
 		if (fdb.Deleted) {
 		    /* Sorry that file is unavailable for download */
-		    snprintf(temp, 81, "%s (%s)", (char *) Language(248), fdb.LName);
+		    snprintf(temp, PATH_MAX, "%s (%s)", (char *) Language(248), fdb.LName);
 		    poutCR(CFG.HiliteF, CFG.HiliteB, temp);
 		    Tag.Active = FALSE;
 		    Syslog('+', "File %s in area %d unavailable for download, deleted", fdb.LName, Tag.Area);
@@ -257,7 +256,7 @@ void Download(void)
 		    WriteError("Can't add info to %s", local);
 		}
 
-		snprintf(local, PATH_MAX, "%s/%s", sAreaPath, Tag.LFile);
+		snprintf(local, PATH_MAX * 2, "%s/%s", sAreaPath, Tag.LFile);
 		add_download(&dl, local, Tag.LFile, Tag.Area, fdb.Size, FALSE);
 
 		Home();
@@ -464,7 +463,7 @@ void File_RawDir(char *OpData)
 		} else {
 		    iBytes += statfile.st_size;
 
-		    snprintf(temp2, 81, "%-54s " , dp->d_name);
+		    snprintf(temp2, 81, "%-54.54s " , dp->d_name);
 		    pout(YELLOW, BLACK, temp2);
 
 		    snprintf(temp2, 81, "%-12d", (int)(statfile.st_size));
@@ -561,8 +560,16 @@ int KeywordScan()
 		Sheader();
 
 		while (fread(&fdb, fdbhdr.recsize, 1, fdb_area->fp) == 1) {
-		    for (i = 0; i < 25; i++)
-			snprintf(BigDesc, 1230, "%s%s", BigDesc, *(fdb.Desc + i));
+			int bigdesc_offset = 0;
+		    for (i = 0; i < 25; i++) {
+				if ('\0' == *fdb.Desc[i]) {
+					continue;
+				}
+				char *tmpptr = memccpy(BigDesc + bigdesc_offset, fdb.Desc[i], '\0', 49);
+				if (NULL != tmpptr) {
+					bigdesc_offset += (tmpptr - (BigDesc + bigdesc_offset)) - 1;
+				}
+			}
 
 		    if ((strstr(fdb.Name,Name) != NULL) || (strstr(tl(BigDesc), Name) != NULL)) {
 
@@ -582,8 +589,8 @@ int KeywordScan()
 			T.Area   = arecno;
 			T.Active = FALSE;
 			T.Size   = fdb.Size;
-			strncpy(T.SFile, fdb.Name, 12);
-			strncpy(T.LFile, fdb.LName, 80);
+			memccpy(T.SFile, fdb.Name, '\0', 12);
+			memccpy(T.LFile, fdb.LName, '\0', 80);
 			SetTag(T);
 			Count++;
 			if (ShowOneFile() == 1) {
@@ -703,8 +710,8 @@ int FilenameScan()
 			T.Area   = arecno;
 			T.Active = FALSE;
 			T.Size   = fdb.Size;
-			strncpy(T.SFile, fdb.Name, 12);
-			strncpy(T.LFile, fdb.LName, 81);
+			memccpy(T.SFile, fdb.Name, '\0', 12);
+			memccpy(T.LFile, fdb.LName, '\0', 81);
 			SetTag(T);
 			Count++;
 			if (ShowOneFile() == 1) {
@@ -842,8 +849,8 @@ int NewfileScan(int AskStart)
 			T.Area   = arecno;
 			T.Active = FALSE;
 			T.Size   = fdb.Size;
-			strncpy(T.SFile, fdb.Name, 12);
-			strncpy(T.LFile, fdb.LName, 80);
+			memccpy(T.SFile, fdb.Name, '\0', 12);
+			memccpy(T.LFile, fdb.LName, '\0', 80);
 			SetTag(T);
 
 			Count++;
@@ -1090,7 +1097,7 @@ void List_Home()
 		    WriteError("$Can't stat file %s",FileName);
 		} else {
 		    iBytes += statfile.st_size;
-		    snprintf(temp, 81, "%-20s", dp->d_name);
+		    snprintf(temp, 81, "%-20.20s", dp->d_name);
 		    pout(YELLOW, BLACK, temp);
 		    snprintf(temp, 81, "%-12d", (int)(statfile.st_size));
 		    pout(LIGHTMAGENTA, BLACK, temp);
@@ -1810,7 +1817,7 @@ void ViewFile(char *name)
 	return;
     }
 
-    File = calloc(PATH_MAX, sizeof(char));
+    File = calloc(PATH_MAX * 2, sizeof(char));
 
     if ((name != NULL) && strlen(name)) {
 	strcpy(File, name);
@@ -1886,7 +1893,7 @@ void ViewFile(char *name)
 	return;
     }
 
-    snprintf(File, PATH_MAX, "%s/%s", sAreaPath, fdb.LName);
+    snprintf(File, PATH_MAX * 2, "%s/%s", sAreaPath, fdb.LName);
     arc = GetFileType(File);
     Syslog('+', "File to view: %s, type %s", fdb.LName, printable(arc, 0));
 

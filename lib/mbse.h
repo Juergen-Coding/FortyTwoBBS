@@ -101,7 +101,7 @@ extern time_t	Time2Go;		/* Calculated time to force logout	   */
 extern struct	tm *l_date;		/* Structure for Date			   */
 extern time_t	ltime;
 extern time_t	Time_Now;
-extern char	current_language[10];	/* Current language of the user		   */
+extern char	current_language[11];	/* Current language of the user		   */
 extern int	utf8;
 
 

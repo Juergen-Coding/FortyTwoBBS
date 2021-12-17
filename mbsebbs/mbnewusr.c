@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -167,7 +166,7 @@ int main(int argc, char **argv)
     /*
      * Initialize 
      */
-    snprintf(current_language, 10, "%s", CFG.deflang);
+    snprintf(current_language, sizeof(current_language), "%.*s", (int)(sizeof(current_language) - 1), CFG.deflang);
     InitLanguage();
 
     if ((tty = ttyname(0)) == NULL) {

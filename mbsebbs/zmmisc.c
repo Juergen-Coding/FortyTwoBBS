@@ -62,7 +62,6 @@ static int  zgethex(void);
 static int  zgeth1(void);
 static void garbitch(void);
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "ttyio.h"
 #include "input.h"

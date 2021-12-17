@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -169,7 +168,7 @@ void Header()
     snprintf(temp, 81, "%-5d   ", iAreaNumber);
     pout(RED, LIGHTGRAY, temp);
 
-    snprintf(temp, 81, "%-65s", sAreaDesc);
+    snprintf(temp, 81, "%-65.65s", sAreaDesc);
     pout(BLUE, LIGHTGRAY, temp);
     Enter(1);
 
@@ -813,7 +812,7 @@ int Addfile(char *File, int AreaNum, int fileid)
 	fdb.Size = (int)(statfile.st_size);
 	fdb.FileDate = statfile.st_mtime;
 	fdb.Crc32 = file_crc(Filename, TRUE);
-	strncpy(fdb.Uploader, exitinfo.sUserName, 35);
+	memccpy(fdb.Uploader, exitinfo.sUserName, '\0', 36);
 	fdb.UploadDate = time(NULL);
 
 	/*

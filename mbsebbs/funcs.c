@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -184,7 +183,7 @@ char *ChangeHomeDir(char *Name, int Mailboxes)
     static char	temp1[PATH_MAX];
     FILE	*fp;
 
-    temp  = calloc(PATH_MAX, sizeof(char));
+    temp  = calloc(PATH_MAX * 2, sizeof(char));
 
     /*
      * set umask bits to zero's then reset with mkdir
@@ -242,19 +241,19 @@ char *ChangeHomeDir(char *Name, int Mailboxes)
     /*
      * Check subdirectories, create them if they don't exist.
      */
-    snprintf(temp, PATH_MAX, "%s/wrk", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/wrk", temp1);
     CheckDir(temp);
-    snprintf(temp, PATH_MAX, "%s/tag", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/tag", temp1);
     CheckDir(temp);
-    snprintf(temp, PATH_MAX, "%s/upl", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/upl", temp1);
     CheckDir(temp);
-    snprintf(temp, PATH_MAX, "%s/tmp", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/tmp", temp1);
     CheckDir(temp);
-    snprintf(temp, PATH_MAX, "%s/.dosemu", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/.dosemu", temp1);
     CheckDir(temp);
-    snprintf(temp, PATH_MAX, "%s/.dosemu/run", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/.dosemu/run", temp1);
     CheckDir(temp);
-    snprintf(temp, PATH_MAX, "%s/.dosemu/tmp", temp1);
+    snprintf(temp, PATH_MAX * 2, "%s/.dosemu/tmp", temp1);
     CheckDir(temp);
     umask(007);
 
@@ -262,13 +261,13 @@ char *ChangeHomeDir(char *Name, int Mailboxes)
      * Check users private emailboxes
      */
     if (Mailboxes) {
-	snprintf(temp, PATH_MAX, "%s/mailbox", temp1);
+	snprintf(temp, PATH_MAX * 2, "%s/mailbox", temp1);
 	if (Msg_Open(temp))
 	    Msg_Close();
-	snprintf(temp, PATH_MAX, "%s/archive", temp1);
+	snprintf(temp, PATH_MAX * 2, "%s/archive", temp1);
 	if (Msg_Open(temp))
 	    Msg_Close();
-	snprintf(temp, PATH_MAX, "%s/trash", temp1);
+	snprintf(temp, PATH_MAX * 2, "%s/trash", temp1);
 	if (Msg_Open(temp))
 	    Msg_Close();
     }

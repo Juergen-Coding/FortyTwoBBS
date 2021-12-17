@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -70,7 +69,7 @@ void Check_PM(void)
 	PUTCHAR('\007');
         colour(CYAN, BLACK);
         /* ** Message ** from */
-        snprintf(msg, 81, "%s %s:", (char *)Language(434), resp);
+        snprintf(msg, 81, "%.30s %.40s:", (char *)Language(434), resp);
 	poutCR(CYAN, BLACK, msg);
 	strncpy(resp, cldecode(strtok(NULL, "\0")), 80);    /* The real message	*/
         PUTSTR(resp);

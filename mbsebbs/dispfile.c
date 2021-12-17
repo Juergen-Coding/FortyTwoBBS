@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -120,15 +119,13 @@ void DisplayRules(void)
 		snprintf(temp, PATH_MAX, "%s/%s", CFG.rulesdir, de->d_name);
 		break;
 	    }
-	    snprintf(temp, PATH_MAX, "%s.rul", temp);
+	    snprintf(temp, PATH_MAX, "%s.rul", msgs.Tag);
 	    if (strcasecmp(de->d_name, temp) == 0) {
 		Found = TRUE;
 		snprintf(temp, PATH_MAX, "%s/%s", CFG.rulesdir, de->d_name);
 		break;
 	    }
-	    memset(&temp, 0, sizeof(temp));
-	    strncpy(temp, msgs.Tag, 8);
-	    snprintf(temp, PATH_MAX, "%s.rul", temp);
+	    snprintf(temp, PATH_MAX, "%s.rul", msgs.Tag);
 	    if (strcasecmp(de->d_name, temp) == 0) {
 		Found = TRUE;
 		snprintf(temp, PATH_MAX, "%s/%s", CFG.rulesdir, de->d_name);
@@ -232,7 +229,7 @@ int DisplayFile(char *filename)
 {
     FILE	    *fp = NULL;
     int		    iSec = 0;
-    char	    tmp[256], tmp1[256], buf[256], out[1024], newfile[PATH_MAX];
+    char	    tmp1[256], buf[256], out[1024], newfile[PATH_MAX];
     int		    x;
     unsigned char   c;
     
@@ -285,25 +282,26 @@ int DisplayFile(char *filename)
 			     */
 			    x++;
 			    strcpy(tmp1, "");
+				char *ptr_tmp1 = tmp1;
 			    while (buf[x] != '') {
-				snprintf(tmp, sizeof(tmp)-1, "%c", buf[x]);
-				strncat(tmp1, tmp, sizeof(tmp1)-1);
-				x++;
-			    }
+					*ptr_tmp1++ = buf[x];
+					x++;
+				}
+				*ptr_tmp1 = '\0';
 			    x++;
 			    iSec = atoi(tmp1);
 			    while ((x <= strlen(buf)) && buf[x] != '') {
-				if (exitinfo.Security.level >= iSec) {
-				    snprintf(tmp1, sizeof(tmp1) -1, "%c", buf[x]);
-				    strncat(out, tmp1, sizeof(out)-1);
-				}
-				x++;
+					if (exitinfo.Security.level >= iSec) {
+						char tmp_out[2] = { buf[x], '\0' };
+						strncat(out, tmp_out, 2);
+					}
+					x++;
 			    } 
 			    break;
 
 		case '\r':  break;
 
-		case '\n':  strncat(out, (char *)"\r\n", sizeof(out));
+		case '\n':  strncat(out, (char *)"\r\n", 3);
 			    break;
 
 		case '':  PUTSTR(chartran(out));
@@ -384,7 +382,7 @@ char *ControlCodeF(int ch)
 		break;
 
 	case 'I':
-		snprintf(temp, 81, "%s", sAreaDesc);
+		snprintf(temp, 81, "%.80s", sAreaDesc);
 		break;
 
 	case 'J':
@@ -619,7 +617,7 @@ char *ControlCodeK(int ch)
 		break;
 
 	case 'J':
-		snprintf(temp, 81, "%s", sMsgAreaDesc);
+		snprintf(temp, 81, "%.80s", sMsgAreaDesc);
 		break;
 
 	case 'K':

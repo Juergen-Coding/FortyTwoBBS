@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -243,7 +242,7 @@ int Export_a_Email(unsigned int Num)
      */
     Enter(2);
     pout(CFG.TextColourF, CFG.TextColourB, (char *) Language(46));
-    snprintf(temp, 21, "%s_%u.msg", sMailbox, Num);
+    snprintf(temp, 41, "%s_%u.msg", sMailbox, Num);
     pout(CFG.HiliteF, CFG.HiliteB, temp);
     Enter(2);
     Pause();
@@ -715,7 +714,7 @@ void Reply_Email(int IsReply)
     snprintf(replyaddr, 101, "%s", Msg.ReplyAddr);
 
     if (strncasecmp(Msg.Subject, "Re:", 3) && IsReply) {
-	snprintf(subj, 101, "Re: %s", Msg.Subject);
+	snprintf(subj, 101, "Re: %.*s", 96, Msg.Subject);
     } else {
 	snprintf(subj, 101, "%s", Msg.Subject);
     }
@@ -746,9 +745,9 @@ void Reply_Email(int IsReply)
     Line = 1;
     Msg_New();
 
-    snprintf(Msg.Replyid, sizeof(Msg.Replyid), "%s", msgid);
-    snprintf(Msg.ReplyTo, sizeof(Msg.ReplyTo), "%s", replyto);
-    snprintf(Msg.ReplyAddr, sizeof(Msg.ReplyAddr), "%s", replyaddr);
+    snprintf(Msg.Replyid, sizeof(Msg.Replyid), "%.80s", msgid);
+    snprintf(Msg.ReplyTo, sizeof(Msg.ReplyTo), "%.80s", replyto);
+    snprintf(Msg.ReplyAddr, sizeof(Msg.ReplyAddr), "%.80s", replyaddr);
 
     /* From     : */
     pout(YELLOW, BLACK, (char *) Language(209));

@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -196,11 +195,11 @@ void Add_Headkludges(faddr *dest, int IsReply)
 			snprintf(temp, 101, "\001Date: %s", rfcdate(Msg.Written));
 			MsgText_Add2(temp);
 			Node = fido2faddr(msgs.Aka);
-			snprintf(temp, 101, "\001From: %s", Msg.From);
+			snprintf(temp, 101, "\001From: %.*s", 93, Msg.From);
 			MsgText_Add2(temp);
-			snprintf(temp, 101, "\001Subject: %s", Msg.Subject);
+			snprintf(temp, 101, "\001Subject: %.*s", 90, Msg.Subject);
 			MsgText_Add2(temp);
-			snprintf(temp, 101, "\001Sender: %s", Msg.From);
+			snprintf(temp, 101, "\001Sender: %.*s", 91, Msg.From);
 			MsgText_Add2(temp);
 			tidy_faddr(Node);
 			MsgText_Add2((char *)"\001To: All");

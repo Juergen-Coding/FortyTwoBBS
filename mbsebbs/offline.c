@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -988,7 +987,7 @@ void OLR_Upload(void)
     /*      Offline Reader Upload */
     poutCR(LIGHTMAGENTA, BLACK, (char *)Language(439));
 
-    File  = calloc(PATH_MAX, sizeof(char));
+    File  = calloc(PATH_MAX * 2, sizeof(char));
     temp  = calloc(PATH_MAX, sizeof(char));
 
     Enter(1);
@@ -1029,7 +1028,7 @@ void OLR_Upload(void)
     }
     tidy_upload(&up);
 
-    snprintf(File, PATH_MAX, "%s/%s", Dirpath, Filename);
+    snprintf(File, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
     Syslog('+', "Received OLR packet %s", File);
 
     if ((Arc = GetFileType(File)) == NULL) {
@@ -1197,7 +1196,7 @@ void OLR_DownBW()
     
     /* Build today's date for comparison to last download date */
     
-    snprintf(Temp2, 12, "%02d-%02d-%04d", tp->tm_mday, tp->tm_mon +1, tp->tm_year +1900);
+	strftime(Temp2, 12, "%d-%m-%Y", tp);
 
     if (strcmp(Temp2,exitinfo.OLRlast)) { /* Last download wasn't today */
         exitinfo.OLRext = 0;
@@ -1279,7 +1278,7 @@ void OLR_DownBW()
 
 	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
 	    memset(&AreaInf, 0, sizeof(AreaInf));
-	    snprintf((char *)AreaInf.areanum, 6, "%u", Area);
+	    snprintf((char *)AreaInf.areanum, 6, "%u", Area > 99999 ? 99999 : Area);
 	    strncpy((char *)AreaInf.echotag, msgs.QWKname, 21);
 	    strncpy((char *)AreaInf.title, msgs.Name, 50);
 	    if (olrtagrec.Tagged) {
@@ -1461,7 +1460,7 @@ void BlueWave_Fetch()
 
     /*      Processing BlueWave reply packet */
     poutCR(LIGHTBLUE, BLACK, (char *)Language(450));
-    temp = calloc(PATH_MAX, sizeof(char));
+    temp = calloc(PATH_MAX * 2, sizeof(char));
     b = calloc(256, sizeof(char));
     buffer = b;
 
@@ -1471,7 +1470,7 @@ void BlueWave_Fetch()
     snprintf(Dirpath, PATH_MAX, "%s/%s", CFG.bbs_usersdir, exitinfo.Name);
     snprintf(Filename, 81, "%s.UPL", CFG.bbsid);
     if (getfilecase(Dirpath, Filename)) {
-	snprintf(temp, PATH_MAX, "%s/%s", Dirpath, Filename);
+	snprintf(temp, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
 	up = fopen(temp, "r");
     }
     if (up != NULL) {
@@ -1633,7 +1632,7 @@ void BlueWave_Fetch()
 	    do_mailout = TRUE;
 	}
 	fclose(up);
-	snprintf(temp, PATH_MAX, "%s/%s", Dirpath, Filename);
+	snprintf(temp, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
 	unlink(temp);
     }
 
@@ -1647,7 +1646,7 @@ void BlueWave_Fetch()
      */
     snprintf(Filename, 81, "%s.OLC", CFG.bbsid);
     if (getfilecase(Dirpath, Filename)) {
-	snprintf(temp, PATH_MAX, "%s/%s", Dirpath, Filename);
+	snprintf(temp, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
 	iol = fopen(temp, "r");
     }
     if (iol != NULL) {
@@ -1683,7 +1682,7 @@ void BlueWave_Fetch()
 		if (buffer[0]=='[') {
 		    strtok(buffer,"]");
 		    buffer++;
-		    strncpy(Echotag, buffer, 20);
+			snprintf(Echotag, sizeof(Echotag), "%.*s", (int)(sizeof(Echotag) - 1), buffer);
 		    if (OLC_head) {
 			OLC_head = FALSE;
 			if (AreaChanges) {
@@ -1786,10 +1785,10 @@ void BlueWave_Fetch()
 	    }
 	}
 	fclose(iol);
-	snprintf(temp, PATH_MAX, "%s/%s", Dirpath, Filename);
+	snprintf(temp, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
 	unlink(temp);
 	/*         Message areas selected */
-	snprintf(temp, PATH_MAX, "%d %s", i, (char *)Language(456));
+	snprintf(temp, PATH_MAX * 2, "%d %s", i, (char *)Language(456));
 	poutCR(CYAN, BLACK, temp);
 	Syslog('+', "  %d active message areas.", i);
     }
@@ -1813,7 +1812,7 @@ void BlueWave_Fetch()
 
 	while (fread(&Req, sizeof(REQ_REC), 1, tp) == 1) {
 	    Syslog('m', "  File %s", Req.filename);
-	    snprintf(temp, PATH_MAX, "%-12s ", Req.filename);
+	    snprintf(temp, PATH_MAX * 2, "%-12s ", Req.filename);
 	    pout(CFG.TextColourF, CFG.TextColourB, temp);
 	    colour(CFG.HiliteF, CFG.HiliteB);
 
@@ -1887,9 +1886,9 @@ unsigned int BlueWave_PackArea(unsigned int ulLast, int Area)
 		    Total++;
 		    memset (&Fti, 0, sizeof (FTI_REC));
 
-		    strncpy((char *)Fti.from, Msg.From, 36);
-		    strncpy((char *)Fti.to, Msg.To, 36);
-		    strncpy((char *)Fti.subject, Msg.Subject, 72);
+			snprintf((char *)Fti.from, 36, "%.35s", Msg.From);
+			snprintf((char *)Fti.to, 36, "%.35s", Msg.To);
+			snprintf((char *)Fti.subject, 72, "%.71s", Msg.Subject);
 		    tp = localtime(&Msg.Written);
 		    snprintf((char *)Fti.date, 20, "%2d %.3s %2d %2d:%02d:%02d", tp->tm_mday, 
 			    (char *) Language(398 + tp->tm_mon), tp->tm_year % 100, tp->tm_hour, tp->tm_min, tp->tm_sec);
@@ -1921,7 +1920,7 @@ unsigned int BlueWave_PackArea(unsigned int ulLast, int Area)
 
 		if (BarWidth != (unsigned short)((Total * 61L) / TotalPack)) {
 		    BarWidth = (unsigned short)((Total * 61L) / TotalPack);
-		    snprintf(msg, 81, "\r%.*s", BarWidth, "�������������������������������������������������������������");
+		    snprintf(msg, 81, "\r%.*s", (BarWidth > 79) ? 79 : BarWidth, "\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB");
 		    pout(CYAN, BLACK, msg);
 		}
 	    } while (Msg_Next(&Number));
@@ -2208,14 +2207,14 @@ void QWK_Fetch()
 
     /*      Processing QWK reply packet */
     poutCR(LIGHTBLUE, BLACK, (char *)Language(459));
-    temp = calloc(PATH_MAX, sizeof(char));
+    temp = calloc(PATH_MAX * 2, sizeof(char));
     otemp = calloc(PATH_MAX, sizeof(char));
     nWidth = 78;
 
     snprintf(Dirpath, PATH_MAX, "%s/%s", CFG.bbs_usersdir, exitinfo.Name);
     snprintf(Filename, 81, "%s.MSG", CFG.bbsid);
     if (getfilecase(Dirpath, Filename)) {
-	snprintf(temp, PATH_MAX, "%s/%s", Dirpath, Filename);
+	snprintf(temp, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
         up = fopen(temp, "r");
     }
 
@@ -2450,7 +2449,7 @@ void QWK_Fetch()
 	WriteExitinfo();
 	do_mailout = TRUE;
     }
-    snprintf(temp, PATH_MAX, "%s/%s", Dirpath, Filename);
+    snprintf(temp, PATH_MAX * 2, "%s/%s", Dirpath, Filename);
     Syslog('m', "Unlink %s rc=%d", temp, unlink(temp));
     free(temp);
     free(otemp);
@@ -2573,7 +2572,7 @@ unsigned int QWK_PackArea(unsigned int ulLast, int Area)
 		     */
                     Pos = ftell(fdm);
 		    Blocks = (Pos / 128L) + 1L;
-		    snprintf(Temp, 6, "%u", Blocks);
+		    snprintf(Temp, 6, "%u", Blocks > 99999 ? 99999 : Blocks);
 		    in = atof(Temp);
 		    out = IEEToMSBIN(in);
 		    fwrite(&out, sizeof(float), 1, fdi);
@@ -2614,7 +2613,9 @@ unsigned int QWK_PackArea(unsigned int ulLast, int Area)
 			    Size += fwrite(Temp, (int)(128L - (Size % 128L)), 1, fdm);
 			}
 
-			snprintf((char *)Qwk.Msgrecs, 6, "%-*u", (int)sizeof(Qwk.Msgrecs), (int)((ftell(fdm) - Pos) / 128L));
+			unsigned int pos_tmp = (unsigned int)((ftell(fdm) - Pos) / 128L);
+			if (pos_tmp > 99999) pos_tmp = 99999;
+			snprintf((char *)Qwk.Msgrecs, 6, "%-*u", (int)sizeof(Qwk.Msgrecs) - 1, pos_tmp);
 			fseek(fdm, Pos, SEEK_SET);
 			fwrite(&Qwk, sizeof(Qwk), 1, fdm);
 			fseek(fdm, 0L, SEEK_END);
@@ -2625,7 +2626,8 @@ unsigned int QWK_PackArea(unsigned int ulLast, int Area)
 		    if (BarWidth != (unsigned short)((Total * 61L) / TotalPack)) {
 			BarWidth = (unsigned short)((Total * 61L) / TotalPack);
 			PUTCHAR('\r');
-			snprintf(msg, 81, "%.*s", BarWidth, "�������������������������������������������������������������");
+			BarWidth = BarWidth > 80 ? 80 : BarWidth;
+			snprintf(msg, 81, "%.*s", BarWidth, "\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB");
 			pout(CYAN, BLACK, msg);
 		    }
 		}
@@ -2980,7 +2982,8 @@ unsigned int ASCII_PackArea(unsigned int ulLast, int Area, char *Atag)
 		    if (BarWidth != (unsigned short)((Total * 61L) / TotalPack)) {
 			BarWidth = (unsigned short)((Total * 61L) / TotalPack);
 			PUTCHAR('\r');
-			snprintf(msg, 81, "%.*s", BarWidth, "�������������������������������������������������������������");
+			BarWidth = BarWidth > 80 ? 80 : BarWidth;
+			snprintf(msg, 81, "%.*s", BarWidth, "\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB\xDB");
 			pout(CYAN, BLACK, msg);
 		    }
 		}

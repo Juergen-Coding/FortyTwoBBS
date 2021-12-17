@@ -29,7 +29,6 @@
  *****************************************************************************/
 
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "term.h"
@@ -264,8 +263,7 @@ char *fLine_str(int Len)
 {
     static char	temp[255];
 
-    strncpy(temp, hLine_str(Len), 255);
-    strncat(temp, (char *)"\r\n", 255);
+    snprintf(temp, sizeof(temp), "%.252s\r\n", hLine_str(Len));
     return temp;
 }
 

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbse.h"
 #include "../lib/users.h"
@@ -42,11 +41,8 @@
  */
 void LogEntry(char *Log)
 {
-	char *Entry, *temp;
+	char Entry[256] = {0};
 	int i;
-
-	Entry = calloc(256, sizeof(char));
-	temp  = calloc(1, sizeof(char));
 
 	for(i = 0; i < strlen(Log); i++) {
 		if(*(Log + i) == '@')
@@ -55,14 +51,13 @@ void LogEntry(char *Log)
 			if(*(Log + i) == '^')
 				strcat(Entry, sMsgAreaDesc);
 			else {
-				snprintf(temp, 1, "%c", *(Log + i));
-				strcat(Entry, temp);
+				char tmp[2] = {0};
+				tmp[0] = *(Log + i);
+				strcat(Entry, tmp);
 			}
 	}
 
 	Syslog('+', Entry);
-	free(Entry);
-	free(temp);
 }
 
 
