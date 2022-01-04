@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "mutil.h"
 #include "screen.h"
@@ -125,8 +124,8 @@ void Show_A_Menu(void)
     show_str(11,16,64, menus.Display);
     show_sec(12,16,    menus.MenuSecurity);
     show_int(13,16,    le_int(menus.Age));
-    S_COL(14,16, "Normal display color", le_int(menus.ForeGnd), le_int(menus.BackGnd))
-    S_COL(15,16, "Bright display color", le_int(menus.HiForeGnd), le_int(menus.HiBackGnd))
+    S_COL(14,16, "Normal display color", le_int(menus.ForeGnd), le_int(menus.BackGnd));
+    S_COL(15,16, "Bright display color", le_int(menus.HiForeGnd), le_int(menus.HiBackGnd));
     set_color(WHITE, BLACK);
     show_bool(16,16,  menus.AutoExec);
     if (le_int(menus.MenuType) == 7) {
@@ -211,7 +210,7 @@ void Edit_A_Menu(void)
 	switch(select_menu(17)) {
 	    case 0: return;
 		    break;
-	    case 1: E_UPS( 7,16, 1, menus.MenuKey,   "The ^key^ to select this menu item")
+	    case 1: E_UPS( 7,16, 1, menus.MenuKey,   "The ^key^ to select this menu item"); break;
 	    case 2: temp = GetMenuType();
 		    memset(&menus.TypeDesc, 0, sizeof(menus.TypeDesc));
 		    if (temp)
@@ -221,8 +220,8 @@ void Edit_A_Menu(void)
 		    menus.MenuType = le_int(temp);
 		    Show_A_Menu();
 		    break;
-	    case 3: E_STR( 9,16,64, menus.OptionalData, "The ^optional data^ for this menu item")
-	    case 4: E_STR(11,16,64, menus.Display,      "The text to ^display^ for this menu")
+	    case 3: E_STR( 9,16,64, menus.OptionalData, "The ^optional data^ for this menu item"); break;
+	    case 4: E_STR(11,16,64, menus.Display,      "The text to ^display^ for this menu"); break;
 	    case 5: menus.MenuSecurity.level = le_int(menus.MenuSecurity.level);
 		    menus.MenuSecurity = edit_sec(12,16, menus.MenuSecurity, (char *)"8.3.5 MENU ACCESS SECURITY");
 		    menus.MenuSecurity.level = le_int(menus.MenuSecurity.level);
@@ -249,7 +248,7 @@ void Edit_A_Menu(void)
 	    case 9: menus.AutoExec = edit_bool(16,16, menus.AutoExec, (char *)"Is this an ^Autoexecute^ menu item");
 		    break;
 	    case 10:if (le_int(menus.MenuType) == 7) {
-			E_STR(17,16,14, menus.DoorName, (char *)"The ^name^ of the door to show to the users")
+			E_STR(17,16,14, menus.DoorName, (char *)"The ^name^ of the door to show to the users"); break;
 		    } else {
 			working(2, 0, 0);
 		    }
@@ -355,10 +354,10 @@ void EditMenu(char *Name)
 			    mbse_mvprintw(y, 10, "%1s", menus.MenuKey);
 			}
 			if (le_int(menus.MenuType) == 999 ) {
-			    snprintf(temp, 81, "%-29s %5d %s", menus.TypeDesc, 
+			    snprintf(temp, 81, "%-29s %5d %.40s", menus.TypeDesc, 
 				    le_int(menus.MenuSecurity.level), menus.Display);
 			} else {
-			    snprintf(temp, 81, "%-29s %5d %s", menus.TypeDesc, 
+			    snprintf(temp, 81, "%-29s %5d %.40s", menus.TypeDesc, 
 				    le_int(menus.MenuSecurity.level), menus.OptionalData);
 			}
 			temp[68] = '\0';
@@ -619,7 +618,7 @@ int bbs_menu_doc(FILE *fp, FILE *toc, int page)
 		    snprintf(temp, PATH_MAX, "%s/share/int/menus/%s/%s", getenv("MBSE_ROOT"), lang.lc, de->d_name);
 		    fprintf(fp, "\n    MENU %s (%s)\n\n", de->d_name, lang.Name);
 		    if ((mn = fopen(temp, "r")) != NULL) {
-			snprintf(temp, 81, "menu_%s_%s.html", lang.LangKey, de->d_name);
+			snprintf(temp, PATH_MAX, "menu_%s_%s.html", lang.LangKey, de->d_name);
 			if ((wp = open_webdoc(temp, lang.Name, de->d_name))) {
 			    fprintf(wp, "<A HREF=\"index.html\">Main</A>&nbsp;<A HREF=\"menus.html\">Back</A>\n");
 			    while (fread(&menus, sizeof(menus), 1, mn) == 1) {

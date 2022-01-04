@@ -207,11 +207,11 @@ fi
 #
 # Support for SQLite3
 #
-AC_CHECK_LIB(sqlite3,sqlite3_open,result=yes,AC_MSG_ERROR([missing SQLite3 library]))
-if test "$result" = "yes"; then
-  LIBS="$LIBS -lsqlite3"
-fi
-AC_CHECK_HEADERS(sqlite3.h)
+#AC_CHECK_LIB(sqlite3,sqlite3_open,result=yes,AC_MSG_ERROR([missing SQLite3 library]))
+#if test "$result" = "yes"; then
+#  LIBS="$LIBS -lsqlite3"
+#fi
+#AC_CHECK_HEADERS(sqlite3.h)
 
 #
 # Checks for header files.

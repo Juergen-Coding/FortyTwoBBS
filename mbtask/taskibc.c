@@ -28,7 +28,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "taskstat.h"
 #include "taskutil.h"
@@ -67,15 +66,6 @@ static char *ncsstate[] = {
     (char *)"init", (char *)"call", (char *)"waitpwd", (char *)"connect", 
     (char *)"hangup", (char *)"fail", (char *)"dead"
 };
-
-
-static char *mon[] = {
-    (char *)"Jan",(char *)"Feb",(char *)"Mar",
-    (char *)"Apr",(char *)"May",(char *)"Jun",
-    (char *)"Jul",(char *)"Aug",(char *)"Sep",
-    (char *)"Oct",(char *)"Nov",(char *)"Dec"
-};
-
 
 
 /*
@@ -180,8 +170,7 @@ void dump_ncslist(void)
 		snprintf(temp2, 25, "%s", srv_list[i].router);
 		tnow = (time_t)srv_list[i].connected;
 		localtime_r(&tnow, &ptm);
-		snprintf(buf, 21, "%02d-%s-%04d %02d:%02d:%02d", ptm.tm_mday, mon[ptm.tm_mon], ptm.tm_year+1900,
-			ptm.tm_hour, ptm.tm_min, ptm.tm_sec);
+		strftime(buf, 21, "%d-%b-%Y %H:%M:%S", &ptm);
 		Syslog('+', "IBC: %3d %-25s %-25s %4d %4d %s", i, temp1, temp2, srv_list[i].hops, srv_list[i].users, buf);
 	    }
 	} 
@@ -203,8 +192,7 @@ void dump_ncslist(void)
 		snprintf(temp2, 16, "%s", usr_list[i].realname);
 		tnow = (time_t)usr_list[i].connected;
 		localtime_r(&tnow, &ptm);
-		snprintf(buf, 21, "%02d-%s-%04d %02d:%02d:%02d", ptm.tm_mday, mon[ptm.tm_mon], ptm.tm_year+1900,
-			ptm.tm_hour, ptm.tm_min, ptm.tm_sec);
+		strftime(buf, 21, "%d-%b-%Y %H:%M:%S", &ptm);
 		Syslog('+', "IBC: %3d %-20s %-16s %-9s %-13s %s %s", i, temp1, temp2, usr_list[i].nick, usr_list[i].channel,
 		    usr_list[i].sysop ? "yes":"no ", buf);
 	    }
@@ -225,8 +213,7 @@ void dump_ncslist(void)
 		}
 		tnow = (time_t)chn_list[i].created;
 		localtime_r(&tnow, &ptm);
-		snprintf(buf, 21, "%02d-%s-%04d %02d:%02d:%02d", ptm.tm_mday, mon[ptm.tm_mon], ptm.tm_year+1900,
-			ptm.tm_hour, ptm.tm_min, ptm.tm_sec);
+		strftime(buf, 21, "%d-%b-%Y %H:%M:%S", &ptm);
 		Syslog('+', "IBC: %3d %-20s %-9s %-31s %3d %s", i, chn_list[i].name, 
 			chn_list[i].owner, chn_list[i].topic, chn_list[i].users, buf);
 	    }
@@ -714,14 +701,14 @@ void check_servers(void)
 		    if (ncs_list[i].state == NCS_CONNECT) {
 			p = calloc(512, sizeof(char));
 			if (local_reset) {
-			    snprintf(p, 512, "SQUIT %s Reset connection\r\n", ncs_list[i].server);
+			    snprintf(p, 512, "SQUIT %.*s Reset connection\r\n", (int)sizeof(ncs_list[i].server), ncs_list[i].server);
 			    broadcast(ncs_list[i].server, p);
-			    snprintf(p, 512, "SQUIT %s Your system connection is reset\r\n", ncs_list[i].myname);
+			    snprintf(p, 512, "SQUIT %.*s Your system connection is reset\r\n", (int)sizeof(ncs_list[i].myname), ncs_list[i].myname);
 			    send_msg(i, p);
 			} else {
-			    snprintf(p, 512, "SQUIT %s Removed from configuration\r\n", ncs_list[i].server);
+			    snprintf(p, 512, "SQUIT %.*s Removed from configuration\r\n", (int)sizeof(ncs_list[i].server), ncs_list[i].server);
 			    broadcast(ncs_list[i].server, p);
-			    snprintf(p, 512, "SQUIT %s Your system is removed from configuration\r\n", ncs_list[i].myname);
+			    snprintf(p, 512, "SQUIT %.*s Your system is removed from configuration\r\n", (int)sizeof(ncs_list[i].myname), ncs_list[i].myname);
 			    send_msg(i, p);
 			}
 			free(p);
@@ -925,7 +912,7 @@ void check_servers(void)
 					ncs_list[i].token = 0;
 					ncs_list[i].halfdead = 0;
 					p = calloc(81, sizeof(char));
-					snprintf(p, 81, "SQUIT %s Connection died\r\n", ncs_list[i].server);
+					snprintf(p, 81, "SQUIT %.*s Connection died\r\n", 55, ncs_list[i].server);
 					broadcast(ncs_list[i].server, p);
 					free(p);
 					callchg = TRUE;
@@ -946,7 +933,7 @@ void check_servers(void)
 					ncs_list[i].token = 0;
 					ncs_list[i].halfdead = 0;
 					p = calloc(81, sizeof(char));
-					snprintf(p, 81, "SQUIT %s Connection died\r\n", ncs_list[i].server);
+					snprintf(p, 81, "SQUIT %.*s Connection died\r\n", 55, ncs_list[i].server);
 					broadcast(ncs_list[i].server, p);
 					free(p);
 					callchg = TRUE;
@@ -1092,7 +1079,7 @@ int command_server(char *hostname, char *parameters)
 	    for (j = 0; j < MAXIBC_SRV; j++) {
 		if (strlen(srv_list[j].server) && srv_list[j].hops) {
 		    p = calloc(512, sizeof(char));
-		    snprintf(p, 512, "SERVER %s %d 0 %s %s %s\r\n", srv_list[j].server, 
+		    snprintf(p, 512, "SERVER %.64s %d 0 %.20s %.20s %.36s\r\n", srv_list[j].server, 
 			    srv_list[j].hops, srv_list[j].prod, srv_list[j].vers, srv_list[j].fullname);
 		    send_msg(i, p);
 		    free(p);
@@ -1104,15 +1091,15 @@ int command_server(char *hostname, char *parameters)
 	    for (j = 0; j < MAXIBC_USR; j++) {
 		if (strlen(usr_list[j].server)) {
 		    p = calloc(512, sizeof(char));
-		    snprintf(p, 512, "USER %s@%s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].realname);
+		    snprintf(p, 512, "USER %s@%.64s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].realname);
 		    send_msg(i, p);
 		    if (strcmp(usr_list[j].name, usr_list[j].nick)) {
-			snprintf(p, 512, "NICK %s %s %s %s\r\n", usr_list[j].nick, 
+			snprintf(p, 512, "NICK %s %s %.64s %s\r\n", usr_list[j].nick, 
 				usr_list[j].name, usr_list[j].server, usr_list[j].realname);
 			send_msg(i, p);
 		    }
 		    if (strlen(usr_list[j].channel)) {
-			snprintf(p, 512, "JOIN %s@%s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].channel);
+			snprintf(p, 512, "JOIN %s@%.64s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].channel);
 			send_msg(i, p);
 		    }
 		    free(p);
@@ -1163,7 +1150,7 @@ int command_server(char *hostname, char *parameters)
 	 */
 	for (j = 0; j < MAXIBC_SRV; j++) {
 	    if (strlen(srv_list[j].server) && srv_list[j].hops) {
-		snprintf(p, 512, "SERVER %s %d 0 %s %s %s\r\n", srv_list[j].server, 
+		snprintf(p, 512, "SERVER %.64s %d 0 %.20s %.20s %.36s\r\n", srv_list[j].server, 
 			srv_list[j].hops, srv_list[j].prod, srv_list[j].vers, srv_list[j].fullname);
 		send_msg(i, p);
 	    }
@@ -1174,15 +1161,15 @@ int command_server(char *hostname, char *parameters)
 	 */
 	for (j = 0; j < MAXIBC_USR; j++) {
 	    if (strlen(usr_list[j].server)) {
-		snprintf(p, 512, "USER %s@%s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].realname);
+		snprintf(p, 512, "USER %s@%.64s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].realname);
 		send_msg(i, p);
 		if (strcmp(usr_list[j].name, usr_list[j].nick)) {
-		    snprintf(p, 512, "NICK %s %s %s %s\r\n", usr_list[j].nick, 
+		    snprintf(p, 512, "NICK %s %s %.64s %s\r\n", usr_list[j].nick, 
 			usr_list[j].name, usr_list[j].server, usr_list[j].realname);
 		    send_msg(i, p);
 		}
 		if (strlen(usr_list[j].channel)) {
-		    snprintf(p, 512, "JOIN %s@%s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].channel);
+		    snprintf(p, 512, "JOIN %s@%.64s %s\r\n", usr_list[j].name, usr_list[j].server, usr_list[j].channel);
 		    send_msg(i, p);
 		}
 	    }

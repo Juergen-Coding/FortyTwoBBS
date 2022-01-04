@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../paths.h"
 #include "screen.h"
@@ -270,14 +269,14 @@ int EditIBCRec(int Area)
 		}
 		IsDoing("Browsing Menu");
 		return 0;
-	case 1:	E_STR(  7,16,40,ibcsrv.comment,  "The ^Comment^ for this record")
-	case 2:	E_STR(  8,16,63,ibcsrv.server,   "The known internet ^name^ or ^IP^ address of the remote server")
-	case 3: E_BOOL( 9,16,   ibcsrv.Dyndns,   "Set to Yes if the remote server uses a ^dynamic dns^ service")
-	case 4: E_STR( 10,16,63,ibcsrv.myname,   "The known internet ^name^ or ^IP^ address of this server")
-	case 5:	E_STR( 11,16,64,ibcsrv.passwd,   "The ^password^ for this server")
-	case 6:	E_BOOL(12,16,   ibcsrv.Active,   "Switch if this server is ^Active^ for chat")
-	case 7:	E_BOOL(13,16,   ibcsrv.Deleted,  "Is this server to be ^Deleted^")
-	case 8:	E_BOOL(14,16,   ibcsrv.Compress, "Use ^zlib compression^ with this server")
+	case 1:	E_STR(  7,16,40,ibcsrv.comment,  "The ^Comment^ for this record"); break;
+	case 2:	E_STR(  8,16,63,ibcsrv.server,   "The known internet ^name^ or ^IP^ address of the remote server"); break;
+	case 3: E_BOOL( 9,16,   ibcsrv.Dyndns,   "Set to Yes if the remote server uses a ^dynamic dns^ service"); break;
+	case 4: E_STR( 10,16,63,ibcsrv.myname,   "The known internet ^name^ or ^IP^ address of this server"); break;
+	case 5:	E_STR( 11,16,64,ibcsrv.passwd,   "The ^password^ for this server"); break;
+	case 6:	E_BOOL(12,16,   ibcsrv.Active,   "Switch if this server is ^Active^ for chat"); break;
+	case 7:	E_BOOL(13,16,   ibcsrv.Deleted,  "Is this server to be ^Deleted^"); break;
+	case 8:	E_BOOL(14,16,   ibcsrv.Compress, "Use ^zlib compression^ with this server"); break;
 	}
     }
 
@@ -339,7 +338,7 @@ void EditIBC(void)
 			set_color(CYAN, BLACK);
 		    else
 			set_color(LIGHTBLUE, BLACK);
-		    snprintf(temp, 81, "%3d.  %s (%s)", i, ibcsrv.server, ibcsrv.comment);
+		    snprintf(temp, 81, "%3d.  %.40s (%.30s)", i % 1000, ibcsrv.server, ibcsrv.comment);
 		    temp[37] = 0;
 		    mbse_mvprintw(y, x, temp);
 		    y++;

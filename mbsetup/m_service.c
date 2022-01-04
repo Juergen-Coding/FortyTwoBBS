@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -301,11 +300,11 @@ int EditServiceRec(int Area)
 			IsDoing("Browsing Menu");
 			return 0;
 
-		case 1:	E_STR(  7,18,15, servrec.Service,"Enter the ^name^ of this ^service^.")
+		case 1:	E_STR(  7,18,15, servrec.Service,"Enter the ^name^ of this ^service^."); break;
 		case 2: servrec.Action = edit_service(8,18,servrec.Action);
 			break;
-		case 3: E_BOOL( 9,18,    servrec.Active,    "If this service is ^active^")
-		case 4: E_BOOL(10,18,    servrec.Deleted,   "If this record is ^Deleted^")
+		case 3: E_BOOL( 9,18,    servrec.Active,    "If this service is ^active^"); break;
+		case 4: E_BOOL(10,18,    servrec.Deleted,   "If this record is ^Deleted^"); break;
 		}
 	}
 }

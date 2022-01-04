@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -144,22 +143,22 @@ int EditTask()
 		j = select_menu(14);
 		switch(j) {
 		case 0:	return 0;
-		case 1:	E_STR(  6,15,65,TCFG.cmd_mailout,    "The command to execute on semafore ^mailout^")
-		case 2: E_STR(  7,15,65,TCFG.cmd_mailin,     "The command to execute on semafore ^mailin^")
-		case 3: E_STR(  8,15,65,TCFG.cmd_newnews,    "The command to execute on semafore ^newnews^")
-		case 4: E_STR(  9,15,65,TCFG.cmd_mbindex1,   "The compiler 1 command to execute on semafore ^mbindex^")
-		case 5: E_STR( 10,15,65,TCFG.cmd_mbindex2,   "The compiler 2 command to execute on semafore ^mbindex^")
-		case 6: E_STR( 11,15,65,TCFG.cmd_mbindex3,   "The compiler 3 command to execute on semafore ^mbindex^")
-		case 7: E_STR( 12,15,65,TCFG.cmd_msglink,    "The command to execute on semafore ^msglink^")
-		case 8: E_STR( 13,15,65,TCFG.cmd_reqindex,   "The command to execute on semafore ^reqindex^")
-		case 9: E_STR( 14,15,40,TCFG.isp_ping1,      "The ^IP address^ of host 1 to check the Internet Connection")
-		case 10:E_STR( 15,15,40,TCFG.isp_ping2,      "The ^IP address^ of host 2 to check the Internet Connection")
-		case 11:E_INT( 16,15,   TCFG.max_tcp,        "Maximum simultanous ^TCP/IP^ connections")
+		case 1:	E_STR(  6,15,65,TCFG.cmd_mailout,    "The command to execute on semafore ^mailout^"); break;
+		case 2: E_STR(  7,15,65,TCFG.cmd_mailin,     "The command to execute on semafore ^mailin^"); break;
+		case 3: E_STR(  8,15,65,TCFG.cmd_newnews,    "The command to execute on semafore ^newnews^"); break;
+		case 4: E_STR(  9,15,65,TCFG.cmd_mbindex1,   "The compiler 1 command to execute on semafore ^mbindex^"); break;
+		case 5: E_STR( 10,15,65,TCFG.cmd_mbindex2,   "The compiler 2 command to execute on semafore ^mbindex^"); break;
+		case 6: E_STR( 11,15,65,TCFG.cmd_mbindex3,   "The compiler 3 command to execute on semafore ^mbindex^"); break;
+		case 7: E_STR( 12,15,65,TCFG.cmd_msglink,    "The command to execute on semafore ^msglink^"); break;
+		case 8: E_STR( 13,15,65,TCFG.cmd_reqindex,   "The command to execute on semafore ^reqindex^"); break;
+		case 9: E_STR( 14,15,40,TCFG.isp_ping1,      "The ^IP address^ of host 1 to check the Internet Connection"); break;
+		case 10:E_STR( 15,15,40,TCFG.isp_ping2,      "The ^IP address^ of host 2 to check the Internet Connection"); break;
+		case 11:E_INT( 16,15,   TCFG.max_tcp,        "Maximum simultanous ^TCP/IP^ connections"); break;
 		case 12:strcpy(temp, edit_str(17,15,5,temp, (char *)"^Maximum system load^ at which processing stops (1.00 .. 3.00)"));
 			sscanf(temp, "%f", &TCFG.maxload);
 			break;
-		case 13:E_STR( 16,56,5, TCFG.zmh_start,      "^Start^ of Zone Mail Hour in UTC")
-		case 14:E_STR( 17,56,5, TCFG.zmh_end,        "^End& of Zone Mail Hour in UTC")
+		case 13:E_STR( 16,56,5, TCFG.zmh_start,      "^Start^ of Zone Mail Hour in UTC"); break;
+		case 14:E_STR( 17,56,5, TCFG.zmh_end,        "^End& of Zone Mail Hour in UTC"); break;
 		}
 	}
 

@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/msg.h"
 #include "../lib/users.h"
@@ -397,10 +396,10 @@ void EditSystem(sysconnect *Sys)
 			case 1:	S.aka = PullUplink((char *)"9.2.26");
 				refresh = TRUE;
 				break;
-			case 2: E_BOOL( 8,23, S.sendto,      "^Send^ mail ^to^ this node")
-			case 3: E_BOOL( 9,23, S.receivefrom, "^Receive^ mail ^from^ this node")
-			case 4: E_BOOL(10,23, S.pause,       "Is this node ^paused^")
-			case 5: E_BOOL(11,23, S.cutoff,      "Is this node ^excluded (cutoff)^ by a moderator")
+			case 2: E_BOOL( 8,23, S.sendto,      "^Send^ mail ^to^ this node"); break;
+			case 3: E_BOOL( 9,23, S.receivefrom, "^Receive^ mail ^from^ this node"); break;
+			case 4: E_BOOL(10,23, S.pause,       "Is this node ^paused^"); break;
+			case 5: E_BOOL(11,23, S.cutoff,      "Is this node ^excluded (cutoff)^ by a moderator"); break;
 			case 6: if (yes_no((char *)"Delete this entry")) {
 					memset(&S, 0, sizeof(sysconnect));
 					(* Sys) = S;
@@ -664,8 +663,7 @@ void DeleteRules(char *filename)
 		break;
 	    }
 	    memset(&temp, 0, sizeof(temp));
-	    strncpy(temp, msgs.Tag, 8);
-	    snprintf(temp, PATH_MAX, "%s.rul", temp);
+	    snprintf(temp, PATH_MAX, "%.*s.rul", 8, msgs.Tag);
 	    if (strcasecmp(de->d_name, temp) == 0) {
 		snprintf(temp, PATH_MAX, "%s/%s", CFG.rulesdir, de->d_name);
 		Syslog('+', "unlink(%s) rc=%d", temp, unlink(temp));
@@ -786,11 +784,11 @@ void MsgGlobal(void)
 		    S.cutoff = edit_bool(11,16,S.cutoff, (char *)"Is this node ^excluded^");
 		    break;
 	    case 5: mbse_mvprintw(LINES -3, 5, "Days old");
-		    E_INT(LINES -3, 14, daysold, (char *)"Enter new number of ^days old^")
+		    E_INT(LINES -3, 14, daysold, (char *)"Enter new number of ^days old^"); break;
 	    case 6: mbse_mvprintw(LINES -3, 5, "Max. messages");
-		    E_INT(LINES -3, 19, maxmsgs, (char *)"Enter ^maximum messages^")
+		    E_INT(LINES -3, 19, maxmsgs, (char *)"Enter ^maximum messages^"); break;
 	    case 7: mbse_mvprintw(LINES -3, 6, "Max. articles");
-		    E_INT(LINES -3, 19, maxarticles, (char *)"Enter ^maximum news articles^ to fetch")
+		    E_INT(LINES -3, 19, maxarticles, (char *)"Enter ^maximum news articles^ to fetch"); break;
 	    case 8: rs = edit_sec(6, 5, rs, (char *)"9.2.8 READ SECURITY");
 		    ws = edit_sec(7, 5, ws, (char *)"9.2.8 WRITE SECURITY");
 		    ss = edit_sec(8, 5, ss, (char *)"9.2.8 SYSOP SECURITY");
@@ -799,9 +797,9 @@ void MsgGlobal(void)
 		    break;
 	    case 10:akan = PickAka((char *)"9.2.8", TRUE);
 		    break;
-	    case 11:E_STR(LINES -3, 5, 64, mfile, "Enter new ^origin^ line");
+	    case 11:E_STR(LINES -3, 5, 64, mfile, "Enter new ^origin^ line"); break;
 	    case 12:mbse_mvprintw(LINES -3, 5, "Netmail reply board");
-		    E_INT(LINES -3, 25, netbrd, (char *)"The ^netmail reply^ board number")
+		    E_INT(LINES -3, 25, netbrd, (char *)"The ^netmail reply^ board number"); break;
 	    case 13:mbse_mvprintw(LINES -4, 6, "Character set to set");
 		    charset = edit_charset(LINES -4,27, charset);
 		    break;
@@ -1174,11 +1172,11 @@ int EditMsgRec(int Area)
 		    tfil = NULL;
 		    IsDoing("Browsing Menu");
 		    return 0;
-	    case 1: E_STR(  6,16,40,msgs.Name,       "The ^Name^ of this area")
+	    case 1: E_STR(  6,16,40,msgs.Name,       "The ^Name^ of this area"); break;
 	    case 2: strcpy(msgs.Tag, edit_ups(7,16,50, msgs.Tag, (char *)"The ^Area Tag^ for Echomail"));
 		    if (!strlen(msgs.QWKname)) {
 			memset(&msgs.QWKname, '\0', strlen(msgs.QWKname));
-			strncpy(msgs.QWKname, msgs.Tag, 13);
+			memccpy(msgs.QWKname, msgs.Tag, '\0', 13);
 		    }
 		    break;
 	    case 3: tmp = strlen(msgs.Group);
@@ -1202,7 +1200,7 @@ int EditMsgRec(int Area)
 			msgs.Quotes = mgroup.Quotes;
 			msgs.MaxArticles = CFG.maxarticles;
 			msgs.Charset = mgroup.Charset;
-			strncpy(msgs.Origin, CFG.origin, 50);
+			strncpy(msgs.Origin, CFG.origin, 51);
 			msgs.LinkSec = mgroup.LinkSec;
 
 			/*
@@ -1239,7 +1237,10 @@ int EditMsgRec(int Area)
 				    if (temp[i] == '.')
 					temp[i] = '/';
 				}
-				snprintf(msgs.Base, 65, "%s/%s", mgroup.BasePath, temp);
+				if (snprintf(msgs.Base, sizeof(msgs.Base), "%s/%s", mgroup.BasePath, temp) > sizeof(msgs.Base)) {
+					errmsg("The basepath and name given exceed the length allowed (%d bytes)", sizeof(msgs.Base));
+					break;
+				}
 			    } else {
 				snprintf(temp, 81, "%s/%s", msgs.Group, msgs.Tag);
 				for (i = 0; i < strlen(temp); i++) {
@@ -1265,7 +1266,7 @@ int EditMsgRec(int Area)
 		    }
 		    SetScreen(); 
 		    break;
-	    case 4: E_STR(  9,16,64,msgs.Newsgroup,  "The ^Newsgroup^ name of this area")
+	    case 4: E_STR(  9,16,64,msgs.Newsgroup,  "The ^Newsgroup^ name of this area"); break;
 	    case 5: snprintf(oldpath, 81, "%s", msgs.Base);
 		    strcpy(msgs.Base, edit_jam(10,16,64,msgs.Base ,(char *)"The path to the ^JAM Message Base^"));
 		    if (strcmp(oldpath, msgs.Base)) {
@@ -1315,13 +1316,13 @@ int EditMsgRec(int Area)
 			MailForced = TRUE;
 		    }
 		    break;
-	    case 6: E_STR( 11,16,64,msgs.Origin,     "The ^Origin line^ to append to Echomail messages")
+	    case 6: E_STR( 11,16,64,msgs.Origin,     "The ^Origin line^ to append to Echomail messages"); break;
 	    case 7: tmp = PickAka((char *)"9.2.7", TRUE);
 		    if (tmp != -1)
 			msgs.Aka = CFG.aka[tmp];
 		    SetScreen(); 
 		    break;
-	    case 8: E_UPS( 13,16,13,msgs.QWKname,      "The name for ^QWK or Bluewave^ message packets")
+	    case 8: E_UPS( 13,16,13,msgs.QWKname,      "The name for ^QWK or Bluewave^ message packets"); break;
 	    case 9: msgs.Type = edit_msgtype(14,16, msgs.Type); 
 		    SetScreen();
 		    break;
@@ -1364,8 +1365,8 @@ int EditMsgRec(int Area)
 			msgs.Active = TRUE;
 		    SetScreen();
 		    break;
-	    case 13:E_INT( 18,16,   msgs.DaysOld,       "Maximum ^days^ to keep mail in this area")
-	    case 14:E_INT( 19,16,   msgs.MaxMsgs,       "The ^maximum^ amount of messages in this area")
+	    case 13:E_INT( 18,16,   msgs.DaysOld,       "Maximum ^days^ to keep mail in this area"); break;
+	    case 14:E_INT( 19,16,   msgs.MaxMsgs,       "The ^maximum^ amount of messages in this area"); break;
 	    case 15:switch (msgs.Type) {
 			case ECHOMAIL:	msgs.NetReply = edit_int(14,50,msgs.NetReply,
 						    (char *)"The ^Area Number^ for netmail replies");
@@ -1375,17 +1376,17 @@ int EditMsgRec(int Area)
 					break;
 		    }
 		    break;
-	    case 16:E_SEC( 15,50,   msgs.RDSec,         "9.2 EDIT READ SECURITY", SetScreen)
-	    case 17:E_SEC( 16,50,   msgs.WRSec,         "9.2 EDIT WRITE SECURITY", SetScreen)
-	    case 18:E_SEC( 17,50,   msgs.SYSec,         "9.2 EDIT SYSOP SECURITY", SetScreen)
-	    case 19:E_BOOL(18,50,   msgs.UsrDelete,     "Allow users to ^Delete^ their messages")
-	    case 20:E_BOOL(19,50,   msgs.Aliases,       "Allow ^aliases^ or real names only")
+	    case 16:E_SEC( 15,50,   msgs.RDSec,         "9.2 EDIT READ SECURITY"); SetScreen(); break;
+	    case 17:E_SEC( 16,50,   msgs.WRSec,         "9.2 EDIT WRITE SECURITY"); SetScreen(); break;
+	    case 18:E_SEC( 17,50,   msgs.SYSec,         "9.2 EDIT SYSOP SECURITY"); SetScreen(); break;
+	    case 19:E_BOOL(18,50,   msgs.UsrDelete,     "Allow users to ^Delete^ their messages"); break;
+	    case 20:E_BOOL(19,50,   msgs.Aliases,       "Allow ^aliases^ or real names only"); break;
 
-	    case 21:E_BOOL(13,74,   msgs.Quotes,        "Add random ^quotes^ to new messages")
-	    case 22:E_BOOL(14,74,   msgs.Mandatory,     "Is this area ^mandatory^ for nodes")
-	    case 23:E_BOOL(15,74,   msgs.UnSecure,      "Toss messages ^UnSecure^, ie: no originating check")
-	    case 24:E_BOOL(16,74,   msgs.OLR_Default,   "Area is ^default^ for ^offline^ users.")
-	    case 25:E_BOOL(17,74,   msgs.OLR_Forced,    "Area is ^always on^ for ^offline^ users.")
+	    case 21:E_BOOL(13,74,   msgs.Quotes,        "Add random ^quotes^ to new messages"); break;
+	    case 22:E_BOOL(14,74,   msgs.Mandatory,     "Is this area ^mandatory^ for nodes"); break;
+	    case 23:E_BOOL(15,74,   msgs.UnSecure,      "Toss messages ^UnSecure^, ie: no originating check"); break;
+	    case 24:E_BOOL(16,74,   msgs.OLR_Default,   "Area is ^default^ for ^offline^ users."); break;
+	    case 25:E_BOOL(17,74,   msgs.OLR_Forced,    "Area is ^always on^ for ^offline^ users."); break;
 	    case 26:switch (msgs.Type) {
 			case ECHOMAIL:
 			case NEWS:
@@ -1453,7 +1454,7 @@ void EditMsgarea(void)
 			fread(&msgs, msgshdr.recsize, 1, fil);
 			if (msgs.Active) {
 			    set_color(CYAN, BLACK);
-			    snprintf(temp, 81, "%3d. %-8s %-23s %-40s", o + i, getmsgtype(msgs.Type), msgs.Tag, msgs.Name);
+			    snprintf(temp, 81, "%3d. %-8.8s %-23.23s %-40.40s", (o + i) % 1000, getmsgtype(msgs.Type), msgs.Tag, msgs.Name);
 			} else {
 			    set_color(LIGHTBLUE, BLACK);
 			    snprintf(temp, 81, "%3d.", o+i);
@@ -1582,13 +1583,13 @@ char *PickMsgarea(char *shdr)
 	working(1, 0, 0);
 	if (config_read() == -1) {
 		working(2, 0, 0);
-		return '\0';
+		return NULL;
 	}
 
 	records = CountMsgarea();
 	if (records == -1) {
 		working(2, 0, 0);
-		return '\0';
+		return NULL;
 	}
 
 
@@ -1632,7 +1633,7 @@ char *PickMsgarea(char *shdr)
 		strcpy(pick, select_pick(records, 20));
 
 		if (strncmp(pick, "-", 1) == 0)
-			return '\0';
+			return NULL;
 
 		if (strncmp(pick, "N", 1) == 0)
 			if ((o + 20) < records)

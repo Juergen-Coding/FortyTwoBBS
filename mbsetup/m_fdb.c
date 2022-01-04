@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -93,12 +92,12 @@ void EditFile()
 
 	switch(select_menu(6)) {
 	    case 0: return;
-	    case 1: E_STR( 15,16,35, fdb.Uploader,  "The ^uploader^ of this file")
-	    case 2: E_INT( 16,16,    fdb.TimesDL,   "The number of times file is sent with ^download^")
-	    case 3: E_STR( 17,16,15, fdb.Password,  "The ^password^ to protect this file with")
-	    case 4: E_BOOL(15,75,    fdb.Deleted,   "Should this this file be ^deleted^")
-	    case 5: E_BOOL(16,75,    fdb.NoKill,    "File can't be ^killed^ automatic")
-	    case 6: E_BOOL(17,75,    fdb.Announced, "File is ^announced^ as new file")
+	    case 1: E_STR( 15,16,35, fdb.Uploader,  "The ^uploader^ of this file"); break;
+	    case 2: E_INT( 16,16,    fdb.TimesDL,   "The number of times file is sent with ^download^"); break;
+	    case 3: E_STR( 17,16,15, fdb.Password,  "The ^password^ to protect this file with"); break;
+	    case 4: E_BOOL(15,75,    fdb.Deleted,   "Should this this file be ^deleted^"); break;
+	    case 5: E_BOOL(16,75,    fdb.NoKill,    "File can't be ^killed^ automatic"); break;
+	    case 6: E_BOOL(17,75,    fdb.Announced, "File is ^announced^ as new file"); break;
 	}
     }
 }
@@ -390,14 +389,14 @@ void InitFDB(void)
 			while (fread(&old, sizeof(old), 1, fp1)) {
 			    Nopper();
 			    memset(&fdb, 0, fdbhdr.recsize);
-			    strncpy(fdb.Name, old.Name, sizeof(fdb.Name) -1);
-			    strncpy(fdb.LName, old.LName, sizeof(fdb.LName) -1);
+				memccpy(fdb.Name, old.Name, '\0', sizeof(fdb.Name) - 1);
+				memccpy(fdb.LName, old.LName, '\0', sizeof(fdb.LName) - 1);
 			    snprintf(temp, PATH_MAX, "%s/etc/tic.data", getenv("MBSE_ROOT"));
 			    if ((ft = fopen(temp, "r")) != NULL) {
 				fread(&tichdr, sizeof(tichdr), 1, ft);
 				while (fread(&tic, tichdr.recsize, 1, ft)) {
 				    if (StringCRC32(tic.Name) == old.TicAreaCRC) {
-					strncpy(fdb.TicArea, tic.Name, sizeof(fdb.TicArea) -1);
+					memccpy(fdb.TicArea, tic.Name, '\0', sizeof(fdb.TicArea) - 1);
 					break;
 				    }
 				    fseek(ft, tichdr.syssize, SEEK_CUR);
@@ -406,12 +405,12 @@ void InitFDB(void)
 			    }
 			    fdb.Size = old.Size;
 			    fdb.Crc32 = old.Crc32;
-			    strncpy(fdb.Uploader, old.Uploader, sizeof(fdb.Uploader) -1);
+				memccpy(fdb.Uploader, old.Uploader, '\0', sizeof(fdb.Uploader) - 1);
 			    fdb.UploadDate = old.UploadDate;
 			    fdb.FileDate = old.FileDate;
 			    fdb.LastDL = old.LastDL;
 			    fdb.TimesDL = old.TimesDL + old.TimesFTP + old.TimesReq;
-			    strncpy(fdb.Password, old.Password, sizeof(fdb.Password) -1);
+				memccpy(fdb.Password, old.Password, '\0', sizeof(fdb.Password) - 1);
 			    for (i = 0; i < 25; i++)
 				strncpy(fdb.Desc[i], old.Desc[i], 48);
 
@@ -431,7 +430,7 @@ void InitFDB(void)
 						fgets(Magic, sizeof(Magic) -1, fp);
 						Striplf(Magic);
 						if ((strcasecmp(Magic, fdb.Name) == 0) || (strcasecmp(Magic, fdb.LName) == 0)) {
-						    strncpy(fdb.Magic, de->d_name, sizeof(fdb.Magic) -1);
+							memccpy(fdb.Magic, de->d_name, '\0', sizeof(fdb.Magic) - 1);
 						}
 						fclose(fp);
 					    }

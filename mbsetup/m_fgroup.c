@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -407,13 +406,16 @@ int EditFGrpRec(int Area)
 				if (isupper(temp[i]))
 				    temp[i] = tolower(temp[i]);
 			    }
-			    snprintf(fgroup.BasePath, 65, "%s/%s", CFG.ftp_base, temp);
+			    if (snprintf(fgroup.BasePath, sizeof(fgroup.BasePath), "%s/%s", CFG.ftp_base, temp) > sizeof(fgroup.BasePath)) {
+					errmsg("FTP BasePath and group name are too long when combined");
+					break;
+				}
 			}
 			if (strlen(fgroup.BbsGroup) == 0)
 			    strcpy(fgroup.BbsGroup, fgroup.Name);
 			break;
-		case 2: E_STR(  7,16,55,fgroup.Comment,    "The ^description^ of this file group")
-		case 3: E_PTH(  8,16,64,fgroup.BasePath,   "The ^base path^ for new created file areas", 0775)
+		case 2: E_STR(  7,16,55,fgroup.Comment,    "The ^description^ of this file group"); break;
+		case 3: E_PTH(  8,16,64,fgroup.BasePath,   "The ^base path^ for new created file areas", 0775); break;
 		case 4: tmp = PickAka((char *)"10.1.4", TRUE);
 			if (tmp != -1)
 				fgroup.UseAka = CFG.aka[tmp];
@@ -422,9 +424,9 @@ int EditFGrpRec(int Area)
 		case 5:	fgroup.UpLink = PullUplink((char *)"10.1.5"); 
 			FgScreen();
 			break;
-		case 6: E_STR( 11,16,12,fgroup.AreaFile,   "The name of the ^Areas File^ from the uplink (case sensitive)")
-		case 7: E_BOOL(12,16,   fgroup.FileGate,   "Is the areas file in ^filegate.zxx^ format")
-		case 8: E_STR( 13,16,14,fgroup.Banner,     "The ^banner^ to add to the archives")
+		case 6: E_STR( 11,16,12,fgroup.AreaFile,   "The name of the ^Areas File^ from the uplink (case sensitive)"); break;
+		case 7: E_BOOL(12,16,   fgroup.FileGate,   "Is the areas file in ^filegate.zxx^ format"); break;
+		case 8: E_STR( 13,16,14,fgroup.Banner,     "The ^banner^ to add to the archives"); break;
 		case 9: strcpy(fgroup.Convert, PickArchive((char *)"10.1.9", FALSE));
 			FgScreen();
 			break;
@@ -436,39 +438,39 @@ int EditFGrpRec(int Area)
 			break;
 		case 12:if (fgroup.Active && CheckFgroup())
 			    break;
-			E_BOOL(17,16,   fgroup.Active,     "Is this file group ^active^")
+			E_BOOL(17,16,   fgroup.Active,     "Is this file group ^active^"); break;
 		case 13:if (CheckFgroup())
 				break;
-			E_BOOL(18,16,   fgroup.Deleted,    "Is this file group ^Deleted^")
-		case 14:E_INT( 19,16,   fgroup.StartArea,  "The ^start area^ to create new BBS areas")
+			E_BOOL(18,16,   fgroup.Deleted,    "Is this file group ^Deleted^"); break;
+		case 14:E_INT( 19,16,   fgroup.StartArea,  "The ^start area^ to create new BBS areas"); break;
 
-		case 15:E_BOOL(12,46,   fgroup.AutoChange, "^Automatic change areas^ when a new arealist is received")
+		case 15:E_BOOL(12,46,   fgroup.AutoChange, "^Automatic change areas^ when a new arealist is received"); break;
 		case 16:tmp = edit_bool(13,46, fgroup.UserChange, (char *)"Create new areas when ^users^ request new tic areas");
 			if (tmp && !fgroup.UpLink.zone)
 			    errmsg("It looks like you are at the toplevel, no Uplink defined");
 			else
 			    fgroup.UserChange = tmp;
 			break;
-		case 17:E_BOOL(14,46,   fgroup.Replace,    "Set ^Replace^ in new created tic areas")
-		case 18:E_BOOL(15,46,   fgroup.DupCheck,   "Set ^Dupe check^ in new created tic areas")
-		case 19:E_BOOL(16,46,   fgroup.Secure,     "Set ^Secure^ tic processing in new created tic areas")
-		case 20:E_BOOL(17,46,   fgroup.Touch,      "Set ^Touch filedate^ in new created tic areas")
-		case 21:E_BOOL(18,46,   fgroup.VirScan,    "Set ^Virus scanner^ in new created tic areas")
-		case 22:E_BOOL(19,46,   fgroup.Announce,   "Set ^Announce files^ in new created tic areas")
+		case 17:E_BOOL(14,46,   fgroup.Replace,    "Set ^Replace^ in new created tic areas"); break;
+		case 18:E_BOOL(15,46,   fgroup.DupCheck,   "Set ^Dupe check^ in new created tic areas"); break;
+		case 19:E_BOOL(16,46,   fgroup.Secure,     "Set ^Secure^ tic processing in new created tic areas"); break;
+		case 20:E_BOOL(17,46,   fgroup.Touch,      "Set ^Touch filedate^ in new created tic areas"); break;
+		case 21:E_BOOL(18,46,   fgroup.VirScan,    "Set ^Virus scanner^ in new created tic areas"); break;
+		case 22:E_BOOL(19,46,   fgroup.Announce,   "Set ^Announce files^ in new created tic areas"); break;
 
-		case 23:E_BOOL(11,70,   fgroup.UpdMagic,   "Set ^Update magic^ in new created tic areas")
-		case 24:E_BOOL(12,70,   fgroup.FileId,     "Set ^FILE_ID.DIZ extract^ in new created tic areas")
+		case 23:E_BOOL(11,70,   fgroup.UpdMagic,   "Set ^Update magic^ in new created tic areas"); break;
+		case 24:E_BOOL(12,70,   fgroup.FileId,     "Set ^FILE_ID.DIZ extract^ in new created tic areas"); break;
 		case 25:tmp = edit_bool(13,70, fgroup.ConvertAll, (char *)"Set ^Convert All^ setting in new created tic areas");
 			if (tmp && !fgroup.ConvertAll && (strlen(fgroup.Convert) == 0))
 			    errmsg("No archiver configured to convert to, edit 9 first");
 			else
 			    fgroup.ConvertAll = tmp;
 			break;
-		case 26:E_BOOL(14,70,   fgroup.SendOrg,    "Set ^Send original^ setting in new created tic areas")
-		case 27:E_SEC( 15,70,   fgroup.DLSec,      "10.1.27 FILE GROUP DOWNLOAD SECURITY", FgScreen)
-		case 28:E_SEC( 16,70,   fgroup.UPSec,      "10.1.28 FILE GROUP UPLOAD SECURITY", FgScreen)
-		case 29:E_SEC( 17,70,   fgroup.LTSec,      "10.1.29 FILE GROUP LIST SECURITY", FgScreen)
-		case 30:E_INT( 18,70,   fgroup.Upload,     "Set the default ^Upload area^ in new created file areas")
+		case 26:E_BOOL(14,70,   fgroup.SendOrg,    "Set ^Send original^ setting in new created tic areas"); break;
+		case 27:E_SEC( 15,70,   fgroup.DLSec,      "10.1.27 FILE GROUP DOWNLOAD SECURITY"); FgScreen(); break;
+		case 28:E_SEC( 16,70,   fgroup.UPSec,      "10.1.28 FILE GROUP UPLOAD SECURITY"); FgScreen(); break;
+		case 29:E_SEC( 17,70,   fgroup.LTSec,      "10.1.29 FILE GROUP LIST SECURITY"); FgScreen(); break;
+		case 30:E_INT( 18,70,   fgroup.Upload,     "Set the default ^Upload area^ in new created file areas"); break;
 		case 31:fgroup.LinkSec = edit_asec(fgroup.LinkSec, (char *)"10.1.31 DEFAULT NEW TIC AREAS SECURITY");
 			FgScreen();
 			break;
@@ -535,7 +537,7 @@ void EditFGroup(void)
 			    set_color(CYAN, BLACK);
 			else
 			    set_color(LIGHTBLUE, BLACK);
-			snprintf(temp, 81, "%3d.  %-12s %-18s", o + i, fgroup.Name, fgroup.Comment);
+			snprintf(temp, 81, "%3d.  %-12.12s %-18.18s", o + i, fgroup.Name, fgroup.Comment);
 			temp[38] = '\0';
 			mbse_mvprintw(y, x, temp);
 			y++;
@@ -642,7 +644,7 @@ char *PickFGroup(char *shdr)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-12s %-18s", o + i, fgroup.Name, fgroup.Comment);
+						snprintf(temp, 81, "%3d.  %-12.12s %-18.18s", o + i, fgroup.Name, fgroup.Comment);
 						temp[38] = '\0';
 						mbse_mvprintw(y, x, temp);
 						y++;

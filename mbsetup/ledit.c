@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/msg.h"
@@ -2125,12 +2124,12 @@ int edit_routetype(int y, int x, int val)
 
 void show_aka(int y, int x, fidoaddr aka)
 {
-	char	temp[24];
+	char	temp[40];
 
 	if (aka.point == 0)
-		snprintf(temp, 24, "%d:%d/%d@%s", aka.zone, aka.net, aka.node, aka.domain);
+		snprintf(temp, sizeof(temp), "%d:%d/%d@%s", aka.zone, aka.net, aka.node, aka.domain);
 	else
-		snprintf(temp, 24, "%d:%d/%d.%d@%s", aka.zone, aka.net, aka.node, aka.point, aka.domain);
+		snprintf(temp, sizeof(temp), "%d:%d/%d.%d@%s", aka.zone, aka.net, aka.node, aka.point, aka.domain);
 	mbse_mvprintw(y, x, temp);
 }
 

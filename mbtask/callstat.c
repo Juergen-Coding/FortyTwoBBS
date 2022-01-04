@@ -28,7 +28,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "taskutil.h"
 #include "callstat.h"
@@ -49,7 +48,7 @@ void stsname_r(faddr *addr, char *buf)
 	if ((addr->zone == 0) || (addr->zone == CFG.aka[0].zone))
 	    zpref[0] = '\0';
 	else
-	    snprintf(zpref, 8, ".%03x", addr->zone);
+	    snprintf(zpref, 8, ".%03x", addr->zone & 0xFFFF);
     } else {
 	/*
 	 * If we got a 5d address we use the given domain, if
@@ -92,7 +91,7 @@ void stsname_r(faddr *addr, char *buf)
 	    if ((addr->zone == 0) || (addr->zone == CFG.aka[0].zone))
 		zpref[0]='\0';
 	    else 
-		snprintf(zpref, 8, ".%03x",addr->zone);
+		snprintf(zpref, 8, ".%03x",addr->zone & 0xFFFF);
 	}
     }
 

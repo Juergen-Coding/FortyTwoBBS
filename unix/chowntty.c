@@ -67,7 +67,7 @@ int is_my_tty(const char *tty)
  */
 void chown_tty(const char *tty, const struct passwd *info)
 {
-	char		buf[200], full_tty[200];
+	char		buf[256], full_tty[200];
 	char		*group;	    /* TTY group name or number */
 	struct group	*grent;
 	gid_t		gid;

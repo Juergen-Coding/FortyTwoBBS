@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../paths.h"
 #include "screen.h"
@@ -382,23 +381,23 @@ int EditVirRec(int Area)
 		}
 		IsDoing("Browsing Menu");
 		return 0;
-	case 1: E_STR(  7,16,40,virscan.comment,  "The ^Comment^ for this record")
+	case 1: E_STR(  7,16,40,virscan.comment,  "The ^Comment^ for this record"); break;
 	case 2: virscan.scantype = edit_scannertype( 8,16,virscan.scantype);
 		ScanScreen();
 		break;
-	case 3: E_BOOL( 9,16,   virscan.available,"Switch if this virus scanner is ^Available^ for use.")
-	case 4: E_BOOL(10,16,   virscan.deleted,  "Is this scanner ^deleted^")
-	case 5: E_INT( 11,16,   virscan.error,    "The ^Error Level^ the scanner returns when no virus is found")
+	case 3: E_BOOL( 9,16,   virscan.available,"Switch if this virus scanner is ^Available^ for use."); break;
+	case 4: E_BOOL(10,16,   virscan.deleted,  "Is this scanner ^deleted^"); break;
+	case 5: E_INT( 11,16,   virscan.error,    "The ^Error Level^ the scanner returns when no virus is found"); break;
 
 	case 6:	if (virscan.scantype == SCAN_EXTERN) {
-		    E_STR( 12,16,64,virscan.scanner,  "The full ^name and path^ to the binary of this scanner")
+		    E_STR( 12,16,64,virscan.scanner,  "The full ^name and path^ to the binary of this scanner"); break;
 		} else {
-		    E_STR( 12,16,64,virscan.host,  "The ^FQDN hostname^ or ^IP address^ where the stream scanner is running")
+		    E_STR( 12,16,64,virscan.host,  "The ^FQDN hostname^ or ^IP address^ where the stream scanner is running"); break;
 		}
 	case 7:	if (virscan.scantype == SCAN_EXTERN) {
-		    E_STR( 13,16,64,virscan.options,  "The ^commandline options^ for this scanner")
+		    E_STR( 13,16,64,virscan.options,  "The ^commandline options^ for this scanner"); break;
 		} else {
-		    E_INT( 13,16,   virscan.port,     "The ^port number^ for this stream scanner")
+		    E_INT( 13,16,   virscan.port,     "The ^port number^ for this stream scanner"); break;
 		}
 	}
     }

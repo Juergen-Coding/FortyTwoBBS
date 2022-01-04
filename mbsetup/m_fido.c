@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -326,11 +325,11 @@ int EditFidoRec(int Area)
 		    IsDoing("Browsing Menu");
 		    free(temp);
 		    return 0;
-	    case 1: E_STR(7,26,40, fidonet.comment, "The ^Comment^ for this network name")
-	    case 2: E_STR(8,26,8, fidonet.domain, "The ^Name^ of the network without dots")
-	    case 3: E_BOOL(9,26, fidonet.available, "Is this network ^Available^ for use")
-	    case 4: E_BOOL(10,26, fidonet.deleted,   "Is this netword ^Deleted^")
-	    case 5: E_STR(11,26,8, fidonet.nodelist, "The name of the ^Primary Nodelist^ for this network")
+	    case 1: E_STR(7,26,40, fidonet.comment, "The ^Comment^ for this network name"); break;
+	    case 2: E_STR(8,26,8, fidonet.domain, "The ^Name^ of the network without dots"); break;
+	    case 3: E_BOOL(9,26, fidonet.available, "Is this network ^Available^ for use"); break;
+	    case 4: E_BOOL(10,26, fidonet.deleted,   "Is this netword ^Deleted^"); break;
+	    case 5: E_STR(11,26,8, fidonet.nodelist, "The name of the ^Primary Nodelist^ for this network"); break;
 	    case 6:
 	    case 7:
 	    case 8:
@@ -363,7 +362,7 @@ int EditFidoRec(int Area)
 	    case 14:
 	    case 15:
 	    case 16:
-	    case 17:E_IRC(j,74, fidonet.zone[j-12], 0, 32767, "A ^Zone number^ which belongs to this domain (1..32767)")
+	    case 17:E_IRC(j,74, fidonet.zone[j-12], 0, 32767, "A ^Zone number^ which belongs to this domain (1..32767)"); break;
 	}
     }
 
@@ -578,10 +577,10 @@ int fido_doc(FILE *fp, FILE *toc, int page)
 			fidonet.seclist[i].net, fidonet.seclist[i].node);
 		    add_webtable(wp, (char *)"Merge list", temp);
 		}
-	    snprintf(temp, 81, "%d", fidonet.zone[0]);
+	    int ret = snprintf(temp, 81, "%d", fidonet.zone[0]);
 	    for (i = 1; i < 6; i++)
 		if (fidonet.zone[i])
-		    snprintf(temp, 81, "%s %d", temp, fidonet.zone[i]);
+		    ret += snprintf(temp + ret, 81 - ret, " %d", fidonet.zone[i]);
 	    add_webtable(wp, (char *)"Zone(s)", temp);
 	    fprintf(wp, "</TBODY>\n");
 	    fprintf(wp, "</TABLE>\n");

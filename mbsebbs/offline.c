@@ -2721,7 +2721,7 @@ void OLR_DownASCII(void)
 	return;
     }
 
-    snprintf(Atag, 9, CFG.bbsid);
+    snprintf(Atag, 9, "%s", CFG.bbsid);
     tl(Atag);
     snprintf(Temp, PATH_MAX, "%s/%s/tmp/%s.info", CFG.bbs_usersdir, exitinfo.Name, Atag);
     if ((inf = fopen(Temp, "a+")) == NULL) {
@@ -2757,7 +2757,7 @@ void OLR_DownASCII(void)
 
 	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec)) {
 	    if (strlen(msgs.Tag))
-		snprintf(Atag, 51, msgs.Tag);
+		snprintf(Atag, 51, "%s", msgs.Tag);
 	    else
 		snprintf(Atag, 51, "%d", Area);
 	    switch (msgs.Type) {

@@ -1,7 +1,7 @@
 /* page.h */
 
 #ifndef _PAGE_H
-#define _PAHE_H
+#define _PAGE_H
 
 
 void Page_Sysop(char *);	/* Sysop Pager                              */

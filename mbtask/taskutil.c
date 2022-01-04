@@ -27,7 +27,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "signame.h"
 #include "scanout.h"
@@ -46,13 +45,6 @@ int			    lcnt = 0, lchr;
 static char		    *pbuff = NULL;
 
 
-
-static char *mon[] = {
-    (char *)"Jan",(char *)"Feb",(char *)"Mar",
-    (char *)"Apr",(char *)"May",(char *)"Jun",
-    (char *)"Jul",(char *)"Aug",(char *)"Sep",
-    (char *)"Oct",(char *)"Nov",(char *)"Dec"
-};
 
 
 /************************************************************************
@@ -134,8 +126,7 @@ void Syslogp(int grade, char *outstr)
 	
     now = time(NULL);
     localtime_r(&now, &ptm);
-    snprintf(datestr, 21, "%02d-%s-%04d %02d:%02d:%02d", ptm.tm_mday, mon[ptm.tm_mon], ptm.tm_year+1900,
-	    ptm.tm_hour, ptm.tm_min, ptm.tm_sec);
+    strftime(datestr, 21, "%d-%b-%Y %H:%M:%S", &ptm);
 
     if (lcnt) {
 	lcnt++;
@@ -211,8 +202,7 @@ int ulog(char *fn, char *grade, char *prname, char *prpid, char *format)
 
     now = time(NULL);
     localtime_r(&now, &ptm);
-    snprintf(datestr, 21, "%02d-%s-%04d %02d:%02d:%02d", ptm.tm_mday, mon[ptm.tm_mon], ptm.tm_year+1900,
-	    ptm.tm_hour, ptm.tm_min, ptm.tm_sec);
+    strftime(datestr, 21, "%d-%b-%Y %H:%M:%S", &ptm);
 
     fprintf(fp, "%s %s %s[%s] ", grade, datestr, prname, prpid);
     for (i = 0; i < strlen(format); i++) {
@@ -425,17 +415,8 @@ char *ascfnode(faddr *a, int fl)
 {
     static char	buf[64];
 
-    buf[0] = '\0';
-    if ((fl & 0x08) && (a->zone))
-	snprintf(buf+strlen(buf), 10, "%u:",a->zone);
-    if (fl & 0x04)
-	snprintf(buf+strlen(buf), 10, "%u/",a->net);
-    if (fl & 0x02)
-	snprintf(buf+strlen(buf), 10, "%u",a->node);
-    if ((fl & 0x01) && (a->point))
-	snprintf(buf+strlen(buf), 10, ".%u",a->point);
-    if ((fl & 0x10) && (strlen(a->domain)))
-	snprintf(buf+strlen(buf), 14, "@%s",a->domain);
+    ascfnode_r(a, fl, buf);
+
     return buf;
 }
 
@@ -443,13 +424,13 @@ void ascfnode_r(faddr *a, int fl, char *buf)
 {
     buf[0] = '\0';
     if ((fl & 0x08) && (a->zone))
-        snprintf(buf+strlen(buf), 10, "%u:",a->zone);
+        snprintf(buf, 10, "%u:",a->zone & 0xFFFF);
     if (fl & 0x04)
-        snprintf(buf+strlen(buf), 10, "%u/",a->net);
+        snprintf(buf+strlen(buf), 10, "%u/",a->net & 0xFFFF);
     if (fl & 0x02)
-        snprintf(buf+strlen(buf), 10, "%u",a->node);
+        snprintf(buf+strlen(buf), 10, "%u",a->node & 0xFFFF);
     if ((fl & 0x01) && (a->point))
-        snprintf(buf+strlen(buf), 10, ".%u",a->point);
+        snprintf(buf+strlen(buf), 10, ".%u",a->point & 0xFFFF);
     if ((fl & 0x10) && (strlen(a->domain)))
         snprintf(buf+strlen(buf), 14, "@%s",a->domain);
     return;
@@ -533,11 +514,11 @@ void TaskInitFidonet(void)
 int SearchFidonet(unsigned short zone)
 {
     FILE    *fil;
-    char    fidonet_fil[PATH_MAX];
+    char    fidonet_file[PATH_MAX];
     int	    i;
 
-    snprintf(fidonet_fil, PATH_MAX, "%s/etc/fidonet.data", getenv("MBSE_ROOT"));
-    if ((fil = fopen(fidonet_fil, "r")) == NULL) {
+    snprintf(fidonet_file, PATH_MAX, "%s/etc/fidonet.data", getenv("MBSE_ROOT"));
+    if ((fil = fopen(fidonet_file, "r")) == NULL) {
         return FALSE;
     }
     fread(&fidonethdr, sizeof(fidonethdr), 1, fil);

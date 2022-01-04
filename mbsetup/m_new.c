@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -257,7 +256,7 @@ int AppendNewfiles(void)
 		newfiles.Language = 'E';
 		snprintf(newfiles.Template, 15, "newfiles");
 		newfiles.charset = FTNC_CP437;
-		strncpy(newfiles.Origin, CFG.origin, 50);
+		memccpy(newfiles.Origin, CFG.origin, '\0', sizeof(newfiles.Origin) - 1);
 		fwrite(&newfiles, sizeof(newfiles), 1, fil);
 		memset(&group, 0, 13);
 		for (i = 1; i <= CFG.new_groups; i++)
@@ -412,22 +411,22 @@ int EditNewRec(int Area)
 			IsDoing("Browsing Menu");
 			return 0;
 
-		case 1:	E_STR(  7,18,55, newfiles.Comment,   "The ^comment^ for this area")
+		case 1:	E_STR(  7,18,55, newfiles.Comment,   "The ^comment^ for this area"); break;
 		case 2: strcpy(newfiles.Area, PickMsgarea((char *)"12.2"));
 			break;
-		case 3: E_STR(  9,18,50, newfiles.Origin,    "The ^origin line^ to append, leave blank for random lines")
-		case 4: E_STR( 10,18,35, newfiles.From,      "The ^From^ name to appear above the messages")
-		case 5: E_STR( 11,18,35, newfiles.Too,       "The ^To^ name to appear above the messages")
-		case 6: E_STR( 12,18,60, newfiles.Subject,   "The ^Subject^ of the messages")
+		case 3: E_STR(  9,18,50, newfiles.Origin,    "The ^origin line^ to append, leave blank for random lines"); break;
+		case 4: E_STR( 10,18,35, newfiles.From,      "The ^From^ name to appear above the messages"); break;
+		case 5: E_STR( 11,18,35, newfiles.Too,       "The ^To^ name to appear above the messages"); break;
+		case 6: E_STR( 12,18,60, newfiles.Subject,   "The ^Subject^ of the messages"); break;
 		case 7: newfiles.Language = PickLanguage((char *)"12.7");
 			break;
-		case 8: E_STR( 14,18,14, newfiles.Template,  "The ^template^ file to use for the report")
+		case 8: E_STR( 14,18,14, newfiles.Template,  "The ^template^ file to use for the report"); break;
 		case 9: i = PickAka((char *)"12.9", TRUE);
 			if (i != -1)
 				newfiles.UseAka = CFG.aka[i];
 			break;
-		case 10:E_BOOL(16,18,    newfiles.Active,    "If this report is ^active^")
-		case 11:E_BOOL(17,18,    newfiles.Deleted,   "Is this record ^deleted^")
+		case 10:E_BOOL(16,18,    newfiles.Active,    "If this report is ^active^"); break;
+		case 11:E_BOOL(17,18,    newfiles.Deleted,   "Is this record ^deleted^"); break;
 		case 12:if (E_Group(&fgr, (char *)"12.13 NEWFILE GROUPS"))
 				GrpChanged = TRUE;
 			break;

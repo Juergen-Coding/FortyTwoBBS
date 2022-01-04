@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -349,9 +348,9 @@ int EditMagicRec(int Area)
 		case 1:	magic.Attrib = edit_magictype(7,16, magic.Attrib);
 			break;
 
-		case 2:	E_STR(  8,16,14, magic.Mask,   "File ^mask^ to test for this magic")
-		case 3: E_BOOL( 9,16,    magic.Active, "Is this magic ^active^")
-		case 4: E_BOOL(10,16,    magic.Deleted,"Is this record ^deleted^")
+		case 2:	E_STR(  8,16,14, magic.Mask,   "File ^mask^ to test for this magic"); break;
+		case 3: E_BOOL( 9,16,    magic.Active, "Is this magic ^active^"); break;
+		case 4: E_BOOL(10,16,    magic.Deleted,"Is this record ^deleted^"); break;
 		case 5: strcpy(magic.From, PickTicarea((char *)"10.4.5"));
 			break;
 		case 6: switch(magic.Attrib) {
@@ -362,17 +361,17 @@ int EditMagicRec(int Area)
 
 				case MG_COPY:
 				case MG_UNPACK:
-						E_PTH(12,16,64, magic.Path,   "The ^path^ to use", 0750)
+						E_PTH(12,16,64, magic.Path,   "The ^path^ to use", 0750); break;
 
 				case MG_EXEC:
-						E_STR(12,16,64, magic.Cmd,    "The ^command^ to execute")
+						E_STR(12,16,64, magic.Cmd,    "The ^command^ to execute"); break;
 
 				case MG_KEEPNUM:
-						E_INT(12,16,    magic.KeepNum,"The number of files to ^keep^")
+						E_INT(12,16,    magic.KeepNum,"The number of files to ^keep^"); break;
 			}
 			break;
 
-		case 7:	E_BOOL(13,16, magic.Compile, "Trigger the ^compile nodelist^ flag")
+		case 7:	E_BOOL(13,16, magic.Compile, "Trigger the ^compile nodelist^ flag"); break;
 		}
 	}	
 	return 0;

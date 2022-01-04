@@ -345,7 +345,7 @@ static RETSIGTYPE alarm_handler(int sig)
 int main(int argc, char **argv)
 {
     char	    username[37];
-    char	    tty[BUFSIZ];
+    char	    tty[128] = { 0 };
     char	    userfile[PATH_MAX];
     FILE	    *ufp;
     int		    reason = PW_LOGIN;
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
     int		    FoundName;
     const char	    *cp;
     char	    *tmp;
-    char	    fromhost[512];
+    char	    fromhost[1024];
     struct passwd   *pwd;
     char	    **envp = environ;
     static char	    temp_pw[2];
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
      * entry (will not overwrite remote hostname).  --marekm
      */
     checkutmp(!amroot);
-    STRFCPY(tty, UTENTRY.ut_line);
+	memccpy(tty, UTENTRY.ut_line, '\0', sizeof(UTENTRY.ut_line));
 	
 	
 

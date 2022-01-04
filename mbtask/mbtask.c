@@ -27,7 +27,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../paths.h"
 #include "signame.h"
@@ -138,14 +137,15 @@ void load_maincfg(void)
          */
         snprintf(CFG.bbs_name, 36, "MBSE BBS");
         uname((struct utsname *)&un); 
+
 #if defined(__USE_GNU)
-        snprintf(CFG.sysdomain, 36, "%s.%s", un.nodename, un.domainname); 
-#elif defined(__linux__)
-        snprintf(CFG.sysdomain, 36, "%s.%s", un.nodename, un.__domainname);
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-	snprintf(CFG.sysdomain, 36, "%s", un.nodename);	/* No domain in FreeBSD */
-#else
-#error "Don't know un.domainname on this OS"
+		int ret = snprintf(CFG.sysdomain, sizeof(CFG.sysdomain), "%s", un.nodename);
+		if (ret < sizeof(CFG.sysdomain)) {
+			const int off = strnlen(CFG.sysdomain, sizeof(CFG.sysdomain));
+			snprintf(CFG.sysdomain + off, sizeof(CFG.sysdomain), ".%.*s", (int)(sizeof(CFG.sysdomain) - off - 2), un.domainname);
+		}
+#else /* Non-GNU Targets such as FreeBSD, OpenBSD, and NetBSD */
+		snprintf(CFG.sysdomain, sizeof(CFG.sysdomain), "%.*s", (int)(sizeof(CFG.sysdomain) - 1), un.nodename);
 #endif
         snprintf(CFG.comment, 56,  "MBSE BBS development");
         snprintf(CFG.origin, 51,   "MBSE BBS. Made in the Netherlands");
@@ -1257,7 +1257,7 @@ void scheduler(void)
 	else if (!s_bbsopen)
 	    snprintf(doing, 32, "BBS is closed");
 	else if (Processing)
-	    snprintf(doing, 32, "%s", waitmsg);
+	    snprintf(doing, 32, "%.31s", waitmsg);
 	else
 	    snprintf(doing, 32, "Overload %2.2f", Load);
 

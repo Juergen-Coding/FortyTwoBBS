@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -281,10 +280,10 @@ int EditDomainRec(int Area)
 			IsDoing("Browsing Menu");
 			return 0;
 
-		case 1:	E_STR(  7,18,60, domtrans.ftndom,    "Enter the ^fidonet^ side of this ^domain^.")
-		case 2: E_STR(  8,18,60, domtrans.intdom,    "Enter the ^internet^ side of this ^domain^.")
-		case 3: E_BOOL( 9,18,    domtrans.Active,    "If this domain is ^active^")
-		case 4: E_BOOL(10,18,    domtrans.Deleted,   "If this record is ^Deleted^")
+		case 1:	E_STR(  7,18,60, domtrans.ftndom,    "Enter the ^fidonet^ side of this ^domain^."); break;
+		case 2: E_STR(  8,18,60, domtrans.intdom,    "Enter the ^internet^ side of this ^domain^."); break;
+		case 3: E_BOOL( 9,18,    domtrans.Active,    "If this domain is ^active^"); break;
+		case 4: E_BOOL(10,18,    domtrans.Deleted,   "If this record is ^Deleted^"); break;
 		}
 	}
 }
@@ -346,7 +345,7 @@ void EditDomain(void)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-31s  %-31s", o+i, domtrans.ftndom, domtrans.intdom);
+						snprintf(temp, 81, "%3d.  %-31.31s  %-31.31s", o+i, domtrans.ftndom, domtrans.intdom);
 						temp[75] = 0;
 						mbse_mvprintw(y, 3, temp);
 						y++;

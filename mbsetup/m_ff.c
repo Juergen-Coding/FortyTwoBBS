@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -202,7 +201,7 @@ int AppendFilefind(void)
 		 */
 		scanmgr.Language = 'E';
 		snprintf(scanmgr.template, 15, "filefind");
-		strncpy(scanmgr.Origin, CFG.origin, 50);
+		memccpy(scanmgr.Origin, CFG.origin, '\0', 50);
 		scanmgr.keywordlen = 3;
 		scanmgr.charset = FTNC_CP437;
 		fwrite(&scanmgr, sizeof(scanmgr), 1, fil);
@@ -306,8 +305,8 @@ int EditFfRec(int Area)
 		    }
 		    IsDoing("Browsing Menu");
 		    return 0;
-	    case 1: E_STR(  7,18,55, scanmgr.Comment,   "The ^comment^ for this area")
-	    case 2: E_STR(  8,18,50, scanmgr.Origin,    "The ^origin^ line to append, leave blank for random lines")
+	    case 1: E_STR(  7,18,55, scanmgr.Comment,   "The ^comment^ for this area"); break;
+	    case 2: E_STR(  8,18,50, scanmgr.Origin,    "The ^origin^ line to append, leave blank for random lines"); break;
 	    case 3: i = PickAka((char *)"13.3", TRUE);
 		    if (i != -1)
 			scanmgr.Aka = CFG.aka[i];
@@ -318,13 +317,13 @@ int EditFfRec(int Area)
 		    break;
 	    case 6: scanmgr.Language = PickLanguage((char *)"13.6");
 		    break;
-	    case 7: E_STR( 13,18,14, scanmgr.template,  "The ^template^ file to use for the report")
-	    case 8: E_BOOL(14,18,    scanmgr.Active,    "If this report is ^active^")
-	    case 9: E_BOOL(15,18,    scanmgr.Deleted,   "If this record is ^deleted^")
-	    case 10:E_BOOL(16,18,    scanmgr.NetReply,  "If reply's via ^netmail^ instead of echomail")
+	    case 7: E_STR( 13,18,14, scanmgr.template,  "The ^template^ file to use for the report"); break;
+	    case 8: E_BOOL(14,18,    scanmgr.Active,    "If this report is ^active^"); break;
+	    case 9: E_BOOL(15,18,    scanmgr.Deleted,   "If this record is ^deleted^"); break;
+	    case 10:E_BOOL(16,18,    scanmgr.NetReply,  "If reply's via ^netmail^ instead of echomail"); break;
 	    case 11:scanmgr.charset = edit_charset(17,18, scanmgr.charset);
 		    break;
-	    case 12:E_IRC( 18,18,    scanmgr.keywordlen, 3, 8, "Minimum ^keyword length^ to allowed for search")
+	    case 12:E_IRC( 18,18,    scanmgr.keywordlen, 3, 8, "Minimum ^keyword length^ to allowed for search"); break;
 	}
     }
 }

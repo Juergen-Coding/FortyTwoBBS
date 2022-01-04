@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/mbsedb.h"
 #include "../lib/users.h"
@@ -270,10 +269,10 @@ int EditDomAliasRec(int Area)
 			IsDoing("Browsing Menu");
 			return 0;
 
-		case 1:	E_STR(  7,18,60, domalias.alias,    "Enter the ^Alias^ of this ^domain^.")
-		case 2: E_STR(  8,18,60, domalias.domain,    "Enter the ^FTN Domain^ for this ^domain^.")
-		case 3: E_BOOL( 9,18,    domalias.active,    "If this domain is ^active^")
-		case 4: E_BOOL(10,18,    domalias.deleted,   "If this record is ^Deleted^")
+		case 1:	E_STR(  7,18,60, domalias.alias,    "Enter the ^Alias^ of this ^domain^."); break;
+		case 2: E_STR(  8,18,60, domalias.domain,    "Enter the ^FTN Domain^ for this ^domain^."); break;
+		case 3: E_BOOL( 9,18,    domalias.active,    "If this domain is ^active^"); break;
+		case 4: E_BOOL(10,18,    domalias.deleted,   "If this record is ^Deleted^"); break;
 		}
 	}
 }

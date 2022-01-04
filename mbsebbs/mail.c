@@ -653,7 +653,7 @@ void Post_Msg()
 		 */
 		for (i = Line; i; i--) {
 		    Syslog('b', "%02d: \"%s\"", i, printable(Message[i], 0));
-		    snprintf(Message[i + 1], TEXTBUFSIZE +1, Message[i]);
+		    snprintf(Message[i + 1], TEXTBUFSIZE +1, "%s", Message[i]);
 		}
 		Line++;
 		snprintf(Message[1], TEXTBUFSIZE +1, " +: Original message to %s", ascfnode(Dest, 0x4f));
@@ -1807,7 +1807,7 @@ void Reply_Msg(int IsReply)
 		 */
 		for (i = Line; i; i--) {
 		    Syslog('b', "%02d: \"%s\"", i, printable(Message[i], 0));
-		    snprintf(Message[i + 1], TEXTBUFSIZE +1, Message[i]);
+		    snprintf(Message[i + 1], TEXTBUFSIZE +1, "%s", Message[i]);
 		}
 		Line++;
 		snprintf(Message[1], TEXTBUFSIZE +1, " +: Original message to %s", ascfnode(Dest, 0x4f));

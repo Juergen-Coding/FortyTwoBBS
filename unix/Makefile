@@ -7,8 +7,7 @@ include ../Makefile.global
 SRCS		= commonio.c putpwent.c salt.c sgetpwent.c xmalloc.c myname.c encrypt.c \
 		  pwio.c shadowio.c mbpasswd.c mbuseradd.c rad64.c getdef.c pw_util.c \
 		  mblogin.c env.c chowntty.c shell.c basename.c pwdcheck.c pwauth.c \
-		  loginprompt.c utmp.c limits.c setupenv.c sub.c log.c setugid.c \
-		  lastlogin.c
+		  loginprompt.c utmp.c limits.c setupenv.c sub.c log.c setugid.c
 HDRS		= commonio.h putpwent.h salt.h sgetpwent.h xmalloc.h myname.h encrypt.h \
 		  pwio.h shadowio.h mbpasswd.h mbuseradd.h rad64.h getdef.h pw_util.h \
 		  mblogin.h env.h chowntty.h shell.h basename.h pwdcheck.h pwauth.h \
@@ -18,7 +17,7 @@ MBPASSWD_OBJS	= mbpasswd.o commonio.o pwio.o shadowio.o sgetpwent.o \
 		  xmalloc.o myname.o rad64.o salt.o getdef.o encrypt.o putpwent.o pw_util.o
 MBLOGIN_OBJS	= getdef.o env.o chowntty.o shell.o basename.o pwdcheck.o pwauth.o encrypt.o \
 		  loginprompt.o utmp.o limits.o setupenv.o sub.o xmalloc.o log.o setugid.o \
-		  mblogin.o lastlogin.o
+		  mblogin.o
 MBLOGIN_LIBS = ../lib/libdbase.a
 OTHER		= Makefile login.defs.in
 TARGET		= mbuseradd mbpasswd mblogin

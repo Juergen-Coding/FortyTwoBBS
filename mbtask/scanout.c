@@ -28,7 +28,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "taskutil.h"
 #include "scanout.h"
@@ -183,7 +182,7 @@ int scanout(int (*fn)(faddr *, char, int, char *))
 {
     int		    i, j, rc = 0;
     unsigned short  zone = 0;
-    char	    fext[5], *p = NULL, *q = NULL;
+    char	    fext[6], *p = NULL, *q = NULL;
     DIR		    *dp;
 
     if ((dp = opendir(CFG.outbound)) == NULL) {
@@ -216,7 +215,7 @@ int scanout(int (*fn)(faddr *, char, int, char *))
 		     */
 		    if (fidonet.zone[j]) {
 			if (j) {
-			    snprintf(fext, 5, ".%03x", fidonet.zone[j]);
+			    snprintf(fext, sizeof(fext), ".%03x", fidonet.zone[j] & 0xFFFF);
 			    p = xstrcat(p, fext);
 			}
 			addr.zone = fidonet.zone[j];

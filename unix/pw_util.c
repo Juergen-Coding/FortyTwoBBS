@@ -221,7 +221,7 @@ void pw_error(char *name, int errn, int eval)
 	extern int _use_yp;
 #endif /* YP */
 	if (errn)
-		syslog(LOG_WARNING, name);
+		syslog(LOG_WARNING, "%s", name);
 #ifdef YP
 	if (_use_yp)
 		syslog(LOG_WARNING, "NIS information unchanged");

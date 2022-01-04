@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -289,10 +288,10 @@ int EditNGrpRec(int Area)
 			}
 			IsDoing("Browsing Menu");
 			return 0;
-		case 1: E_UPS( 7,18,12,ngroup.Name,"The ^name^ for this message group")
-		case 2: E_STR( 8,18,55,ngroup.Comment,"The ^desription^ for this message group")
-		case 3: E_BOOL(9,18,   ngroup.Active, "Is this message group ^active^")
-		case 4: E_BOOL(10,18,  ngroup.Deleted, "Is this group ^Deleted^")
+		case 1: E_UPS( 7,18,12,ngroup.Name,"The ^name^ for this message group"); break;
+		case 2: E_STR( 8,18,55,ngroup.Comment,"The ^desription^ for this message group"); break;
+		case 3: E_BOOL(9,18,   ngroup.Active, "Is this message group ^active^"); break;
+		case 4: E_BOOL(10,18,  ngroup.Deleted, "Is this group ^Deleted^"); break;
 		}
 	}
 
@@ -355,7 +354,7 @@ void EditNGroup(void)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-12s %-18s", o + i, ngroup.Name, ngroup.Comment);
+						snprintf(temp, 81, "%3d.  %-12.12s %-18.18s", o + i, ngroup.Name, ngroup.Comment);
 						temp[38] = '\0';
 						mbse_mvprintw(y, x, temp);
 						y++;
@@ -457,7 +456,7 @@ char *PickNGroup(char *shdr)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-12s %-18s", o + i, ngroup.Name, ngroup.Comment);
+						snprintf(temp, 81, "%3d.  %-12.12s %-18.18s", o + i, ngroup.Name, ngroup.Comment);
 						temp[38] = '\0';
 						mbse_mvprintw(y, x, temp);
 						y++;

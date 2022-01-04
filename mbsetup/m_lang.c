@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -125,7 +124,7 @@ void UpgradeLanguage(char *name, char *lc)
 		WriteError("$Can't move %s to %s", lang.xMenuPath, temp);
 	    } else {
 		Syslog('+', "Moved %s to %s", lang.xMenuPath, temp);
-		snprintf(lang.xMenuPath, sizeof(lang.xMenuPath), temp);
+		snprintf(lang.xMenuPath, sizeof(lang.xMenuPath), "%s", temp);
 	    }
 	} else {
 	    Syslog('+', "%s already upgraded", temp);
@@ -139,7 +138,7 @@ void UpgradeLanguage(char *name, char *lc)
 		WriteError("$Can't move %s to %s", lang.xTextPath, temp);
 	    } else {
 		Syslog('+', "Moved %s to %s", lang.xTextPath, temp);
-		snprintf(lang.xTextPath, sizeof(lang.xTextPath), temp);
+		snprintf(lang.xTextPath, sizeof(lang.xTextPath), "%s", temp);
 	    }
 	} else {
 	    Syslog('+', "%s already upgraded", temp);
@@ -153,7 +152,7 @@ void UpgradeLanguage(char *name, char *lc)
 		WriteError("$Can't move %s to %s", lang.xMacroPath, temp);
 	    } else {
 		Syslog('+', "Moved %s to %s", lang.xMacroPath, temp);
-		snprintf(lang.xMacroPath, sizeof(lang.xMacroPath), temp);
+		snprintf(lang.xMacroPath, sizeof(lang.xMacroPath), "%s", temp);
 	    }
 	} else {
 	    Syslog('+', "%s already upgraded", temp);
@@ -392,12 +391,12 @@ int EditLangRec(int Area)
 			}
 			IsDoing("Browsing Menu");
 			return 0;
-		case 1:	E_UPS(  7,16,1, lang.LangKey,  "The ^Key^ to select this language")
-		case 2:	E_STR(  8,16,30,lang.Name,     "The ^name^ of this language")
-		case 3:	E_STR(  9,16,10,lang.lc,       "The ^ISO name^ of this language")
-		case 4:	E_BOOL(10,16,   lang.Available,"Is this language ^available^")
-		case 5:	E_SEC( 11,16,   lang.Security, "8.2. LANGUAGE SECURITY", s_lang)
-		case 6: E_BOOL(12,16,   lang.Deleted,  "Is this language record ^Deleted^")
+		case 1:	E_UPS(  7,16,1, lang.LangKey,  "The ^Key^ to select this language"); break;
+		case 2:	E_STR(  8,16,30,lang.Name,     "The ^name^ of this language"); break;
+		case 3:	E_STR(  9,16,10,lang.lc,       "The ^ISO name^ of this language"); break;
+		case 4:	E_BOOL(10,16,   lang.Available,"Is this language ^available^"); break;
+		case 5:	E_SEC( 11,16,   lang.Security, "8.2. LANGUAGE SECURITY"); s_lang(); break;
+		case 6: E_BOOL(12,16,   lang.Deleted,  "Is this language record ^Deleted^"); break;
 		}
 	}
 

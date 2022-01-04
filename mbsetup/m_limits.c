@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "screen.h"
@@ -335,13 +334,13 @@ int EditLimRec(int Area)
 			}
 			IsDoing("Browsing Menu");
 			return 0;
-		case 1:	E_INT(  7,25,   LIMIT.Security,   "The ^Security^ level for this limit")
-		case 2:	E_INT(  8,25,   LIMIT.Time,       "The maxmimum ^Time online^ per day for this limit, zero to disable")
-		case 3:	E_INT(  9,25,   LIMIT.DownK,      "The ^Kilobytes^ download limit per day, 0 = don't care")
-		case 4:	E_INT( 10,25,   LIMIT.DownF,      "The ^nr of files^ to download per day, 0 = don't care")
-		case 5:	E_STR( 11,25,40,LIMIT.Description,"A short ^description^ for this limit")
-		case 6:	E_BOOL(12,25,   LIMIT.Available,  "Is this record ^avaiable^")
-		case 7: E_BOOL(13,25,   LIMIT.Deleted,    "Is this level ^Deleted^")
+		case 1:	E_INT(  7,25,   LIMIT.Security,   "The ^Security^ level for this limit"); break;
+		case 2:	E_INT(  8,25,   LIMIT.Time,       "The maxmimum ^Time online^ per day for this limit, zero to disable"); break;
+		case 3:	E_INT(  9,25,   LIMIT.DownK,      "The ^Kilobytes^ download limit per day, 0 = don't care"); break;
+		case 4:	E_INT( 10,25,   LIMIT.DownF,      "The ^nr of files^ to download per day, 0 = don't care"); break;
+		case 5:	E_STR( 11,25,40,LIMIT.Description,"A short ^description^ for this limit"); break;
+		case 6:	E_BOOL(12,25,   LIMIT.Available,  "Is this record ^avaiable^"); break;
+		case 7: E_BOOL(13,25,   LIMIT.Deleted,    "Is this level ^Deleted^"); break;
 		}
 	}
 

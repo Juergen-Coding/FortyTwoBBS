@@ -28,7 +28,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "taskutil.h"
 #include "taskstat.h"
@@ -499,14 +498,14 @@ int outstat()
 		tmin = 0;
 	    else
 		tmin = 30;
-	    snprintf(as, 6, "%02d:%02d", thour, tmin);
+	    snprintf(as, 6, "%02d:%02d", (unsigned)thour % 24, tmin);
 	    set_next(thour, tmin);
 	    thour = toupper(tmp->t2) - 'A';
 	    if (isupper(tmp->t2))
 		tmin = 0;
 	    else
 		tmin = 30;
-	    snprintf(be, 6, "%02d:%02d", thour, tmin);
+	    snprintf(be, 6, "%02d:%02d", (unsigned)thour % 24, tmin);
 	    set_next(thour, tmin);
 	    if (strcmp(as, be) > 0) {
 		/*
@@ -523,7 +522,7 @@ int outstat()
 	    }
 	}
 	memset(&flstr, 0, sizeof(flstr));
-	strncpy(flstr, "...... .... ..", 14);
+	strncpy(flstr, "...... .... ..", 15);
 
 	/*
 	 * If the node has internet and we have internet configured, 
@@ -751,7 +750,7 @@ int each(faddr *addr, char flavor, int isflo, char *fname)
     for (tmp = &alist; *tmp; tmp = &((*tmp)->next))
 	if (((*tmp)->addr.zone  == addr->zone) && ((*tmp)->addr.net   == addr->net) &&
 	    ((*tmp)->addr.node  == addr->node) && ((*tmp)->addr.point == addr->point) &&
-	    (((*tmp)->addr.domain == NULL) || (addr->domain == NULL) ||
+	    (((*tmp)->addr.domain[0] == '\0') || (addr->domain == NULL) ||
 	    (strcasecmp((*tmp)->addr.domain,addr->domain) == 0)))
 	    break;
     if (*tmp == NULL) {

@@ -229,8 +229,8 @@ void MidLine(char *txt, FILE *fp, FILE *up, int doit)
 	strncat(temp, " ", 255);
 
     strncat(temp, "\xB3\r\n", 255);
-    fprintf(fp, temp);
-    fprintf(up, chartran(temp));
+    fprintf(fp, "%s", temp);
+    fprintf(up, "%s", chartran(temp));
 }
 
 
@@ -247,8 +247,8 @@ void TopBox(FILE *fp, FILE *up, int doit)
     for(y = 0; y < 77; y++)
 	strncat(temp, "\xC4", 255);
     strncat(temp, "\xBF\r\n", 255);
-    fprintf(fp, temp);
-    fprintf(up, chartran(temp));
+    fprintf(fp, "%s", temp);
+    fprintf(up, "%s", chartran(temp));
 }
 
 
@@ -265,8 +265,8 @@ void BotBox(FILE *fp, FILE *up, int doit)
     for (y = 0; y < 77; y++)
 	strncat(temp, "\xC4", 255);
     strncat(temp, "\xD9\r\n\r\n", 255);
-    fprintf(fp, temp);
-    fprintf(up, chartran(temp));
+    fprintf(fp, "%s", temp);
+    fprintf(up, "%s", chartran(temp));
 }
 
 
@@ -536,15 +536,15 @@ void MakeArc()
     Nopper();
     if (!do_quiet)
 	printf("Creating ALLFILES.ZIP ...\n");
-    if (!execute_str(cmd, (char *)"allfiles.zip allfiles.txt allfiles.utf", (char *)NULL, (char *)"/dev/null", 
-			(char *)"/dev/null", (char *)"/dev/null") == 0)
+    if (!(execute_str(cmd, (char *)"allfiles.zip allfiles.txt allfiles.utf", (char *)NULL, (char *)"/dev/null", 
+			(char *)"/dev/null", (char *)"/dev/null") == 0))
 	WriteError("ALLFILES.ZIP creation failed!");
 
     Nopper();
     if (!do_quiet)
 	printf("Creating NEWFILES.ZIP ...\n");
-    if (!execute_str(cmd, (char *)"newfiles.zip newfiles.txt newfiles.utf", (char *)NULL, (char *)"/dev/null", 
-			(char *)"/dev/null", (char  *)"/dev/null") == 0)
+    if (!(execute_str(cmd, (char *)"newfiles.zip newfiles.txt newfiles.utf", (char *)NULL, (char *)"/dev/null", 
+			(char *)"/dev/null", (char  *)"/dev/null") == 0))
 	WriteError("NEWFILES.ZIP creation failed!");
 
     free(cmd);

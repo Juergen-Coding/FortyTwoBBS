@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -431,15 +430,15 @@ int EditHatchRec(int Area)
 			IsDoing("Browsing Menu");
 			return 0;
 
-		case 1:	E_STR(  7,18,55, hatch.Spec,   "Hatch ^path/filespec^. ^?^ is any char, '@' is any alpha, '#' is any number")
+		case 1:	E_STR(  7,18,55, hatch.Spec,   "Hatch ^path/filespec^. ^?^ is any char, '@' is any alpha, '#' is any number"); break;
 		case 2: strcpy(hatch.Name, PickTicarea((char *)"10.3.2"));
 			break;
-		case 3: E_UPS(  9,18,14, hatch.Replace,   "The ^filename^ to replace by this file")
-		case 4: E_UPS( 10,18,14, hatch.Magic,     "The ^magic^ filename for this file")
-		case 5: E_STR( 11,18,55, hatch.Desc,      "The ^description^ for this file")
-		case 6: E_BOOL(12,18,    hatch.DupeCheck, "Check if this files is a ^duplicate^ hatch")
-		case 7: E_BOOL(13,18,    hatch.Active,    "If this file is ^active^")
-		case 8: E_BOOL(14,18,    hatch.Deleted,   "If this record is ^Deleted^")
+		case 3: E_UPS(  9,18,14, hatch.Replace,   "The ^filename^ to replace by this file"); break;
+		case 4: E_UPS( 10,18,14, hatch.Magic,     "The ^magic^ filename for this file"); break;
+		case 5: E_STR( 11,18,55, hatch.Desc,      "The ^description^ for this file"); break;
+		case 6: E_BOOL(12,18,    hatch.DupeCheck, "Check if this files is a ^duplicate^ hatch"); break;
+		case 7: E_BOOL(13,18,    hatch.Active,    "If this file is ^active^"); break;
+		case 8: E_BOOL(14,18,    hatch.Deleted,   "If this record is ^Deleted^"); break;
 		case 9: EditDays();
 			break;
 		case 10:EditDates();
@@ -504,7 +503,7 @@ void EditHatch(void)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-32s", o + i, hatch.Spec);
+						snprintf(temp, 81, "%3d.  %-32.32s", o + i, hatch.Spec);
 						temp[37] = 0;
 						mbse_mvprintw(y, x, temp);
 						y++;

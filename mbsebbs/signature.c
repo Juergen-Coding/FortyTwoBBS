@@ -82,10 +82,10 @@ void toprow(void)
 {
     int	    i;
 
-    pout(YELLOW, BLACK, (char *)" Õ");
+    pout(YELLOW, BLACK, (char *)" \xD5");
     for (i = 0; i < LENSIGLINES; i++)
-	PUTCHAR('Í');
-    PUTCHAR('¸');
+	PUTCHAR('\xCD');
+    PUTCHAR('\xB8');
     Enter(1);
 }
 
@@ -96,10 +96,10 @@ void botrow(void)
 {
     int	    i;
 
-    pout(YELLOW, BLACK, (char *)" Ô");
+    pout(YELLOW, BLACK, (char *)" \xD4");
     for (i = 0; i < LENSIGLINES; i++)
-	PUTCHAR('Í');
-    PUTCHAR('¾');
+	PUTCHAR('\xCD');
+    PUTCHAR('\xBE');
     Enter(1);
 }
 

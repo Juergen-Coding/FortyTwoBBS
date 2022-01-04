@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../paths.h"
 #include "screen.h"
@@ -290,7 +289,7 @@ int CountArchive(void)
             memset(&archiver, 0, sizeof(archiver));
             snprintf(archiver.comment, 41, "ZIP and UNZIP by Info-ZIP");
             snprintf(archiver.name, 6,    "ZIP");
-	    if (strlen(_PATH_ZIP) && strlen(_PATH_UNZIP))
+	    if (strlen(_PATH_ZIP) > 0 && strlen(_PATH_UNZIP) > 0)
 		archiver.available = TRUE;
 	    else
 		archiver.available = FALSE;
@@ -585,18 +584,18 @@ int EditArchRec(int Area)
 		    }
 		    IsDoing("Browsing Menu");
 		    return 0;
-	    case 1: E_STR(  7,16,40,archiver.comment,  "The ^Comment^ for this record")
-	    case 2: E_STR(  8,16,5, archiver.name,     "The ^name^ of this archiver")
-	    case 3: E_BOOL( 9,16,   archiver.available,"Switch if this archiver is ^Available^ for use.")
-	    case 4: E_BOOL(10,16,   archiver.deleted,  "Is this archiver ^deleted^")
-	    case 5: E_STR( 11,16,64,archiver.farc,     "The ^Archive^ command for files")
-	    case 6: E_STR( 12,16,64,archiver.marc,     "The ^Archive^ command for mail packets")
-	    case 7: E_STR( 13,16,64,archiver.barc,     "The ^Archive^ command to insert/replace banners")
-	    case 8: E_STR( 14,16,64,archiver.tarc,     "The ^Archive^ command to test an archive")
-	    case 9: E_STR( 15,16,64,archiver.funarc,   "The ^Unarchive^ command for files")
-	    case 10:E_STR( 16,16,64,archiver.munarc,   "The ^Unarchive^ command for mail packets")
-	    case 11:E_STR( 17,16,64,archiver.iunarc,   "The ^Unarchive^ command to extract the FILE_ID.DIZ file")
-	    case 12:E_STR( 18,16,64,archiver.varc,     "The ^List^ command to show the archive contents")
+	    case 1: E_STR(  7,16,40,archiver.comment,  "The ^Comment^ for this record"); break;
+	    case 2: E_STR(  8,16,5, archiver.name,     "The ^name^ of this archiver"); break;
+	    case 3: E_BOOL( 9,16,   archiver.available,"Switch if this archiver is ^Available^ for use."); break;
+	    case 4: E_BOOL(10,16,   archiver.deleted,  "Is this archiver ^deleted^"); break;
+	    case 5: E_STR( 11,16,64,archiver.farc,     "The ^Archive^ command for files"); break;
+	    case 6: E_STR( 12,16,64,archiver.marc,     "The ^Archive^ command for mail packets"); break;
+	    case 7: E_STR( 13,16,64,archiver.barc,     "The ^Archive^ command to insert/replace banners"); break;
+	    case 8: E_STR( 14,16,64,archiver.tarc,     "The ^Archive^ command to test an archive"); break;
+	    case 9: E_STR( 15,16,64,archiver.funarc,   "The ^Unarchive^ command for files"); break;
+	    case 10:E_STR( 16,16,64,archiver.munarc,   "The ^Unarchive^ command for mail packets"); break;
+	    case 11:E_STR( 17,16,64,archiver.iunarc,   "The ^Unarchive^ command to extract the FILE_ID.DIZ file"); break;
+	    case 12:E_STR( 18,16,64,archiver.varc,     "The ^List^ command to show the archive contents"); break;
 	}
     }
 

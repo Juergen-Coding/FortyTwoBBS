@@ -255,7 +255,14 @@ int CheckEchoGroup(char *Area, int SendUplink, faddr *f)
 		for (i = 0; i < strlen(tag); i++)
 		    if (tag[i] == '.')
 			tag[i] = '/';
-		snprintf(msgs.Base, 65, "%s/%s", mgroup.BasePath, tag);
+		if (snprintf(msgs.Base, 65, "%s/%s", mgroup.BasePath, tag) > sizeof(msgs.Base)) {
+			WriteError("Can't create Message Base, path too long %s/%s", mgroup.BasePath, tag);
+			fclose(mp);
+			fclose(ap);
+			free(buf);
+			free(temp);
+			return 1;
+		}
 		snprintf(msgs.Newsgroup, 81, "%s.%s", GetFidoDomain(msgs.Aka.zone), tag);
 		for (i = 0; i < strlen(msgs.Newsgroup); i++) {
 		    msgs.Newsgroup[i] = tolower(msgs.Newsgroup[i]);

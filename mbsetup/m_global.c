@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../paths.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
@@ -159,16 +158,16 @@ void e_reginfo(void)
 
 	switch(select_menu(10)) {
 	    case 0: return;
-	    case 1: E_STR( 7,17,35, CFG.bbs_name,   "Name of this ^BBS^ system")
-	    case 2: E_STR( 8,17,35, CFG.sysdomain,  "Internet ^mail domain^ name of this system")
-	    case 3: E_STR( 9,17, 8, CFG.sysop,      "^Unix name^ of the sysop")
-	    case 4: E_STR(10,17,35, CFG.sysop_name, "^Fidonet name^ of the sysop")
-	    case 5: E_STR(11,17,35, CFG.location,   "^Location^ (city/country) of this system")
-	    case 6: E_UPS(12,17, 8, CFG.bbsid,      "^QWK/Bluewave^ packets name")
-	    case 7: E_STR(13,17,55, CFG.comment,    "Some ^comment^ you may like to give")
-	    case 8: E_STR(14,17,50, CFG.origin,     "Default ^origin^ line under echomail messages")
-	    case 9: E_STR(15,17, 8, CFG.startname,  "The ^Unix username^ for new users that is used to start the bbs")
-	    case 10:E_STR(16,17,63, CFG.myfqdn,     "My real internet ^Full Qualified Domain Name^ or IP address if not in the DNS")
+	    case 1: E_STR( 7,17,35, CFG.bbs_name,   "Name of this ^BBS^ system"); break;
+	    case 2: E_STR( 8,17,35, CFG.sysdomain,  "Internet ^mail domain^ name of this system"); break;
+	    case 3: E_STR( 9,17, 8, CFG.sysop,      "^Unix name^ of the sysop"); break;
+	    case 4: E_STR(10,17,35, CFG.sysop_name, "^Fidonet name^ of the sysop"); break;
+	    case 5: E_STR(11,17,35, CFG.location,   "^Location^ (city/country) of this system"); break;
+	    case 6: E_UPS(12,17, 8, CFG.bbsid,      "^QWK/Bluewave^ packets name"); break;
+	    case 7: E_STR(13,17,55, CFG.comment,    "Some ^comment^ you may like to give"); break;
+	    case 8: E_STR(14,17,50, CFG.origin,     "Default ^origin^ line under echomail messages"); break;
+	    case 9: E_STR(15,17, 8, CFG.startname,  "The ^Unix username^ for new users that is used to start the bbs"); break;
+	    case 10:E_STR(16,17,63, CFG.myfqdn,     "My real internet ^Full Qualified Domain Name^ or IP address if not in the DNS"); break;
 	}
     }
 } 
@@ -202,13 +201,13 @@ void e_filenames(void)
 
 	switch(select_menu(7)) {
 	    case 0: return;
-	    case 1: E_STR( 7,28,14, CFG.logfile,          "The name of the ^system^ logfile.")
-	    case 2: E_STR( 8,28,14, CFG.error_log,        "The name of the ^errors^ logfile.")
-	    case 3: E_STR( 9,28,14, CFG.debuglog,         "The name of the ^debug^ logfile.")
-	    case 4: E_STR(10,28,14, CFG.mgrlog,           "The name of the ^area-/filemgr^ logfile.")
-	    case 5: E_STR(11,28,14, CFG.default_menu,     "The name of the ^default^ (top) ^menu^.")
-	    case 6: E_STR(12,28,14, CFG.chat_log,         "The name of the ^chat^ logfile.")
-	    case 7: E_STR(13,28,14, CFG.welcome_logo,     "The name of the ^BBS logo^ file.")
+	    case 1: E_STR( 7,28,14, CFG.logfile,          "The name of the ^system^ logfile."); break;
+	    case 2: E_STR( 8,28,14, CFG.error_log,        "The name of the ^errors^ logfile."); break;
+	    case 3: E_STR( 9,28,14, CFG.debuglog,         "The name of the ^debug^ logfile."); break;
+	    case 4: E_STR(10,28,14, CFG.mgrlog,           "The name of the ^area-/filemgr^ logfile."); break;
+	    case 5: E_STR(11,28,14, CFG.default_menu,     "The name of the ^default^ (top) ^menu^."); break;
+	    case 6: E_STR(12,28,14, CFG.chat_log,         "The name of the ^chat^ logfile."); break;
+	    case 7: E_STR(13,28,14, CFG.welcome_logo,     "The name of the ^BBS logo^ file."); break;
 	}
     }
 }
@@ -247,20 +246,20 @@ void e_global2(void)
 
         switch (select_menu(10)) {
             case 0: return;
-	    case 1: E_PTH( 6,16,64, CFG.nodelists,  "The path to the ^nodelists^.", 0750)
-	    case 2: E_PTH( 7,16,64, CFG.inbound,    "The path to the ^inbound^ for unknown systems.", 0750)
-	    case 3: E_PTH( 8,16,64, CFG.pinbound,   "The path to the ^nodelists^ for protected systems.", 0750)
-	    case 4: E_PTH( 9,16,64, CFG.outbound,   "The path to the base ^outbound^ directory.", 0750)
-	    case 5: E_PTH(10,16,64, CFG.out_queue,  "The path to the ^temp outbound queue^ directory.", 0750)
-	    case 6: E_PTH(11,16,64, CFG.msgs_path,  "The path to the ^*.msgs^ directory.", 0750)
-	    case 7: E_PTH(12,16,64, CFG.badtic,     "The path to the ^bad tic files^.", 0750)
-	    case 8: E_PTH(13,16,64, CFG.ticout,     "The path to the ^outgoing TIC^ files.", 0750)
+	    case 1: E_PTH( 6,16,64, CFG.nodelists,  "The path to the ^nodelists^.", 0750); break;
+	    case 2: E_PTH( 7,16,64, CFG.inbound,    "The path to the ^inbound^ for unknown systems.", 0750); break;
+	    case 3: E_PTH( 8,16,64, CFG.pinbound,   "The path to the ^nodelists^ for protected systems.", 0750); break;
+	    case 4: E_PTH( 9,16,64, CFG.outbound,   "The path to the base ^outbound^ directory.", 0750); break;
+	    case 5: E_PTH(10,16,64, CFG.out_queue,  "The path to the ^temp outbound queue^ directory.", 0750); break;
+	    case 6: E_PTH(11,16,64, CFG.msgs_path,  "The path to the ^*.msgs^ directory.", 0750); break;
+	    case 7: E_PTH(12,16,64, CFG.badtic,     "The path to the ^bad tic files^.", 0750); break;
+	    case 8: E_PTH(13,16,64, CFG.ticout,     "The path to the ^outgoing TIC^ files.", 0750); break;
 	    case 9: if (strlen(CFG.tmailshort) == 0)
 			snprintf(CFG.tmailshort, 65, "%s/var/tmail/short", getenv("MBSE_ROOT"));
-		    E_PTH(14,16,64, CFG.tmailshort, "The ^T-Mail 8.3 basepath^ (blank = disable)", 0770)
+		    E_PTH(14,16,64, CFG.tmailshort, "The ^T-Mail 8.3 basepath^ (blank = disable)", 0770); break;
 	    case 10:if (strlen(CFG.tmaillong) == 0)
 			snprintf(CFG.tmaillong, 65, "%s/var/tmail/long", getenv("MBSE_ROOT"));
-		    E_PTH(15,16,64, CFG.tmaillong,  "The ^T-Mail long basepath^ (blank = disable)", 0770)
+		    E_PTH(15,16,64, CFG.tmaillong,  "The ^T-Mail long basepath^ (blank = disable)", 0770); break;
         }
     }
 }
@@ -305,15 +304,15 @@ void e_global(void)
 
 	switch (select_menu(10)) {
 	    case 0: return;
-	    case 1: E_PTH(  6,16,64, CFG.bbs_usersdir,   "The path to the ^users home^ directories.", 0770)
-            case 2: E_PTH(  7,16,64, CFG.ftp_base,       "The ^FTP home^ directory to strip of the real directory", 0750)
-	    case 3: E_PTH(  8,16,64, CFG.alists_path,    "The path where ^area lists^ and ^filebone lists^ are stored.", 0750)
-	    case 4: E_STR(  9,16,64, CFG.externaleditor, "The full path and filename to the ^external msg editor^ (blank=disable)")
-	    case 5: E_PTH( 10,16,64, CFG.rulesdir,       "The path where the ^arearules^ are stored", 0750)
-	    case 6: E_PTH( 11,16,64, CFG.req_magic,      "The path to the ^magic filerequest^ files.", 0750)
-	    case 7: E_STR( 12,16,64, CFG.dospath,        "The translated ^DOS^ drive and path, empty disables translation")
-	    case 8: E_PTH( 13,16,64, CFG.uxpath,         "The translated ^Unix^ path.", 0750)
-	    case 9: E_BOOL(14,16,    CFG.leavecase,      "^Leave^ outbound flo filenames as is, ^No^ forces uppercase.")
+	    case 1: E_PTH(  6,16,64, CFG.bbs_usersdir,   "The path to the ^users home^ directories.", 0770); break;
+            case 2: E_PTH(  7,16,64, CFG.ftp_base,       "The ^FTP home^ directory to strip of the real directory", 0750); break;
+	    case 3: E_PTH(  8,16,64, CFG.alists_path,    "The path where ^area lists^ and ^filebone lists^ are stored.", 0750); break;
+	    case 4: E_STR(  9,16,64, CFG.externaleditor, "The full path and filename to the ^external msg editor^ (blank=disable)"); break;
+	    case 5: E_PTH( 10,16,64, CFG.rulesdir,       "The path where the ^arearules^ are stored", 0750); break;
+	    case 6: E_PTH( 11,16,64, CFG.req_magic,      "The path to the ^magic filerequest^ files.", 0750); break;
+	    case 7: E_STR( 12,16,64, CFG.dospath,        "The translated ^DOS^ drive and path, empty disables translation"); break;
+	    case 8: E_PTH( 13,16,64, CFG.uxpath,         "The translated ^Unix^ path.", 0750); break;
+	    case 9: E_BOOL(14,16,    CFG.leavecase,      "^Leave^ outbound flo filenames as is, ^No^ forces uppercase."); break;
 	    case 10:e_global2();
 		    s_global();
 		    break;
@@ -392,30 +391,30 @@ void e_bbsglob(void)
     for (;;) {
 	switch(select_menu(24)) {
 	    case 0: return;
-	    case 1: E_BOOL( 7,24, CFG.exclude_sysop,         "^Exclude^ sysop from lists.")
-	    case 2: E_BOOL( 8,24, CFG.iConnectString,        "Show ^connect string^ at logon")
-	    case 3: E_BOOL( 9,24, CFG.iAskFileProtocols,     "Ask ^file protocol^ before every up- download")
-	    case 4: E_INT( 10,24, CFG.sysop_access,          "Sysop ^access level^")
-	    case 5: E_IRC( 11,24, CFG.password_length, 2, 8, "Mimimum ^password^ length (2..8)")
-	    case 6: E_IRC( 12,24, CFG.iPasswd_Char, 33, 126, "Ascii number of ^password^ character (33..126)")
-	    case 7: E_IRC( 13,24, CFG.idleout, 2, 60,        "^Idle timeout^ in minutes (2..60)")
-	    case 8: E_INT( 14,24, CFG.iCRLoginCount,         "Maximum ^Login Return^ count")
-	    case 9: E_INT( 15,24, CFG.iQuota,                "Maximum ^Quota^ in MBytes in users homedirectory");
-	    case 10:E_IRC( 16,24, CFG.CityLen, 3, 6,         "Minimum ^Location name^ length (3..6)")
-	    case 11:E_BOOL(17,24, CFG.NewAreas,              "Show ^new^ or ^deleted^ message areas to the user at login.")
-	    case 12:E_INT( 18,24, CFG.OLR_MaxMsgs,           "^Maximum messages^ to pack for download (0=unlimited)")
+	    case 1: E_BOOL( 7,24, CFG.exclude_sysop,         "^Exclude^ sysop from lists."); break;
+	    case 2: E_BOOL( 8,24, CFG.iConnectString,        "Show ^connect string^ at logon"); break;
+	    case 3: E_BOOL( 9,24, CFG.iAskFileProtocols,     "Ask ^file protocol^ before every up- download"); break;
+	    case 4: E_INT( 10,24, CFG.sysop_access,          "Sysop ^access level^"); break;
+	    case 5: E_IRC( 11,24, CFG.password_length, 2, 8, "Mimimum ^password^ length (2..8)"); break;
+	    case 6: E_IRC( 12,24, CFG.iPasswd_Char, 33, 126, "Ascii number of ^password^ character (33..126)"); break;
+	    case 7: E_IRC( 13,24, CFG.idleout, 2, 60,        "^Idle timeout^ in minutes (2..60)"); break;
+	    case 8: E_INT( 14,24, CFG.iCRLoginCount,         "Maximum ^Login Return^ count"); break;
+	    case 9: E_INT( 15,24, CFG.iQuota,                "Maximum ^Quota^ in MBytes in users homedirectory"); break;
+	    case 10:E_IRC( 16,24, CFG.CityLen, 3, 6,         "Minimum ^Location name^ length (3..6)"); break;
+	    case 11:E_BOOL(17,24, CFG.NewAreas,              "Show ^new^ or ^deleted^ message areas to the user at login."); break;
+	    case 12:E_INT( 18,24, CFG.OLR_MaxMsgs,           "^Maximum messages^ to pack for download (0=unlimited)"); break;
 
-	    case 13:E_INT(  7,59, CFG.OLR_NewFileLimit,      "^Limit Newfiles^ listing for maximum days")
-	    case 14:E_INT(  8,59, CFG.OLR_MaxReq,            "Maximum ^Filerequests^ to honor")
-	    case 15:E_LOGL(CFG.bbs_loglevel, "1.5.15", b_screen)
-	    case 16:E_LOGL(CFG.util_loglevel, "1.5.16", b_screen)
-	    case 17:E_BOOL(11,59, CFG.slow_util,             "Let background utilities run ^slowly^")
-	    case 18:E_INT( 12,59, CFG.iCrashLevel,           "The user level to allow sending ^CrashMail^")
-	    case 19:E_INT( 13,59, CFG.iAttachLevel,          "The user level to allow sending ^File Attaches^")
-	    case 20:E_IRC( 14,59, CFG.freespace, 2, 1000,    "Minimum ^free diskspace^ in MBytes on filesystems (2..1000)")
-	    case 21:E_INT( 15,59, CFG.max_logins,            "Maximum ^simultaneous logins^ allowed, 0 means unlimited")
-	    case 22:E_IRC( 16,59, CFG.priority, 0, 15,       "Subproces ^nice priority^, 0=high, 15=low CPU load")
-	    case 23:E_BOOL(17,59, CFG.do_sync,               "Call ^sync^ before and after execute, use Yes on GNU/Linux")
+	    case 13:E_INT(  7,59, CFG.OLR_NewFileLimit,      "^Limit Newfiles^ listing for maximum days"); break;
+	    case 14:E_INT(  8,59, CFG.OLR_MaxReq,            "Maximum ^Filerequests^ to honor"); break;
+	    case 15:E_LOGL(CFG.bbs_loglevel, "1.5.15"); b_screen(); break;
+	    case 16:E_LOGL(CFG.util_loglevel, "1.5.16"); b_screen(); break;
+	    case 17:E_BOOL(11,59, CFG.slow_util,             "Let background utilities run ^slowly^"); break;
+	    case 18:E_INT( 12,59, CFG.iCrashLevel,           "The user level to allow sending ^CrashMail^"); break;
+	    case 19:E_INT( 13,59, CFG.iAttachLevel,          "The user level to allow sending ^File Attaches^"); break;
+	    case 20:E_IRC( 14,59, CFG.freespace, 2, 1000,    "Minimum ^free diskspace^ in MBytes on filesystems (2..1000)"); break;
+	    case 21:E_INT( 15,59, CFG.max_logins,            "Maximum ^simultaneous logins^ allowed, 0 means unlimited"); break;
+	    case 22:E_IRC( 16,59, CFG.priority, 0, 15,       "Subproces ^nice priority^, 0=high, 15=low CPU load"); break;
+	    case 23:E_BOOL(17,59, CFG.do_sync,               "Call ^sync^ before and after execute, use Yes on GNU/Linux"); break;
 	    case 24:PickLanguage((char *)"1.5.24");
 		    snprintf(CFG.deflang, 10, "%s", lang.lc);
 		    b_screen();
@@ -476,20 +475,20 @@ void e_newuser(void)
 
 		switch(select_menu(15)) {
 		case 0:	return;
-		case 1: E_SEC(  7,28, CFG.newuser_access, "1.7.1 NEWUSER SECURITY", s_newuser)
-		case 2:	E_BOOL( 8,28, CFG.iCapUserName, "^Capitalize^ username")
-		case 3:	E_BOOL( 9,28, CFG.iSex, "Ask users ^sex^")
-		case 4:	E_BOOL(10,28, CFG.iVoicePhone, "Ask users ^Voice^ phone number")
-		case 5:	E_BOOL(11,28, CFG.iDataPhone, "Ask users ^Data^ phone number")
-		case 6:	E_BOOL(12,28, CFG.iTelephoneScan, "Perform ^Telephone^ number scan")
-		case 7:	E_BOOL(13,28, CFG.iHandle, "Ask users ^handle^")
-		case 8:	E_BOOL(14,28, CFG.iDOB, "Ask users ^Date of Birth^")
-		case 9: E_BOOL(15,28, CFG.iLocation, "Ask users ^Location^")
+		case 1: E_SEC(  7,28, CFG.newuser_access, "1.7.1 NEWUSER SECURITY"); s_newuser(); break;
+		case 2:	E_BOOL( 8,28, CFG.iCapUserName, "^Capitalize^ username"); break;
+		case 3:	E_BOOL( 9,28, CFG.iSex, "Ask users ^sex^"); break;
+		case 4:	E_BOOL(10,28, CFG.iVoicePhone, "Ask users ^Voice^ phone number"); break;
+		case 5:	E_BOOL(11,28, CFG.iDataPhone, "Ask users ^Data^ phone number"); break;
+		case 6:	E_BOOL(12,28, CFG.iTelephoneScan, "Perform ^Telephone^ number scan"); break;
+		case 7:	E_BOOL(13,28, CFG.iHandle, "Ask users ^handle^"); break;
+		case 8:	E_BOOL(14,28, CFG.iDOB, "Ask users ^Date of Birth^"); break;
+		case 9: E_BOOL(15,28, CFG.iLocation, "Ask users ^Location^"); break;
 
-		case 10:E_BOOL( 8,68, CFG.iHotkeys, "Ask user if he wants ^Hot-Keys^")
-		case 11:E_BOOL( 9,68, CFG.iOneName, "Allow ^one word^ (not in Unixmode) usernames")
-		case 12:E_BOOL(10,68, CFG.AskAddress, "Ask users ^home address^ in 3 lines")
-		case 13:E_BOOL(11,68, CFG.GiveEmail, "Give new users an ^private email^ box")
+		case 10:E_BOOL( 8,68, CFG.iHotkeys, "Ask user if he wants ^Hot-Keys^"); break;
+		case 11:E_BOOL( 9,68, CFG.iOneName, "Allow ^one word^ (not in Unixmode) usernames"); break;
+		case 12:E_BOOL(10,68, CFG.AskAddress, "Ask users ^home address^ in 3 lines"); break;
+		case 13:E_BOOL(11,68, CFG.GiveEmail, "Give new users an ^private email^ box"); break;
 		case 14:CFG.AskNewmail = edit_asktype(12,68,CFG.AskNewmail, 
 				(char *)"Set ^new mail^ check at login, toggle wit space, Enter when done");
 			break;
@@ -528,31 +527,31 @@ void e_colors(void)
 		mbse_mvprintw(15, 6, "9.    File date");
 		mbse_mvprintw(16, 6, "10.   File descr.");
 		mbse_mvprintw(17, 6, "11.   Msg. input");
-		S_COL( 7,24, "Normal Text     ", CFG.TextColourF, CFG.TextColourB)
-		S_COL( 8,24, "Underline Text  ", CFG.UnderlineColourF, CFG.UnderlineColourB)
-		S_COL( 9,24, "Input Text      ", CFG.InputColourF, CFG.InputColourB)
-		S_COL(10,24, "CR Text         ", CFG.CRColourF, CFG.CRColourB)
-		S_COL(11,24, "More Prompt     ", CFG.MoreF, CFG.MoreB)
-		S_COL(12,24, "Hilite Text     ", CFG.HiliteF, CFG.HiliteB)
-		S_COL(13,24, "File Name       ", CFG.FilenameF, CFG.FilenameB)
-		S_COL(14,24, "File Size       ", CFG.FilesizeF, CFG.FilesizeB)
-		S_COL(15,24, "File Date       ", CFG.FiledateF, CFG.FiledateB)
-		S_COL(16,24, "File Description", CFG.FiledescF, CFG.FiledescB)
-		S_COL(17,24, "Message Input   ", CFG.MsgInputColourF, CFG.MsgInputColourB)
+		S_COL( 7,24, "Normal Text     ", CFG.TextColourF, CFG.TextColourB);
+		S_COL( 8,24, "Underline Text  ", CFG.UnderlineColourF, CFG.UnderlineColourB);
+		S_COL( 9,24, "Input Text      ", CFG.InputColourF, CFG.InputColourB);
+		S_COL(10,24, "CR Text         ", CFG.CRColourF, CFG.CRColourB);
+		S_COL(11,24, "More Prompt     ", CFG.MoreF, CFG.MoreB);
+		S_COL(12,24, "Hilite Text     ", CFG.HiliteF, CFG.HiliteB);
+		S_COL(13,24, "File Name       ", CFG.FilenameF, CFG.FilenameB);
+		S_COL(14,24, "File Size       ", CFG.FilesizeF, CFG.FilesizeB);
+		S_COL(15,24, "File Date       ", CFG.FiledateF, CFG.FiledateB);
+		S_COL(16,24, "File Description", CFG.FiledescF, CFG.FiledescB);
+		S_COL(17,24, "Message Input   ", CFG.MsgInputColourF, CFG.MsgInputColourB);
 
 		switch(select_menu(11)) {
 		case 0:	return;
-		case 1: ED_COL(CFG.TextColourF, CFG.TextColourB, "1.8.1  EDIT COLOR", "normal text")
-		case 2: ED_COL(CFG.UnderlineColourF, CFG.UnderlineColourB, "1.8.2  EDIT COLOR", "underline")
-		case 3: ED_COL(CFG.InputColourF, CFG.InputColourB, "1.8.3  EDIT COLOR", "input")
-		case 4: ED_COL(CFG.CRColourF, CFG.CRColourB, "1.8.4  EDIT COLOR", "<Carriage Return>")
-		case 5: ED_COL(CFG.MoreF, CFG.MoreB, "1.8.5  EDIT COLOR", "more prompt")
-		case 6: ED_COL(CFG.HiliteF, CFG.HiliteB, "1.8.6  EDIT COLOR", "hilite text")
-		case 7: ED_COL(CFG.FilenameF, CFG.FilenameB, "1.8.7  EDIT COLOR", "file name")
-		case 8: ED_COL(CFG.FilesizeF, CFG.FilesizeB, "1.8.8  EDIT COLOR", "file size")
-		case 9: ED_COL(CFG.FiledateF, CFG.FiledateB, "1.8.9  EDIT COLOR", "file date")
-		case 10:ED_COL(CFG.FiledescF, CFG.FiledescB, "1.8.10 EDIT COLOR", "file description")
-		case 11:ED_COL(CFG.MsgInputColourF, CFG.MsgInputColourB, "1.8.11 EDIT COLOR", "message input")
+		case 1: ED_COL(CFG.TextColourF, CFG.TextColourB, "1.8.1  EDIT COLOR", "normal text"); break;
+		case 2: ED_COL(CFG.UnderlineColourF, CFG.UnderlineColourB, "1.8.2  EDIT COLOR", "underline"); break;
+		case 3: ED_COL(CFG.InputColourF, CFG.InputColourB, "1.8.3  EDIT COLOR", "input"); break;
+		case 4: ED_COL(CFG.CRColourF, CFG.CRColourB, "1.8.4  EDIT COLOR", "<Carriage Return>"); break;
+		case 5: ED_COL(CFG.MoreF, CFG.MoreB, "1.8.5  EDIT COLOR", "more prompt"); break;
+		case 6: ED_COL(CFG.HiliteF, CFG.HiliteB, "1.8.6  EDIT COLOR", "hilite text"); break;
+		case 7: ED_COL(CFG.FilenameF, CFG.FilenameB, "1.8.7  EDIT COLOR", "file name"); break;
+		case 8: ED_COL(CFG.FilesizeF, CFG.FilesizeB, "1.8.8  EDIT COLOR", "file size"); break;
+		case 9: ED_COL(CFG.FiledateF, CFG.FiledateB, "1.8.9  EDIT COLOR", "file date"); break;
+		case 10:ED_COL(CFG.FiledescF, CFG.FiledescB, "1.8.10 EDIT COLOR", "file description"); break;
+		case 11:ED_COL(CFG.MsgInputColourF, CFG.MsgInputColourB, "1.8.11 EDIT COLOR", "message input"); break;
 		}
 	};
 }
@@ -585,13 +584,13 @@ void e_paging(void)
 
 	switch(select_menu(7)) {
 	    case 0: return;
-	    case 1: E_IRC(  7,20, CFG.iPageLength, 5, 120,  "The ^Length^ of paging in seconds (5..120)")
-	    case 2: E_IRC(  8,20, CFG.iMaxPageTimes, 1, 10, "The ^Maximum times^ a user may page in a session (1..10)")
-	    case 3: E_INT(  9,20, CFG.iSysopArea,           "The ^Message Area^ for ^Message to sysop^ when page fails")
-	    case 4: E_BOOL(10,20, CFG.iAskReason,           "Ask the user the ^reason for chat^")
-	    case 5: E_BOOL(11,20, CFG.iAutoLog,             "^Automatic log^ chat sessions")
-	    case 6: E_BOOL(12,20, CFG.iChatPromptChk,       "Check for chat at the ^prompt^")
-	    case 7: E_BOOL(13,20, CFG.iStopChatTime,        "^Stop^ users time during chat")
+	    case 1: E_IRC(  7,20, CFG.iPageLength, 5, 120,  "The ^Length^ of paging in seconds (5..120)"); break;
+	    case 2: E_IRC(  8,20, CFG.iMaxPageTimes, 1, 10, "The ^Maximum times^ a user may page in a session (1..10)"); break;
+	    case 3: E_INT(  9,20, CFG.iSysopArea,           "The ^Message Area^ for ^Message to sysop^ when page fails"); break;
+	    case 4: E_BOOL(10,20, CFG.iAskReason,           "Ask the user the ^reason for chat^"); break;
+	    case 5: E_BOOL(11,20, CFG.iAutoLog,             "^Automatic log^ chat sessions"); break;
+	    case 6: E_BOOL(12,20, CFG.iChatPromptChk,       "Check for chat at the ^prompt^"); break;
+	    case 7: E_BOOL(13,20, CFG.iStopChatTime,        "^Stop^ users time during chat"); break;
 	}
     }
 }
@@ -717,8 +716,8 @@ void e_ticconf(void)
 	switch(select_menu(13)) {
 	    case 0:	return;
 
-	    case 1: E_INT(  7,18,    CFG.tic_days,     "Number of days to ^keep^ files on hold.")
-	    case 2: E_STR(  8,18,20, CFG.hatchpasswd,  "Enter the internal ^hatch^ password.")
+	    case 1: E_INT(  7,18,    CFG.tic_days,     "Number of days to ^keep^ files on hold."); break;
+	    case 2: E_STR(  8,18,20, CFG.hatchpasswd,  "Enter the internal ^hatch^ password."); break;
 	    case 3: temp = CFG.tic_systems;
 		    temp = edit_int( 9,18, temp, (char *)"Enter the maximum number of ^connected systems^ in the database.");
 		    if (temp < CountNoderec()) {
@@ -741,15 +740,15 @@ void e_ticconf(void)
 			    CloseNoderec(TRUE);
 		    }
 		    break;
-	    case 5: E_INT( 11,18,    CFG.tic_dupes,    "Enter the maximum number of ^dupes^ in the dupe database.")
-	    case 6: E_BOOL(12,18,    CFG.ct_KeepDate,  "^Keep^ original filedate on import")
-	    case 7: E_BOOL(13,18,    CFG.ct_KeepMgr,   "Keep ^Areamgr^ netmails.")
-	    case 8: E_BOOL( 7,58,    CFG.ct_PlusAll,   "Allow ^+%*^ (Plus all) in FileMgr requests.")
-	    case 9: E_BOOL( 8,58,    CFG.ct_Notify,    "Allow turning ^Notify^ messages on or off.")
-	    case 10:E_BOOL( 9,58,    CFG.ct_Passwd,    "Allow changing the AreaMgr/FileMgr ^password^.")
-	    case 11:E_BOOL(10,58,    CFG.ct_Message,   "Allow turning FileMgr ^messages^ on or off.")
-	    case 12:E_BOOL(11,58,    CFG.ct_TIC,       "Allow turning ^TIC^ files on or off.")
-	    case 13:E_BOOL(12,58,    CFG.ct_Pause,     "Allow the ^Pause^ FileMgr command.")
+	    case 5: E_INT( 11,18,    CFG.tic_dupes,    "Enter the maximum number of ^dupes^ in the dupe database."); break;
+	    case 6: E_BOOL(12,18,    CFG.ct_KeepDate,  "^Keep^ original filedate on import"); break;
+	    case 7: E_BOOL(13,18,    CFG.ct_KeepMgr,   "Keep ^Areamgr^ netmails."); break;
+	    case 8: E_BOOL( 7,58,    CFG.ct_PlusAll,   "Allow ^+%*^ (Plus all) in FileMgr requests."); break;
+	    case 9: E_BOOL( 8,58,    CFG.ct_Notify,    "Allow turning ^Notify^ messages on or off."); break;
+	    case 10:E_BOOL( 9,58,    CFG.ct_Passwd,    "Allow changing the AreaMgr/FileMgr ^password^."); break;
+	    case 11:E_BOOL(10,58,    CFG.ct_Message,   "Allow turning FileMgr ^messages^ on or off."); break;
+	    case 12:E_BOOL(11,58,    CFG.ct_TIC,       "Allow turning ^TIC^ files on or off."); break;
+	    case 13:E_BOOL(12,58,    CFG.ct_Pause,     "Allow the ^Pause^ FileMgr command."); break;
 	}
     }
 }
@@ -821,16 +820,16 @@ void e_fidomailcfg(void)
     for (;;) { 
 	switch(select_menu(21)) {
 	    case 0: return;
-	    case 1: E_JAM(  7,16,64, CFG.badboard,     "The path to the ^bad echomail^ board.")
-	    case 2: E_JAM(  8,16,64, CFG.dupboard,     "The path to the ^dupe echomail^ board.")
-	    case 3: E_STR(  9,16,64, CFG.pktdate,      "The filename and parameters to the ^pktdate^ program.")
-	    case 4: E_INT( 10,16,    CFG.maxpktsize,   "The maximum size in KB for mail ^packets^, 0 if unlimited.")
-	    case 5: E_INT( 11,16,    CFG.maxarcsize,   "The maximum size in KB for ^arcmail^ archives, 0 if unlimited.")
-	    case 6: E_INT( 12,16,    CFG.toss_days,    "The number of ^days^ to keep mail on hold.")
-	    case 7: E_INT( 13,16,    CFG.toss_dupes,   "The number of ^dupes^ to store in the echomail dupes database.")
-	    case 8: E_INT( 14,16,    CFG.toss_old,     "^Reject^ mail older then days, 0 means never reject.")
-	    case 9: E_INT( 15,16,    CFG.defmsgs,      "The default maximum number of ^messages^ in each mail area.")
-	    case 10:E_INT( 16,16,    CFG.defdays,      "The default maximum ^age in days^ in each mail area.")
+	    case 1: E_JAM(  7,16,64, CFG.badboard,     "The path to the ^bad echomail^ board."); break;
+	    case 2: E_JAM(  8,16,64, CFG.dupboard,     "The path to the ^dupe echomail^ board."); break;
+	    case 3: E_STR(  9,16,64, CFG.pktdate,      "The filename and parameters to the ^pktdate^ program."); break;
+	    case 4: E_INT( 10,16,    CFG.maxpktsize,   "The maximum size in KB for mail ^packets^, 0 if unlimited."); break;
+	    case 5: E_INT( 11,16,    CFG.maxarcsize,   "The maximum size in KB for ^arcmail^ archives, 0 if unlimited."); break;
+	    case 6: E_INT( 12,16,    CFG.toss_days,    "The number of ^days^ to keep mail on hold."); break;
+	    case 7: E_INT( 13,16,    CFG.toss_dupes,   "The number of ^dupes^ to store in the echomail dupes database."); break;
+	    case 8: E_INT( 14,16,    CFG.toss_old,     "^Reject^ mail older then days, 0 means never reject."); break;
+	    case 9: E_INT( 15,16,    CFG.defmsgs,      "The default maximum number of ^messages^ in each mail area."); break;
+	    case 10:E_INT( 16,16,    CFG.defdays,      "The default maximum ^age in days^ in each mail area."); break;
 	    case 11:temp = CFG.toss_systems;
 		    temp = edit_int(17,16, temp, (char *)"The maximum number of connected ^systems^ in the database.");
 		    if (temp < CountNoderec()) {
@@ -855,15 +854,15 @@ void e_fidomailcfg(void)
 			    CloseNoderec(TRUE);
 		    }
 		    break;
-	    case 13:E_BOOL(10,58, CFG.addr4d,            "Use ^4d^ addressing instead of ^5d^ addressing.")
-	    case 14:E_IRC( 11,58, CFG.new_split, 12, 60, "Gently ^split^ newfiles reports after n kilobytes (12..60).")
-	    case 15:E_IRC( 12,58, CFG.new_force, 16, 64, "Force ^split^ of newfiles reports after n kilobytes (16..64).")
-	    case 16:E_BOOL(13,58, CFG.ca_PlusAll,        "Allow ^+%*^ (Plus all) in AreaMgr requests.")
-	    case 17:E_BOOL(14,58, CFG.ca_Notify,         "Allow turning ^Notify^ messages on or off.")
-	    case 18:E_BOOL(15,58, CFG.ca_Passwd,         "Allow changing the AreaMgr/FileMgr ^password^.")
-	    case 19:E_BOOL(16,58, CFG.ca_Pause,          "Allow the ^Pause^ AreaMgr command.")
-	    case 20:E_BOOL(17,58, CFG.ca_SBstrip,        "Strip SEEN-BYs across zones.")
-	    case 21:E_BOOL(18,58, CFG.PKTunp,            "Always toss .PKTs from unp. inbound.")
+	    case 13:E_BOOL(10,58, CFG.addr4d,            "Use ^4d^ addressing instead of ^5d^ addressing."); break;
+	    case 14:E_IRC( 11,58, CFG.new_split, 12, 60, "Gently ^split^ newfiles reports after n kilobytes (12..60)."); break;
+	    case 15:E_IRC( 12,58, CFG.new_force, 16, 64, "Force ^split^ of newfiles reports after n kilobytes (16..64)."); break;
+	    case 16:E_BOOL(13,58, CFG.ca_PlusAll,        "Allow ^+%*^ (Plus all) in AreaMgr requests."); break;
+	    case 17:E_BOOL(14,58, CFG.ca_Notify,         "Allow turning ^Notify^ messages on or off."); break;
+	    case 18:E_BOOL(15,58, CFG.ca_Passwd,         "Allow changing the AreaMgr/FileMgr ^password^."); break;
+	    case 19:E_BOOL(16,58, CFG.ca_Pause,          "Allow the ^Pause^ AreaMgr command."); break;
+	    case 20:E_BOOL(17,58, CFG.ca_SBstrip,        "Strip SEEN-BYs across zones."); break;
+	    case 21:E_BOOL(18,58, CFG.PKTunp,            "Always toss .PKTs from unp. inbound."); break;
 	}
     }
 }
@@ -980,11 +979,11 @@ void e_uucp(void)
         j = select_menu(5);
         switch(j) {
             case 0: return;
-            case 1: E_IRC(  7,19,   CFG.UUCPgate.zone, 1, 32767,  "The ^zone^ number for the UUCP gateway (1..32767)")
-            case 2: E_IRC(  8,19,   CFG.UUCPgate.net, 0, 32767,   "The ^Net^ number for the UUCP gateway (0..32767)")
-            case 3: E_IRC(  9,19,   CFG.UUCPgate.node, 0, 32767,  "The ^Node^ number for the UUCP gateway (0..32767)")
-            case 4: E_IRC( 10,19,   CFG.UUCPgate.point, 0, 32767, "The ^Point^ number for the UUCP gateway (0..32767)")
-            case 5: E_STR( 11,19,8, CFG.UUCPgate.domain,          "The ^FTN Domain^ for the UUCP gateway without a dot")
+            case 1: E_IRC(  7,19,   CFG.UUCPgate.zone, 1, 32767,  "The ^zone^ number for the UUCP gateway (1..32767)"); break;
+            case 2: E_IRC(  8,19,   CFG.UUCPgate.net, 0, 32767,   "The ^Net^ number for the UUCP gateway (0..32767)"); break;
+            case 3: E_IRC(  9,19,   CFG.UUCPgate.node, 0, 32767,  "The ^Node^ number for the UUCP gateway (0..32767)"); break;
+            case 4: E_IRC( 10,19,   CFG.UUCPgate.point, 0, 32767, "The ^Point^ number for the UUCP gateway (0..32767)"); break;
+            case 5: E_STR( 11,19,8, CFG.UUCPgate.domain,          "The ^FTN Domain^ for the UUCP gateway without a dot"); break;
         }
     }
 }
@@ -999,9 +998,9 @@ void e_intmailcfg(void)
     for (;;) {
 	switch(select_menu(20)) {
 	    case 0: return;
-	    case 1: E_STR(  7,16,64, CFG.popnode,      "The ^FQDN^ of the node where the ^POP3^ server runs.")
-	    case 2: E_BOOL( 8,16,    CFG.UsePopDomain, "Use ^user@maildomain^ to login the POP3 server.")
-	    case 3: E_STR(  9,16,64, CFG.smtpnode,     "The ^FQDN^ of the node where the ^SMTP^ server runs.")
+	    case 1: E_STR(  7,16,64, CFG.popnode,      "The ^FQDN^ of the node where the ^POP3^ server runs."); break;
+	    case 2: E_BOOL( 8,16,    CFG.UsePopDomain, "Use ^user@maildomain^ to login the POP3 server."); break;
+	    case 3: E_STR(  9,16,64, CFG.smtpnode,     "The ^FQDN^ of the node where the ^SMTP^ server runs."); break;
 	    case 4: if (CFG.newsfeed == FEEDRNEWS)
 			strcpy(CFG.rnewspath, edit_pth(10,16,64, CFG.rnewspath, (char *)"The path and filename to the ^rnews^ command.", 0775));
 		    if (CFG.newsfeed == FEEDUUCP)
@@ -1045,15 +1044,15 @@ void e_intmailcfg(void)
                     s_intmailcfg();
                     break;
 
-	    case 14:E_INT( 13,65, CFG.nntpdupes,      "The number of ^dupes^ to store in the news articles dupes database.")
-	    case 15:E_INT( 14,65, CFG.maxarticles,    "Default maximum ^news articles^ to fetch")
+	    case 14:E_INT( 13,65, CFG.nntpdupes,      "The number of ^dupes^ to store in the news articles dupes database."); break;
+	    case 15:E_INT( 14,65, CFG.maxarticles,    "Default maximum ^news articles^ to fetch"); break;
 	    case 16:CFG.newsfeed = edit_newsmode(15,65, CFG.newsfeed);
 		    s_intmailcfg();
 		    break;
-            case 17:E_IRC( 16,65, CFG.new_split, 12, 60, "Gently ^split^ messages after n kilobytes (12..60).")
-            case 18:E_IRC( 17,65, CFG.new_force, 16, 64, "Force ^split^ of messages after n kilobytes (16..64).")
-            case 19:E_BOOL(18,65, CFG.allowcontrol,      "^Allow control^ messages for news to be gated.")
-            case 20:E_BOOL(19,65, CFG.dontregate,        "Don't ^regate^ already gated messages.")
+            case 17:E_IRC( 16,65, CFG.new_split, 12, 60, "Gently ^split^ messages after n kilobytes (12..60)."); break;
+            case 18:E_IRC( 17,65, CFG.new_force, 16, 64, "Force ^split^ of messages after n kilobytes (16..64)."); break;
+            case 19:E_BOOL(18,65, CFG.allowcontrol,      "^Allow control^ messages for news to be gated."); break;
+            case 20:E_BOOL(19,65, CFG.dontregate,        "Don't ^regate^ already gated messages."); break;
 	}
     }
 }
@@ -1091,8 +1090,8 @@ void e_newfiles(void)
 
 	switch(select_menu(5)) {
 	    case 0: return;
-	    case 1: E_INT(7,16,    CFG.newdays,    "Add files younger than this in newfiles report.")
-	    case 2: E_SEC(8,16,    CFG.security,   "1.13  NEWFILES REPORTS SECURITY", s_newfiles)
+	    case 1: E_INT(7,16,    CFG.newdays,    "Add files younger than this in newfiles report."); break;
+	    case 2: E_SEC(8,16,    CFG.security,   "1.13  NEWFILES REPORTS SECURITY"); s_newfiles(); break;
 	    case 3: temp = CFG.new_groups;
 		    temp = edit_int( 9, 16, temp, (char *)"The maximum of ^newfiles^ groups in the newfiles database");
 		    if (temp < CountNewfiles()) {
@@ -1168,12 +1167,12 @@ void e_aka(int Area)
 	j = select_menu(6);
 	switch(j) {
 	    case 0: return;
-	    case 1: E_IRC(  7,19,   CFG.aka[Area].zone, 0, 32767,  "The ^zone^ number for this aka (1..32767)")
-	    case 2: E_IRC(  8,19,   CFG.aka[Area].net, 0, 32767,   "The ^Net^ number for this aka (0..32767)")
-	    case 3: E_IRC(  9,19,   CFG.aka[Area].node, 0, 32767,  "The ^Node^ number for this aka (0..32767)")
-	    case 4: E_IRC( 10,19,   CFG.aka[Area].point, 0, 32767, "The ^Point^ number for this node (0..32767)")
-	    case 5: E_STR( 11,19,8, CFG.aka[Area].domain,          "The ^FTN Domain^ for this aka without a dot (ie no .org)")
-	    case 6: E_BOOL(12,19,   CFG.akavalid[Area],            "Is this aka ^available^")
+	    case 1: E_IRC(  7,19,   CFG.aka[Area].zone, 0, 32767,  "The ^zone^ number for this aka (1..32767)"); break;
+	    case 2: E_IRC(  8,19,   CFG.aka[Area].net, 0, 32767,   "The ^Net^ number for this aka (0..32767)"); break;
+	    case 3: E_IRC(  9,19,   CFG.aka[Area].node, 0, 32767,  "The ^Node^ number for this aka (0..32767)"); break;
+	    case 4: E_IRC( 10,19,   CFG.aka[Area].point, 0, 32767, "The ^Point^ number for this node (0..32767)"); break;
+	    case 5: E_STR( 11,19,8, CFG.aka[Area].domain,          "The ^FTN Domain^ for this aka without a dot (ie no .org)"); break;
+	    case 6: E_BOOL(12,19,   CFG.akavalid[Area],            "Is this aka ^available^"); break;
 	}
     }
 }
@@ -1386,30 +1385,30 @@ void e_mailer(void)
 
 	switch(select_menu(23)) {
 	    case 0: return;
-	    case 1: E_LOGL(CFG.cico_loglevel, "1.14.1", s_mailer)
-	    case 2: E_STR(  8,23,20,CFG.IP_Phone,       "The mailer ^TCP/IP \"phone\" number^ for this system, empty is no TCP/IP")
-	    case 3: E_STR(  9,23,30,CFG.IP_Flags,       "The mailer ^TCP/IP capability flags^ for this system")
-	    case 4: E_UINT(10,23,   CFG.IP_Speed,       "The mailer ^TCP/IP linespeed^ for this system")
-	    case 5: E_INT( 11,23,   CFG.timeoutreset,   "The modem ^reset timeout^ in seconds")
-	    case 6: E_INT( 12,23,   CFG.timeoutconnect, "The modem ^wait for connect timeout^ in seconds")
-	    case 7: E_INT( 13,23,   CFG.dialdelay,      "The ^random dialdelay^ in seconds ((^n^ <= delay) and (^n^ > (delay / 10)))")
-	    case 8: E_BOOL(14,23,   CFG.NoFreqs,        "Set to true if ^No Filerequests^ are allowed")
-	    case 9: E_BOOL(15,23,   CFG.NoCall,         "Set to true if ^No Calls^ are allowed")
-	    case 10:E_BOOL(16,23,   CFG.NoEMSI,         "If set then ^EMSI handshake^ is disabled")
-	    case 11:E_BOOL(17,23,   CFG.NoWazoo,        "If set then ^YooHoo/2U2^ (FTSC-0006) is disabled")
-	    case 12:E_BOOL(12,52,   CFG.NoCRC32,        "If set then ^CRC32^ in binkp sessions is disabled")
-	    case 13:E_BOOL(13,52,   CFG.NoZmodem,       "If set then the ^Zmodem^ protocol is disabled")
-	    case 14:E_BOOL(14,52,   CFG.NoZedzap,       "If set then the ^Zedzap^ protocol is disabled")
-	    case 15:E_BOOL(15,52,   CFG.NoHydra,        "If set then the ^Hydra^ protocol is disabled")
-	    case 16:E_BOOL(16,52,   CFG.NoMD5,          "Disable ^MD5 crypted^ passwords with binkp sessions")
-	    case 17:E_BOOL(17,52,   CFG.ZeroLocks,	"Allow ^zero byte node lockfiles^ created by another OS")
+	    case 1: E_LOGL(CFG.cico_loglevel, "1.14.1"); s_mailer(); break;
+	    case 2: E_STR(  8,23,20,CFG.IP_Phone,       "The mailer ^TCP/IP \"phone\" number^ for this system, empty is no TCP/IP"); break;
+	    case 3: E_STR(  9,23,30,CFG.IP_Flags,       "The mailer ^TCP/IP capability flags^ for this system"); break;
+	    case 4: E_UINT(10,23,   CFG.IP_Speed,       "The mailer ^TCP/IP linespeed^ for this system"); break;
+	    case 5: E_INT( 11,23,   CFG.timeoutreset,   "The modem ^reset timeout^ in seconds"); break;
+	    case 6: E_INT( 12,23,   CFG.timeoutconnect, "The modem ^wait for connect timeout^ in seconds"); break;
+	    case 7: E_INT( 13,23,   CFG.dialdelay,      "The ^random dialdelay^ in seconds ((^n^ <= delay) and (^n^ > (delay / 10)))"); break;
+	    case 8: E_BOOL(14,23,   CFG.NoFreqs,        "Set to true if ^No Filerequests^ are allowed"); break;
+	    case 9: E_BOOL(15,23,   CFG.NoCall,         "Set to true if ^No Calls^ are allowed"); break;
+	    case 10:E_BOOL(16,23,   CFG.NoEMSI,         "If set then ^EMSI handshake^ is disabled"); break;
+	    case 11:E_BOOL(17,23,   CFG.NoWazoo,        "If set then ^YooHoo/2U2^ (FTSC-0006) is disabled"); break;
+	    case 12:E_BOOL(12,52,   CFG.NoCRC32,        "If set then ^CRC32^ in binkp sessions is disabled"); break;
+	    case 13:E_BOOL(13,52,   CFG.NoZmodem,       "If set then the ^Zmodem^ protocol is disabled"); break;
+	    case 14:E_BOOL(14,52,   CFG.NoZedzap,       "If set then the ^Zedzap^ protocol is disabled"); break;
+	    case 15:E_BOOL(15,52,   CFG.NoHydra,        "If set then the ^Hydra^ protocol is disabled"); break;
+	    case 16:E_BOOL(16,52,   CFG.NoMD5,          "Disable ^MD5 crypted^ passwords with binkp sessions"); break;
+	    case 17:E_BOOL(17,52,   CFG.ZeroLocks,	"Allow ^zero byte node lockfiles^ created by another OS"); break;
 
 	    case 18:e_trans(0, 17);  break;
 	    case 19:e_trans(10, 18); break;
 	    case 20:e_trans(20, 19); break;
 	    case 21:e_trans(30, 20); break;
-	    case 22:E_INT(16,75,    CFG.Req_Files,       "Maximum ^files^ to request, 0 is unlimited")
-	    case 23:E_INT(17,75,    CFG.Req_MBytes,      "Maximum ^MBytes^ to request, 0 is unlimited")
+	    case 22:E_INT(16,75,    CFG.Req_Files,       "Maximum ^files^ to request, 0 is unlimited"); break;
+	    case 23:E_INT(17,75,    CFG.Req_MBytes,      "Maximum ^MBytes^ to request, 0 is unlimited"); break;
 	}
     }
 }
@@ -1446,14 +1445,14 @@ void e_html(void)
 
         switch(select_menu(8)) {
             case 0: return;
-            case 1: E_STR( 7,18,59, CFG.www_root,        "The ^Document root^ of your http server")
-            case 2: E_STR( 8,18,20, CFG.www_link2ftp,    "The ^link^ name from the Document root to the FTP base directory")
-            case 3: E_STR( 9,18,40, CFG.www_url,         "The ^URL^ name of your http server")
-            case 4: E_STR(10,18,20, CFG.www_charset,     "The ^ISO character set^ name to include in the web pages")
-            case 5: E_STR(11,18,40, CFG.www_author,      "The ^Author name^ to include in the http headers")
-            case 6: E_STR(12,18,59, CFG.www_convert,     "The ^convert^ command to create thumbnails")
-	    case 7: E_INT(13,18,    CFG.www_files_page,  "The number of files on each web page")
-	    case 8: E_INT(14,18,    CFG.www_mailerlines, "Limit the number of ^mailer history^ lines, 0 is unlimited")
+            case 1: E_STR( 7,18,59, CFG.www_root,        "The ^Document root^ of your http server"); break;
+            case 2: E_STR( 8,18,20, CFG.www_link2ftp,    "The ^link^ name from the Document root to the FTP base directory"); break;
+            case 3: E_STR( 9,18,40, CFG.www_url,         "The ^URL^ name of your http server"); break;
+            case 4: E_STR(10,18,20, CFG.www_charset,     "The ^ISO character set^ name to include in the web pages"); break;
+            case 5: E_STR(11,18,40, CFG.www_author,      "The ^Author name^ to include in the http headers"); break;
+            case 6: E_STR(12,18,59, CFG.www_convert,     "The ^convert^ command to create thumbnails"); break;
+	    case 7: E_INT(13,18,    CFG.www_files_page,  "The number of files on each web page"); break;
+	    case 8: E_INT(14,18,    CFG.www_mailerlines, "Limit the number of ^mailer history^ lines, 0 is unlimited"); break;
         }
     }
 }
@@ -1767,15 +1766,8 @@ int global_doc(FILE *fp, FILE *toc, int page)
 #if defined(__USE_GNU)
 	add_webtable(wp, (char *)"Domain name", utsbuf.domainname);
 	fprintf(fp, "      Domain name      %s\n", utsbuf.domainname);
-#elif defined(__linux__)
-	add_webtable(wp, (char *)"Domain name", utsbuf.__domainname);
-	fprintf(fp, "      Domain name      %s\n", utsbuf.__domainname);
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-	/* No domainname in struct utsname */
-#else
-#error "Don't know utsbuf.domainname on this OS"
 #endif
-	snprintf(temp, 81, "%s %s", utsbuf.sysname, utsbuf.release);
+	snprintf(temp, sizeof(temp), "%s %s", utsbuf.sysname, utsbuf.release);
 	add_webtable(wp, (char *)"Operating system", temp);
 	fprintf(fp, "      Operating system %s %s\n", utsbuf.sysname, utsbuf.release);
 	add_webtable(wp, (char *)"Kernel version", utsbuf.version);

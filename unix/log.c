@@ -94,7 +94,7 @@ void dolastlog(const struct passwd *pw, const char *line, const char *host)
 		memzero(&newlog, sizeof newlog);
 
 	time((time_t *) &newlog.ll_time);
-	strncpy(newlog.ll_line, line, sizeof newlog.ll_line);
+	memccpy(newlog.ll_line, line, '\0', sizeof(newlog.ll_line));
 #ifdef HAVE_LL_HOST
 	strncpy(newlog.ll_host, host, sizeof newlog.ll_host);
 #endif

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -419,26 +418,26 @@ int EditMGrpRec(int Area)
 		        snprintf(mgroup.BasePath, 65, "%s/var/mail/%s", getenv("MBSE_ROOT"), temp);
 		    }
 		    break;
-	    case 2: E_STR(  8,16,55, mgroup.Comment,    "The ^desription^ for this message group")
-	    case 3: E_PTH(  9,16,64, mgroup.BasePath,   "The ^Base path^ where new JAM areas are created", 0770)
-	    case 4: E_SEC( 10,16,    mgroup.RDSec,      "9.1.4 MESSAGE GROUP READ SECURITY", MgScreen)
-	    case 5: E_SEC( 11,16,    mgroup.WRSec,      "9.1.5 MESSAGE GROUP WRITE SECURITY", MgScreen)
-	    case 6: E_SEC( 12,16,    mgroup.SYSec,      "9.1.6 MESSAGE GROUP SYSOP SECURITY", MgScreen)
+	    case 2: E_STR(  8,16,55, mgroup.Comment,    "The ^desription^ for this message group"); break;
+	    case 3: E_PTH(  9,16,64, mgroup.BasePath,   "The ^Base path^ where new JAM areas are created", 0770); break;
+	    case 4: E_SEC( 10,16,    mgroup.RDSec,      "9.1.4 MESSAGE GROUP READ SECURITY"); MgScreen(); break;
+	    case 5: E_SEC( 11,16,    mgroup.WRSec,      "9.1.5 MESSAGE GROUP WRITE SECURITY"); MgScreen(); break;
+	    case 6: E_SEC( 12,16,    mgroup.SYSec,      "9.1.6 MESSAGE GROUP SYSOP SECURITY"); MgScreen(); break;
 	    case 7: mgroup.LinkSec = edit_asec(mgroup.LinkSec, (char *)"9.1.7 DEFAULT SECURITY FOR NEW AREAS");
 		    MgScreen();
 		    break;
-	    case 8: E_INT( 14,16,    mgroup.StartArea,  "The ^Start area number^ from where to add areas")
-	    case 9: E_INT( 15,16,    mgroup.NetReply,   "The ^Area Number^ for netmail replies")
-	    case 10:E_BOOL(16,16,    mgroup.UsrDelete,  "Allow users to ^Delete^ their messages")
-	    case 11:E_BOOL(17,16,    mgroup.Aliases,    "Allow ^Aliases^ or real names only")
-	    case 12:E_BOOL(18,16,    mgroup.Quotes,     "Allow random ^quotes^ to new messages")
+	    case 8: E_INT( 14,16,    mgroup.StartArea,  "The ^Start area number^ from where to add areas"); break;
+	    case 9: E_INT( 15,16,    mgroup.NetReply,   "The ^Area Number^ for netmail replies"); break;
+	    case 10:E_BOOL(16,16,    mgroup.UsrDelete,  "Allow users to ^Delete^ their messages"); break;
+	    case 11:E_BOOL(17,16,    mgroup.Aliases,    "Allow ^Aliases^ or real names only"); break;
+	    case 12:E_BOOL(18,16,    mgroup.Quotes,     "Allow random ^quotes^ to new messages"); break;
 	    case 13:if (mgroup.Active && CheckMgroup())
 		        break;
-		    E_BOOL(19,16,    mgroup.Active,     "Is this message group ^active^")
+		    E_BOOL(19,16,    mgroup.Active,     "Is this message group ^active^"); break;
 	    case 14:if (CheckMgroup())
 		        break;
-		    E_BOOL(14,42,    mgroup.Deleted,    "Is this group ^Deleted^")
-	    case 15:E_BOOL(15,42,    mgroup.AutoChange, "^Auto change^ areas from new areas lists")
+		    E_BOOL(14,42,    mgroup.Deleted,    "Is this group ^Deleted^"); break;
+	    case 15:E_BOOL(15,42,    mgroup.AutoChange, "^Auto change^ areas from new areas lists"); break;
 	    case 16:tmp = edit_bool(16,42, mgroup.UserChange, (char *)"^Auto add/delete^ areas from downlinks requests");
 		    if (tmp && !mgroup.UpLink.zone)
 		        errmsg("It looks like you are the toplevel, no Uplink defined");
@@ -453,7 +452,7 @@ int EditMGrpRec(int Area)
 	    case 18:mgroup.UpLink = PullUplink((char *)"9.1.18");
 		    MgScreen();
 		    break;
-	    case 19:E_STR( 19,42,12, mgroup.AreaFile,   "The name of the ^Areas File^ from the uplink (case sensitive)")
+	    case 19:E_STR( 19,42,12, mgroup.AreaFile,   "The name of the ^Areas File^ from the uplink (case sensitive)"); break;
 	    case 20:mgroup.Charset = edit_charset(14, 70, mgroup.Charset);
 		    break;
 	    case 21:oldgrp = mgroup.GoldEDgroup;
@@ -533,7 +532,7 @@ void EditMGroup(void)
 			    set_color(CYAN, BLACK);
 			else
 			    set_color(LIGHTBLUE, BLACK);
-			snprintf(temp, 81, "%3d.  %-12s %-18s", o + i, mgroup.Name, mgroup.Comment);
+			snprintf(temp, 81, "%3d.  %-12.12s %-18.18s", o + i, mgroup.Name, mgroup.Comment);
 			temp[38] = '\0';
 			mbse_mvprintw(y, x, temp);
 			y++;
@@ -641,7 +640,7 @@ char *PickMGroup(char *shdr)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-12s %-18s", o + i, mgroup.Name, mgroup.Comment);
+						snprintf(temp, 81, "%3d.  %-12.12s %-18.18s", o + i, mgroup.Name, mgroup.Comment);
 						temp[38] = '\0';
 						mbse_mvprintw(y, x, temp);
 						y++;

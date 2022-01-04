@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "screen.h"
@@ -226,18 +225,15 @@ void Fields1(void)
 
 	now = usrconfig.tFirstLoginDate;
         ld = localtime(&now);
-        snprintf(Date, 30, "%02d-%02d-%04d %02d:%02d:%02d", ld->tm_mday,
-                ld->tm_mon+1, ld->tm_year + 1900, ld->tm_hour, ld->tm_min, ld->tm_sec);
+		strftime(Date, 30, "%d-%m-%Y %H:%M:%S", ld);
         show_str(11,17,19, Date);
 	now = usrconfig.tLastLoginDate;
         ld = localtime(&now);
-        snprintf(Date, 30, "%02d-%02d-%04d %02d:%02d:%02d", ld->tm_mday,
-                ld->tm_mon+1, ld->tm_year + 1900, ld->tm_hour, ld->tm_min, ld->tm_sec);
+		strftime(Date, 30, "%d-%m-%Y %H:%M:%S", ld);
         show_str(12,17,19, Date);
 	now = usrconfig.tLastPwdChange;
 	ld = localtime(&now);
-	snprintf(Date, 30, "%02d-%02d-%04d %02d:%02d:%02d", ld->tm_mday,
-		ld->tm_mon+1, ld->tm_year + 1900, ld->tm_hour, ld->tm_min, ld->tm_sec);
+	strftime(Date, 30, "%d-%m-%Y %H:%M:%S", ld);
 	show_str(13,17,19, Date);
 	
 	set_color(WHITE, BLACK);
@@ -345,14 +341,14 @@ int EditUsrRec2(void)
         j = select_menu(24);
         switch(j) {
             case 0: return 0;
-            case 1: E_STR( 6,17,35,usrconfig.sHandle,  "The ^Handle^ of this user")
-            case 2: E_STR( 7,17,27,usrconfig.sLocation,"The users ^Location^")
+            case 1: E_STR( 6,17,35,usrconfig.sHandle,  "The ^Handle^ of this user"); break;
+            case 2: E_STR( 7,17,27,usrconfig.sLocation,"The users ^Location^"); break;
             case 3:
             case 4:
-            case 5: E_STR(j+5,17,40,usrconfig.address[j-3],"^Address^")
-            case 6: E_STR(11,17,16, usrconfig.sVoicePhone, "The ^Voice Phone^ number of this user")
-            case 7: E_STR(12,17,16, usrconfig.sDataPhone,  "The ^Data Phone^ number of this user")
-            case 8: E_STR(13,17,10, usrconfig.sDateOfBirth,"The ^Date of Birth^ in DD-MM-YYYY format")
+            case 5: E_STR(j+5,17,40,usrconfig.address[j-3],"^Address^"); break;
+            case 6: E_STR(11,17,16, usrconfig.sVoicePhone, "The ^Voice Phone^ number of this user"); break;
+            case 7: E_STR(12,17,16, usrconfig.sDataPhone,  "The ^Data Phone^ number of this user"); break;
+            case 8: E_STR(13,17,10, usrconfig.sDateOfBirth,"The ^Date of Birth^ in DD-MM-YYYY format"); break;
             case 9: strcpy(temp,edit_str(14,17,Max_passlen,usrconfig.Password,(char *)"Enter the ^password^ for this user"));
                     if (strlen(temp)) {
 			if (strcasecmp(usrconfig.Password, temp)) {
@@ -415,17 +411,17 @@ int EditUsrRec2(void)
 		    clr_index();
 		    Screen2();
 		    break;
-            case 15:E_BOOL( 8,71,usrconfig.HotKeys,      "Is user using ^HotKeys^ for menus")
-            case 16:E_BOOL( 9,71,usrconfig.DoNotDisturb, "User will not be ^disturbed^")
-            case 17:E_BOOL(10,71,usrconfig.Cls,          "Send ^ClearScreen code^ to users terminal")
-            case 18:E_BOOL(11,71,usrconfig.More,         "User uses the ^More prompt^")
+            case 15:E_BOOL( 8,71,usrconfig.HotKeys,      "Is user using ^HotKeys^ for menus"); break;
+            case 16:E_BOOL( 9,71,usrconfig.DoNotDisturb, "User will not be ^disturbed^"); break;
+            case 17:E_BOOL(10,71,usrconfig.Cls,          "Send ^ClearScreen code^ to users terminal"); break;
+            case 18:E_BOOL(11,71,usrconfig.More,         "User uses the ^More prompt^"); break;
             case 19:usrconfig.MsgEditor = edit_msgeditor(12,71,usrconfig.MsgEditor);
 		    break;
-            case 20:E_BOOL(13,71,usrconfig.MailScan,     "Don't check for ^new mail^")
-            case 21:E_BOOL(14,71,usrconfig.ieNEWS,       "Show ^News Bulletins^ when logging in")
-            case 22:E_BOOL(15,71,usrconfig.ieFILE,       "Show ^New Files^ when logging in")
-            case 23:E_BOOL(16,71,usrconfig.FSemacs,      "Use ^Emacs^ or Wordstar shorcut keys in FS editor")
-            case 24:E_INT( 17,71,usrconfig.OLRext,       "Next ^OLR^ packet extension")
+            case 20:E_BOOL(13,71,usrconfig.MailScan,     "Don't check for ^new mail^"); break;
+            case 21:E_BOOL(14,71,usrconfig.ieNEWS,       "Show ^News Bulletins^ when logging in"); break;
+            case 22:E_BOOL(15,71,usrconfig.ieFILE,       "Show ^New Files^ when logging in"); break;
+            case 23:E_BOOL(16,71,usrconfig.FSemacs,      "Use ^Emacs^ or Wordstar shorcut keys in FS editor"); break;
+            case 24:E_INT( 17,71,usrconfig.OLRext,       "Next ^OLR^ packet extension"); break;
         }
     }
 }
@@ -521,7 +517,7 @@ int EditUsrRec(int Area)
 		}
 		IsDoing("Browsing Menu");
 		return 0;
-	case 1:	E_STR(  6,17,35,usrconfig.sUserName,      "The ^First and Last name^ of this user")
+	case 1:	E_STR(  6,17,35,usrconfig.sUserName,      "The ^First and Last name^ of this user"); break;
 	case 2:	level = usrconfig.Security.level;
 		usrconfig.Security = edit_usec(7,17,usrconfig.Security, (char *)"15.2   EDIT USER SECURITY");
 		Screen1();
@@ -532,18 +528,18 @@ int EditUsrRec(int Area)
 		    }
 		}
 		break;
-	case 3 :E_STR(  8,17,10,usrconfig.sExpiryDate,    "The ^Expiry Date^ in DD-MM-YYYY format, 00-00-0000 is no expire")
-	case 4 :E_INT(  9,17,   usrconfig.ExpirySec.level,"The ^Expiry Level^ for this user")
-	case 5 :E_INT( 14,17,   usrconfig.Credit,         "Users ^Credit^")
-	case 6 :E_BOOL(15,17,   usrconfig.Hidden,         "Is user ^hidden^ on the BBS")
-	case 7 :E_BOOL(16,17,   usrconfig.Deleted,        "Is user marked for ^deletion^")
-	case 8 :E_BOOL(17,17,   usrconfig.NeverDelete,    "^Never delete^ this user")
-	case 9 :E_STR( 18,17,62,usrconfig.sComment,       "A ^Comment^ for this user")
+	case 3 :E_STR(  8,17,10,usrconfig.sExpiryDate,    "The ^Expiry Date^ in DD-MM-YYYY format, 00-00-0000 is no expire"); break;
+	case 4 :E_INT(  9,17,   usrconfig.ExpirySec.level,"The ^Expiry Level^ for this user"); break;
+	case 5 :E_INT( 14,17,   usrconfig.Credit,         "Users ^Credit^"); break;
+	case 6 :E_BOOL(15,17,   usrconfig.Hidden,         "Is user ^hidden^ on the BBS"); break;
+	case 7 :E_BOOL(16,17,   usrconfig.Deleted,        "Is user marked for ^deletion^"); break;
+	case 8 :E_BOOL(17,17,   usrconfig.NeverDelete,    "^Never delete^ this user"); break;
+	case 9 :E_STR( 18,17,62,usrconfig.sComment,       "A ^Comment^ for this user"); break;
 
-	case 10:E_BOOL( 6,68,   usrconfig.LockedOut,      "User is ^Locked Out^ of this BBS")
-	case 11:E_BOOL( 7,68,   usrconfig.Guest,          "This is a ^Guest^ account")
-	case 12:E_BOOL( 8,68,   usrconfig.OL_ExtInfo,     "Add ^Extended Message Info^ in OLR download")
-	case 13:E_BOOL( 9,68,   usrconfig.Email,          "User has a ^private email^ mailbox")
+	case 10:E_BOOL( 6,68,   usrconfig.LockedOut,      "User is ^Locked Out^ of this BBS"); break;
+	case 11:E_BOOL( 7,68,   usrconfig.Guest,          "This is a ^Guest^ account"); break;
+	case 12:E_BOOL( 8,68,   usrconfig.OL_ExtInfo,     "Add ^Extended Message Info^ in OLR download"); break;
+	case 13:E_BOOL( 9,68,   usrconfig.Email,          "User has a ^private email^ mailbox"); break;
 	case 14:if (yes_no((char *)"Reset time left for today") == 1) {
 		    Reset_Time();
 		}

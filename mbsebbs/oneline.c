@@ -199,7 +199,7 @@ char *Oneliner_Get()
 
     if ((pOneline = fopen(sFileName, "r+")) == NULL) {
 	WriteError("Can't open file: %s", sFileName);
-	return '\0';
+	return NULL;
     }
     fread(&olhdr, sizeof(olhdr), 1, pOneline);
 
@@ -225,7 +225,7 @@ char *Oneliner_Get()
     offset = olhdr.hdrsize + (j * olhdr.recsize);
     if (fseek(pOneline, offset, 0) != 0) {
 	WriteError("Can't move pointer in %s", sFileName); 
-	return '\0';
+	return NULL;
     }
 
     fread(&ol, olhdr.recsize, 1, pOneline);

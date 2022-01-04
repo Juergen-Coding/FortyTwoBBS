@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -389,15 +388,15 @@ int EditRouteRec(int Area)
 		    } else
 			errmsg("Syntax error");
 		    break;
-//	    case 2: E_STR(  8,20,36, route.sname,     "The additional ^source username^ to add to the match");
+//	    case 2: E_STR(  8,20,36, route.sname,     "The additional ^source username^ to add to the match"); break;
 	    case 3: route.routetype = edit_routetype(9,20, route.routetype);
 		    break;
 	    case 4: route.dest = PullUplink((char *)"19.4");
 		    RouteScreen();
 		    break;
-//	    case 5: E_STR( 11,20,36, route.dname,     "The ^destination name^ if needed");
-	    case 6: E_BOOL(12,20,    route.Active,    "If this route is ^active^");
-	    case 7: E_BOOL(13,20,    route.Deleted,   "If this route must be ^deleted^");
+//	    case 5: E_STR( 11,20,36, route.dname,     "The ^destination name^ if needed"); break;
+	    case 6: E_BOOL(12,20,    route.Active,    "If this route is ^active^"); break;
+	    case 7: E_BOOL(13,20,    route.Deleted,   "If this route must be ^deleted^"); break;
 	}
     }
 }

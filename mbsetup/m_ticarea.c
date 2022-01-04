@@ -27,7 +27,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -303,9 +302,9 @@ void EditTicSystem(sysconnect *Sys)
 	    case 1: S.aka = PullUplink((char *)"10.2.27");
 		    refresh = TRUE;
 		    break;
-	    case 2: E_BOOL( 8,24, S.sendto,      "^Send^ files ^to^ this node")
-	    case 3: E_BOOL( 9,24, S.receivefrom, "^Receive^ files ^from^ this node")
-	    case 4: E_BOOL(10,24, S.pause,       "Is this node ^paused^")
+	    case 2: E_BOOL( 8,24, S.sendto,      "^Send^ files ^to^ this node"); break;
+	    case 3: E_BOOL( 9,24, S.receivefrom, "^Receive^ files ^from^ this node"); break;
+	    case 4: E_BOOL(10,24, S.pause,       "Is this node ^paused^"); break;
 	    case 5: if (yes_no((char *)"Delete this entry")) {
 			memset(&S, 0, sizeof(sysconnect));
 			(* Sys) = S;
@@ -903,8 +902,8 @@ int EditTicRec(int Area)
 		    free(temp);
 		    return 0;
 
-	    case 1: E_STR( 6,16,55, tic.Comment, "The ^description^ for this area.");
-	    case 2:	E_STR( 7,16,20, tic.Name,    "The ^name^ of this ^TIC^ area.");
+	    case 1: E_STR( 6,16,55, tic.Comment, "The ^description^ for this area."); break;
+	    case 2:	E_STR( 7,16,20, tic.Name,    "The ^name^ of this ^TIC^ area."); break;
 	    case 3: tic.LinkSec = edit_asec(tic.LinkSec, (char *)"LINK SECURITY FLAGS");
 		    SetTicScreen();
 		    break;
@@ -913,7 +912,7 @@ int EditTicRec(int Area)
 			tic.FileArea = tmp;
 		    SetTicScreen();
 		    break;
-	    case 5: E_STR(10,16,14, tic.Message, "The ^message^ to include with the .tic files.");
+	    case 5: E_STR(10,16,14, tic.Message, "The ^message^ to include with the .tic files."); break;
 	    case 6: tmp = strlen(tic.Group);
 		    strcpy(tic.Group, PickFGroup((char *)"10.2.6"));
 		    if (strlen(tic.Group) && !tmp) {
@@ -921,8 +920,8 @@ int EditTicRec(int Area)
 			 * If set the first time, fill in defaults
 			 */
 			tic.Aka = fgroup.UseAka;
-			strncpy(tic.Convert, fgroup.Convert, 5);
-			strncpy(tic.Banner, fgroup.Banner, 14);
+			memccpy(tic.Convert, fgroup.Convert, '\0', 5);
+			memccpy(tic.Banner, fgroup.Banner, '\0', 14);
 			tic.Replace = fgroup.Replace;
 			tic.DupCheck = fgroup.DupCheck;
 			tic.Secure = fgroup.Secure;
@@ -954,7 +953,7 @@ int EditTicRec(int Area)
 		    }
 		    SetTicScreen();
 		    break;
-	    case 7: E_INT(12,16,    tic.KeepLatest, "^Keep^ the ^latest^ number of files.");
+	    case 7: E_INT(12,16,    tic.KeepLatest, "^Keep^ the ^latest^ number of files."); break;
 	    case 8: tmp = PickAka((char *)"10.2.8", TRUE);
 		    if (tmp != -1)
 			tic.Aka = CFG.aka[tmp];
@@ -963,28 +962,28 @@ int EditTicRec(int Area)
 	    case 9: strcpy(tic.Convert, PickArchive((char *)"10.2.9", FALSE));
 		    SetTicScreen();
 		    break;
-	    case 10:E_STR(15,16,14, tic.Banner,   "The ^banner^ to put in the file archives");
-	    case 11:E_BOOL(16,16, tic.Replace,    "Allow ^Replace^ files command");
-	    case 12:E_BOOL( 9,55, tic.DupCheck,   "Check for ^duplicates^ in received files");
-	    case 13:E_BOOL(10,55, tic.Secure,     "Check for ^secure^ systems");
-	    case 14:E_BOOL(11,55, tic.Touch,      "^Touch filedate^ on rearchived files to the origininal filedate");
-	    case 15:E_BOOL(12,55, tic.VirScan,    "Check received files for ^virusses^");
-	    case 16:E_BOOL(13,55, tic.Announce,   "^Announce^ received files");
-	    case 17:E_BOOL(14,55, tic.UpdMagic,   "Update files ^magic^ names");
-	    case 18:E_BOOL(15,55, tic.FileId,     "Extract ^FILE_ID.DIZ^ from received files");
+	    case 10:E_STR(15,16,14, tic.Banner,   "The ^banner^ to put in the file archives"); break;
+	    case 11:E_BOOL(16,16, tic.Replace,    "Allow ^Replace^ files command"); break;
+	    case 12:E_BOOL( 9,55, tic.DupCheck,   "Check for ^duplicates^ in received files"); break;
+	    case 13:E_BOOL(10,55, tic.Secure,     "Check for ^secure^ systems"); break;
+	    case 14:E_BOOL(11,55, tic.Touch,      "^Touch filedate^ on rearchived files to the origininal filedate"); break;
+	    case 15:E_BOOL(12,55, tic.VirScan,    "Check received files for ^virusses^"); break;
+	    case 16:E_BOOL(13,55, tic.Announce,   "^Announce^ received files"); break;
+	    case 17:E_BOOL(14,55, tic.UpdMagic,   "Update files ^magic^ names"); break;
+	    case 18:E_BOOL(15,55, tic.FileId,     "Extract ^FILE_ID.DIZ^ from received files"); break;
 	    case 19:tmp = edit_bool(16,55, tic.ConvertAll, (char *)"^Convert^ archive always");
 		    if (tmp && !tic.ConvertAll && strlen(tic.Convert) == 0)
 			errmsg("No archiver configured to convert to, edit 8 first");
 		    else
 			tic.ConvertAll = tmp;
 		    break;
-	    case 20:E_BOOL( 9,74, tic.SendOrg,    "^Send original^ file to downlinks");
-	    case 21:E_BOOL(10,74, tic.Mandat,     "Is this area ^mandatory^");
-	    case 22:E_BOOL(11,74, tic.Notified,   "Is the sysop ^notified^ if this area is (dis)connected");
-	    case 23:E_BOOL(12,74, tic.UplDiscon,  "Is the uplink ^disconnected^ from this area");
-	    case 24:E_BOOL(13,74, tic.Deleted,    "Is this area ^deleted^");
-	    case 25:E_BOOL(14,74, tic.Active,     "Is this area ^active^");
-	    case 26:E_BOOL(15,74, tic.NewSR,      "Give new connected nodes the status ^SR^ instead of ^R^");
+	    case 20:E_BOOL( 9,74, tic.SendOrg,    "^Send original^ file to downlinks"); break;
+	    case 21:E_BOOL(10,74, tic.Mandat,     "Is this area ^mandatory^"); break;
+	    case 22:E_BOOL(11,74, tic.Notified,   "Is the sysop ^notified^ if this area is (dis)connected"); break;
+	    case 23:E_BOOL(12,74, tic.UplDiscon,  "Is the uplink ^disconnected^ from this area"); break;
+	    case 24:E_BOOL(13,74, tic.Deleted,    "Is this area ^deleted^"); break;
+	    case 25:E_BOOL(14,74, tic.Active,     "Is this area ^active^"); break;
+	    case 26:E_BOOL(15,74, tic.NewSR,      "Give new connected nodes the status ^SR^ instead of ^R^"); break;
 	    case 27:if (EditTicConnections(ttfil))
 			changed = TRUE;
 		    SetTicScreen();
@@ -1045,7 +1044,7 @@ void EditTicarea(void)
 						fread(&tic, tichdr.recsize, 1, fil);
 						if (tic.Active) {
 							set_color(CYAN, BLACK);
-							snprintf(temp, 81, "%3d.  %-20s %-40s", o + i, tic.Name, tic.
+							snprintf(temp, 81, "%3d.  %-20.20s %-40.40s", o + i, tic.Name, tic.
 Comment);
 						} else {
 							set_color(LIGHTBLUE, BLACK);
@@ -1156,7 +1155,7 @@ char *PickTicarea(char *shdr)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-20s %-40s", o + i, tic.Name, tic.Comment);
+						snprintf(temp, 81, "%3d.  %-20.20s %-40.40s", o + i, tic.Name, tic.Comment);
 						mbse_mvprintw(y, x, temp);
 						y++;
 					}

@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/diesel.h"
 #include "screen.h"
@@ -57,7 +56,7 @@ int CountOneline(void)
 
 	Time = time(NULL);
 	l_date = localtime(&Time);
-	snprintf(buf, 12, "%02d-%02d-%04d", l_date->tm_mday, l_date->tm_mon+1, l_date->tm_year+1900);
+	strftime(buf, 12, "%d-%m-%Y", l_date);
 
 	snprintf(ffile, PATH_MAX, "%s/etc/oneline.data", getenv("MBSE_ROOT"));
 	if ((fil = fopen(ffile, "r")) == NULL) {
@@ -276,10 +275,10 @@ int EditOnelRec(int Area)
 			}
 			IsDoing("Browsing Menu");
 			return 0;
-		case 1:	E_STR(  7,12,68,ol.Oneline,    "The ^Oneline^ text to show")
-		case 2:	E_STR(  8,12,30,ol.UserName,   "The ^Username^ of the owner of this oneline")
-		case 3:	E_STR(  9,12,10,ol.DateOfEntry,"The ^Date^ this oneliner is added, format: ^DD-MM-YYYY^")
-		case 4:	E_BOOL(10,12,   ol.Available,  "Is this oneline ^available^")
+		case 1:	E_STR(  7,12,68,ol.Oneline,    "The ^Oneline^ text to show"); break;
+		case 2:	E_STR(  8,12,30,ol.UserName,   "The ^Username^ of the owner of this oneline"); break;
+		case 3:	E_STR(  9,12,10,ol.DateOfEntry,"The ^Date^ this oneliner is added, format: ^DD-MM-YYYY^"); break;
+		case 4:	E_BOOL(10,12,   ol.Available,  "Is this oneline ^available^"); break;
 		}
 	}
 
@@ -342,7 +341,7 @@ void EditOneline(void)
 							set_color(CYAN, BLACK);
 						else
 							set_color(LIGHTBLUE, BLACK);
-						snprintf(temp, 81, "%3d.  %-32s", o + i, ol.Oneline);
+						snprintf(temp, 81, "%3d.  %-32.32s", o + i, ol.Oneline);
 						temp[38] = '\0';
 						mbse_mvprintw(y, x, temp);
 						y++;
@@ -525,7 +524,7 @@ void ImportOneline(void)
 
     Time = time(NULL);
     l_date = localtime(&Time);
-    snprintf(buf, 12, "%02d-%02d-%04d", l_date->tm_mday, l_date->tm_mon+1, l_date->tm_year+1900);
+	strftime(buf, 12, "%d-%m-%Y", l_date);
 
     while ((fgets(temp, 80, Imp)) != NULL) {
 	Striplf(temp);

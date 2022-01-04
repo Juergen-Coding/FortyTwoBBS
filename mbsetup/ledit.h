@@ -95,18 +95,18 @@ int		edit_charset(int, int, int);
 /*
  * Macro's for the edit functions
  */
-#define E_STR(y,x,l,str,help) strcpy(str, edit_str(y,x,l,str,(char *)help)); break;
-#define E_PTH(y,x,l,str,help,mode) strcpy(str, edit_pth(y,x,l,str,(char *)help,mode)); break;
-#define E_UPS(y,x,l,str,help) strcpy(str, edit_ups(y,x,l,str,(char *)help)); break;
-#define E_JAM(y,x,l,str,help) strcpy(str, edit_jam(y,x,l,str,(char *)help)); break;
-#define E_BOOL(y,x,bool,help) bool = edit_bool(y,x,bool,(char *)help); break;
-#define E_INT(y,x,value,help) value = edit_int(y,x,value,(char *)help); break;
-#define E_UINT(y,x,value,help) value = edit_uint(y,x,value,(char *)help); break;
-#define E_IRC(y,x,value,min,max,help) value = edit_int_range(y,x,value,min,max,(char *)help); break;
-#define E_LOGL(grade,txt,af)  grade = edit_logl(grade,(char *)txt); af(); break;
-#define S_COL(y,x,name,fg,bg) set_color(fg,bg); mbse_mvprintw(y,x,name);
-#define E_SEC(y,x,sec,hdr,af) sec = edit_sec(y,x,sec,(char *)hdr); af(); break;
-#define E_USEC(y,x,sec,hdr,af) sec = edit_usec(y,x,sec,(char *)hdr); af(); break;
+#define E_STR(y,x,l,str,help) strcpy(str, edit_str(y,x,l,str,(char *)help))
+#define E_PTH(y,x,l,str,help,mode) strcpy(str, edit_pth(y,x,l,str,(char *)help,mode))
+#define E_UPS(y,x,l,str,help) strcpy(str, edit_ups(y,x,l,str,(char *)help))
+#define E_JAM(y,x,l,str,help) strcpy(str, edit_jam(y,x,l,str,(char *)help))
+#define E_BOOL(y,x,bool,help) bool = edit_bool(y,x,bool,(char *)help)
+#define E_INT(y,x,value,help) value = edit_int(y,x,value,(char *)help)
+#define E_UINT(y,x,value,help) value = edit_uint(y,x,value,(char *)help)
+#define E_IRC(y,x,value,min,max,help) value = edit_int_range(y,x,value,min,max,(char *)help)
+#define E_LOGL(grade,txt)  grade = edit_logl(grade,(char *)txt)
+#define S_COL(y,x,name,fg,bg) do { set_color(fg,bg); mbse_mvprintw(y,x,name); } while (0)
+#define E_SEC(y,x,sec,hdr) sec = edit_sec(y,x,sec,(char *)hdr)
+#define E_USEC(y,x,sec,hdr) sec = edit_usec(y,x,sec,(char *)hdr)
 
 #endif /* _LEDIT_H */
 

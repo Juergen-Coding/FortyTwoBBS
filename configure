@@ -4933,17 +4933,6 @@ fi
 #
 # Support for iconv, check libc first.
 #
-#result="no"
-#AC_CHECK_FUNC(iconv_open,result=yes,
-#  AC_SEARCH_LIBS(iconv_open,iconv,result=yes,result=no)
-#  AC_CHECK_LIB(iconv,iconv_open,result=yes,result=no)
-#  if test "$result" = "yes"; then
-#    LIBS="$LIBS -liconv"
-#  fi
-#)
-#if test "$result" = "yes"; then
-#  AC_CHECK_HEADERS(iconv.h)
-#fi
 result=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing libiconv_open" >&5
 $as_echo_n "checking for library containing libiconv_open... " >&6; }
@@ -5081,63 +5070,11 @@ fi
 #
 # Support for SQLite3
 #
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for sqlite3_open in -lsqlite3" >&5
-$as_echo_n "checking for sqlite3_open in -lsqlite3... " >&6; }
-if ${ac_cv_lib_sqlite3_sqlite3_open+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lsqlite3  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char sqlite3_open ();
-int
-main ()
-{
-return sqlite3_open ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_sqlite3_sqlite3_open=yes
-else
-  ac_cv_lib_sqlite3_sqlite3_open=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_sqlite3_sqlite3_open" >&5
-$as_echo "$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
-if test "x$ac_cv_lib_sqlite3_sqlite3_open" = xyes; then :
-  result=yes
-else
-  as_fn_error $? "missing SQLite3 library" "$LINENO" 5
-fi
-
-if test "$result" = "yes"; then
-  LIBS="$LIBS -lsqlite3"
-fi
-for ac_header in sqlite3.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "sqlite3.h" "ac_cv_header_sqlite3_h" "$ac_includes_default"
-if test "x$ac_cv_header_sqlite3_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_SQLITE3_H 1
-_ACEOF
-
-fi
-
-done
-
+#AC_CHECK_LIB(sqlite3,sqlite3_open,result=yes,AC_MSG_ERROR([missing SQLite3 library]))
+#if test "$result" = "yes"; then
+#  LIBS="$LIBS -lsqlite3"
+#fi
+#AC_CHECK_HEADERS(sqlite3.h)
 
 #
 # Checks for header files.

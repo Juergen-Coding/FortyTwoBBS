@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -466,20 +465,20 @@ int EditModemRec(int Area)
 			}
 			IsDoing("Browsing Menu");
 			return 0;
-		case 1: E_STR( 7,14,30, modem.modem,      "The ^Type^ or brand of this modem")
-		case 2: E_STR( 8,14,60, modem.init[0],    "The ^first init^ string for this modem")
-		case 3: E_STR( 9,14,60, modem.init[1],    "The ^second init^ string for this modem")
-		case 4: E_STR(10,14,60, modem.init[2],    "The ^third init^ string for this modem")
-		case 5: E_STR(11,14,60, modem.reset,      "The ^reset^ string for this modem")
-		case 6: E_STR(12,14,40, modem.hangup,     "The ^hangup^ string for this modem (Leave empty for ^DTR-drop^ hangup)")
-		case 7: E_STR(13,14,40, modem.dial,       "The ^dial^ command for this modem, ^\\T^ is translated phonenumber")
-		case 8: E_STR(14,14,40, modem.info,       "The command to get connection ^info^ from this modem after call")
-		case 9: E_STR(15,14,10, modem.ok,         "The ^OK^ string to get from the modem")
-		case 10:E_IRC(16,14,    modem.costoffset, 0, 60, "The ^offset^ time in seconds between answer and connect string (0..60)")
-		case 11:E_STR(17,14,15, modem.speed,      "The ^EMSI speed^ message for this modem")
-		case 12:E_BOOL(15,44,   modem.available,  "If this modem is ^available^")
-		case 13:E_BOOL(16,44,   modem.deleted,    "If this modem is to be ^deleted^ from the setup")
-		case 14:E_BOOL(17,44,   modem.stripdash,  "Strip ^dashes (-)^ from dial command strings if needed")
+		case 1: E_STR( 7,14,30, modem.modem,      "The ^Type^ or brand of this modem"); break;
+		case 2: E_STR( 8,14,60, modem.init[0],    "The ^first init^ string for this modem"); break;
+		case 3: E_STR( 9,14,60, modem.init[1],    "The ^second init^ string for this modem"); break;
+		case 4: E_STR(10,14,60, modem.init[2],    "The ^third init^ string for this modem"); break;
+		case 5: E_STR(11,14,60, modem.reset,      "The ^reset^ string for this modem"); break;
+		case 6: E_STR(12,14,40, modem.hangup,     "The ^hangup^ string for this modem (Leave empty for ^DTR-drop^ hangup)"); break;
+		case 7: E_STR(13,14,40, modem.dial,       "The ^dial^ command for this modem, ^\\T^ is translated phonenumber"); break;
+		case 8: E_STR(14,14,40, modem.info,       "The command to get connection ^info^ from this modem after call"); break;
+		case 9: E_STR(15,14,10, modem.ok,         "The ^OK^ string to get from the modem"); break;
+		case 10:E_IRC(16,14,    modem.costoffset, 0, 60, "The ^offset^ time in seconds between answer and connect string (0..60)"); break;
+		case 11:E_STR(17,14,15, modem.speed,      "The ^EMSI speed^ message for this modem"); break;
+		case 12:E_BOOL(15,44,   modem.available,  "If this modem is ^available^"); break;
+		case 13:E_BOOL(16,44,   modem.deleted,    "If this modem is to be ^deleted^ from the setup"); break;
+		case 14:E_BOOL(17,44,   modem.stripdash,  "Strip ^dashes (-)^ from dial command strings if needed"); break;
 		case 15:
 			EditConnect();
 			Modem_Screen();
@@ -604,13 +603,13 @@ char *PickModem(char *shdr)
 	working(1, 0, 0);
 	if (config_read() == -1) {
 		working(2, 0, 0);
-		return '\0';
+		return NULL;
 	}
 
 	records = CountModem();
 	if (records == -1) {
 		working(2, 0, 0);
-		return '\0';
+		return NULL;
 	}
 
 
@@ -653,7 +652,7 @@ char *PickModem(char *shdr)
 		strcpy(pick, select_pick(records, 20));
 
 		if (strncmp(pick, "-", 1) == 0)
-			return '\0';
+			return NULL;
 
 		if (strncmp(pick, "N", 1) == 0)
 			if ((o + 20) < records)

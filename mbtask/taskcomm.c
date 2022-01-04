@@ -27,7 +27,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "taskstat.h"
 #include "taskregs.h"
@@ -56,12 +55,12 @@ int userlog(char *);
 int userlog(char *param)
 {
     char	*prname, *prpid, *grade, *msg;
-    static char	lfn[PATH_MAX], token[14];
+    static char	lfn[PATH_MAX], token[15];
     int		rc;
 
     lfn[0] = '\0';
-    strncpy(token, strtok(param, ","), 14);
-    strncpy(token, strtok(NULL, ","), 14);
+    strncpy(token, strtok(param, ","), sizeof(token) - 1);
+    strncpy(token, strtok(NULL, ","), sizeof(token) - 1);
     snprintf(lfn, PATH_MAX, "%s/log/%s", getenv("MBSE_ROOT"), token);
     prname = strtok(NULL, ",");
     prpid  = strtok(NULL, ",");
@@ -80,18 +79,18 @@ int userlog(char *param)
 char *exe_cmd(char *);
 char *exe_cmd(char *in)
 {
-    static char	obuf[SS_BUFSIZE];
+    static char	obuf[SS_BUFSIZE * 2];
     static char	ibuf[SS_BUFSIZE];
-    static char	cmd[4];
+    static char	cmd[5];
     static char	token[SS_BUFSIZE];
-    static char	ebuf[19];
+    static char	ebuf[20];
     static char	var1[16];
     int		result;
     char	*buf;
 
-    strncpy(ibuf, in, SS_BUFSIZE);
-    strncpy(cmd, ibuf, 4);
-    strncpy(ebuf, "200:1,Syntax error;", 19);
+    strncpy(ibuf, in, SS_BUFSIZE - 1);
+    memccpy(cmd, ibuf, '\0', sizeof(cmd) - 1);
+    strncpy(ebuf, "200:1,Syntax error;", 20);
 
     /*
      * Split the commandline after the colon so we can give the
@@ -111,7 +110,7 @@ char *exe_cmd(char *in)
      */
     if (strncmp(cmd, "AINI", 4) == 0) {
 	if ((result = reg_newcon(token)) != -1) {
-	    snprintf(obuf, SS_BUFSIZE, "100:1,%d;", result);
+	    snprintf(obuf, sizeof(obuf), "100:1,%d;", result);
 	    return obuf;
 	} else {
 	    stat_inc_serr();
@@ -252,7 +251,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "CIPM", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	reg_ipm_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -264,7 +263,7 @@ char *exe_cmd(char *in)
      */
     if (strncmp(cmd, "CSPM", 4) == 0) {
 	if ((result = reg_spm(token)))
-	    snprintf(obuf, SS_BUFSIZE, "100:1,%d;", result);
+	    snprintf(obuf, sizeof(obuf), "100:1,%d;", result);
 	return obuf;
     }
 
@@ -285,7 +284,7 @@ char *exe_cmd(char *in)
      */
     if (strncmp(cmd, "CPAG", 4) == 0) {
 	if ((result = reg_page(token))) {
-	    snprintf(obuf, SS_BUFSIZE, "100:1,%d;", result);
+	    snprintf(obuf, sizeof(obuf), "100:1,%d;", result);
 	}
 	return obuf;
     }
@@ -310,7 +309,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "CCKP", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	reg_checkpage_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -325,7 +324,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "CISC", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	chat_checksysop_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -340,7 +339,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "CCON", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
         chat_connect_r(token, buf);
-        snprintf(obuf, SS_BUFSIZE, "%s", buf);
+        snprintf(obuf, sizeof(obuf), "%s", buf);
         free(buf);
         return obuf;
     }
@@ -355,7 +354,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "CCLO", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	chat_close_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -414,7 +413,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "DSPC", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	disk_check_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -426,7 +425,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "DGFS", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	disk_getfs_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -447,7 +446,7 @@ char *exe_cmd(char *in)
      *  100:n,data;
      */
     if (strncmp(cmd, "GPNG", 4) == 0) {
-	snprintf(obuf, SS_BUFSIZE, "100:%s", token);
+	snprintf(obuf, sizeof(obuf), "100:%s", token);
 	return obuf;
     }
 
@@ -456,7 +455,7 @@ char *exe_cmd(char *in)
      *  100:1,Version ...;
      */
     if (strncmp(cmd, "GVER", 4) == 0) {
-	snprintf(obuf, SS_BUFSIZE, "100:1,Version %s;", VERSION);
+	snprintf(obuf, sizeof(obuf), "100:1,Version %s;", VERSION);
 	return obuf;
     }
 
@@ -469,7 +468,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "GSTA", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	stat_status_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -484,7 +483,7 @@ char *exe_cmd(char *in)
 	strcpy(var1, strtok(NULL, ";"));
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	get_reginfo_r(atoi(var1), buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -497,7 +496,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "GSYS", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	get_sysinfo_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -509,7 +508,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "GLCC", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	get_lastcallercount_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -524,7 +523,7 @@ char *exe_cmd(char *in)
         strcpy(var1, strtok(NULL, ";"));
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	get_lastcallerrec_r(atoi(var1), buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -561,7 +560,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGMS", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_mailer_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -586,7 +585,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGTN", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_netmail_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -611,7 +610,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGTI", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_email_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -636,7 +635,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGTE", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_echo_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -661,7 +660,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGTR", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_news_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -675,7 +674,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGTT", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_tosser_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -700,7 +699,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGTF", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_files_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -725,7 +724,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGBB", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_bbs_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -739,7 +738,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "MGOB", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	mib_get_outsize_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -752,11 +751,11 @@ char *exe_cmd(char *in)
      */
     if (strncmp(cmd, "SBBS", 4) == 0) {
 	switch(stat_bbs_stat()) {
-	    case 0: snprintf(obuf, SS_BUFSIZE, "100:2,0,The system is open for use;");
+	    case 0: snprintf(obuf, sizeof(obuf), "100:2,0,The system is open for use;");
 		    break;
-	    case 1: snprintf(obuf, SS_BUFSIZE, "100:2,1,The system is closed right now!;");
+	    case 1: snprintf(obuf, sizeof(obuf), "100:2,1,The system is closed right now!;");
 		    break;
-	    case 2: snprintf(obuf, SS_BUFSIZE, "100:2,2,The system is closed for Zone Mail Hour!;");
+	    case 2: snprintf(obuf, sizeof(obuf), "100:2,2,The system is closed for Zone Mail Hour!;");
 		    break;
 	}
 	return obuf;
@@ -789,7 +788,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "SFRE", 4) == 0) {
 	buf = calloc(SS_BUFSIZE, sizeof(char));
 	reg_fre_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -802,7 +801,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "SSEQ", 4) == 0) {
         buf = calloc(SS_BUFSIZE, sizeof(char));
 	getseq_r(buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -815,7 +814,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "SEST", 4) == 0) {
         buf = calloc(SS_BUFSIZE, sizeof(char));
 	sem_status_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -828,7 +827,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "SECR", 4) == 0) {
         buf = calloc(SS_BUFSIZE, sizeof(char));
 	sem_create_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }
@@ -841,7 +840,7 @@ char *exe_cmd(char *in)
     if (strncmp(cmd, "SERM", 4) == 0) {
         buf = calloc(SS_BUFSIZE, sizeof(char));
 	sem_remove_r(token, buf);
-	snprintf(obuf, SS_BUFSIZE, "%s", buf);
+	snprintf(obuf, sizeof(obuf), "%s", buf);
 	free(buf);
 	return obuf;
     }

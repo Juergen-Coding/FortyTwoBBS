@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -81,7 +80,7 @@ int CountFilearea(void)
 			fwrite(&area, sizeof(area), 1, fil);
 			fclose(fil);
 			chmod(ffile, 0640);
-			snprintf(ffile, 81, "%s/foobar", area.Path);
+			snprintf(ffile, sizeof(ffile), "%s/foobar", area.Path);
 			mkdirs(ffile, 0755);
 			return 1;
 		} else
@@ -342,7 +341,7 @@ int EditFileRec(int Area)
 		    }
 		    IsDoing("Browsing Menu");
 		    return 0;
-	    case 1: E_STR(  6,16,44, area.Name,      "The ^name^ for this area")
+	    case 1: E_STR(  6,16,44, area.Name,      "The ^name^ for this area"); break;
 	    case 2: strcpy(tpath, area.Path);
 		    strcpy(area.Path, edit_pth(7,16,64, area.Path, (char *)"The ^path^ for the files in this area", 0775));
 		    if (strlen(tpath) && strlen(area.Path) && strcmp(tpath, area.Path) && strcmp(tpath, CFG.ftp_base)) {
@@ -401,9 +400,9 @@ int EditFileRec(int Area)
 			}
 		    }
 		    break;
-	    case 3: E_SEC(  8,16,    area.DLSec,     "8.4.3  DOWNLOAD SECURITY", FileScreen)
-	    case 4: E_SEC(  9,16,    area.UPSec,     "8.4.4  UPLOAD SECURITY", FileScreen)
-	    case 5: E_SEC( 10,16,    area.LTSec,     "8.4.5  LIST SECURITY", FileScreen)
+	    case 3: E_SEC(  8,16,    area.DLSec,     "8.4.3  DOWNLOAD SECURITY"); FileScreen(); break;
+	    case 4: E_SEC(  9,16,    area.UPSec,     "8.4.4  UPLOAD SECURITY"); FileScreen(); break;
+	    case 5: E_SEC( 10,16,    area.LTSec,     "8.4.5  LIST SECURITY"); FileScreen(); break;
 	    case 6: Available = edit_bool(11, 16, area.Available, (char *)"Is this area ^available^");
 		    temp = calloc(PATH_MAX, sizeof(char));
 		    snprintf(temp, PATH_MAX, "%s/var/fdb/file%d.data", getenv("MBSE_ROOT"), Area);
@@ -461,29 +460,29 @@ int EditFileRec(int Area)
 		    }
 		    free(temp);
 		    break;
-	    case 7: E_BOOL(12,16,    area.New,       "Include this area in ^new files^ check")
-	    case 8: E_BOOL(13,16,    area.Dupes,     "Check this area for ^duplicates^ during upload")
-	    case 9: E_BOOL(14,16,    area.Free,      "Are all files ^free^ in this area")
-	    case 10:E_BOOL(15,16,    area.DirectDL,  "Allow ^direct download^ from this area")
-	    case 11:E_BOOL(16,16,    area.PwdUP,     "Allow ^password^ on uploads")
-	    case 12:E_BOOL(17,16,    area.FileFind,  "Search this area for ^filefind^ requests")
-	    case 13:E_BOOL(12,44,    area.AddAlpha,  "Add new files ^alphabetic^ or at the end")
-	    case 14:E_BOOL(13,44,    area.FileReq,   "Allow ^file requests^ from this area")
+	    case 7: E_BOOL(12,16,    area.New,       "Include this area in ^new files^ check"); break;
+	    case 8: E_BOOL(13,16,    area.Dupes,     "Check this area for ^duplicates^ during upload"); break;
+	    case 9: E_BOOL(14,16,    area.Free,      "Are all files ^free^ in this area"); break;
+	    case 10:E_BOOL(15,16,    area.DirectDL,  "Allow ^direct download^ from this area"); break;
+	    case 11:E_BOOL(16,16,    area.PwdUP,     "Allow ^password^ on uploads"); break;
+	    case 12:E_BOOL(17,16,    area.FileFind,  "Search this area for ^filefind^ requests"); break;
+	    case 13:E_BOOL(12,44,    area.AddAlpha,  "Add new files ^alphabetic^ or at the end"); break;
+	    case 14:E_BOOL(13,44,    area.FileReq,   "Allow ^file requests^ from this area"); break;
 	    case 15:strcpy(area.BbsGroup, PickFGroup((char *)"8.4.15"));
 		    FileScreen();
 		    break;
 	    case 16:strcpy(area.NewGroup, PickNGroup((char *)"8.4.16"));
 		    FileScreen();
 		    break;
-	    case 17:E_INT( 16,44,    area.Age,       "The ^minimum age^ to access this area")
-	    case 18:E_STR( 17,44,20, area.Password,  "The ^password^ to access this area")
-	    case 19:E_INT( 12,73,    area.DLdays,    "The not ^downloaded days^ to move/kill files")
-	    case 20:E_INT( 13,73,    area.FDdays,    "The ^file age^ in days to move/kill files")
-	    case 21:E_INT( 14,73,    area.MoveArea,  "The ^area to move^ files to, 0 is kill")
+	    case 17:E_INT( 16,44,    area.Age,       "The ^minimum age^ to access this area"); break;
+	    case 18:E_STR( 17,44,20, area.Password,  "The ^password^ to access this area"); break;
+	    case 19:E_INT( 12,73,    area.DLdays,    "The not ^downloaded days^ to move/kill files"); break;
+	    case 20:E_INT( 13,73,    area.FDdays,    "The ^file age^ in days to move/kill files"); break;
+	    case 21:E_INT( 14,73,    area.MoveArea,  "The ^area to move^ files to, 0 is kill"); break;
 	    case 22:strcpy(area.Archiver, PickArchive((char *)"8.4", FALSE));
 		    FileScreen();
 		    break;
-	    case 23:E_INT( 16,73,    area.Upload,    "The ^upload^ area, 0 if upload in this area")
+	    case 23:E_INT( 16,73,    area.Upload,    "The ^upload^ area, 0 if upload in this area"); break;
 	}
     }
 }

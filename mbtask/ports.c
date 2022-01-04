@@ -27,7 +27,6 @@
  * Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "taskutil.h"
 #include "../lib/nodelist.h"
@@ -86,7 +85,7 @@ void fill_portlist(pp_list **fdp, pp_list *new)
     tmp = (pp_list *)malloc(sizeof(pp_list));
     memset(tmp, 0, sizeof(*tmp));
     tmp->next = NULL;
-    strncpy(tmp->tty, new->tty, 6);
+	memccpy(tmp->tty, new->tty, '\0', 6);
     tmp->mflags = new->mflags;
     tmp->dflags = new->dflags;
     tmp->locktime = 0;
@@ -132,7 +131,7 @@ void load_ports()
 		isdn_lines++;
 
 	    memset(&new, 0, sizeof(new));
-	    strncpy(new.tty, ttyinfo.tty, 6);
+		memccpy(new.tty, ttyinfo.tty, '\0', 6);
 
 	    capflags = xstrcpy((char *)"flags:");
 	    q = xstrcpy(ttyinfo.flags);

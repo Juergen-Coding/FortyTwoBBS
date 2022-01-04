@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -431,11 +430,11 @@ int EditTtyRec(int Area)
 		    IsDoing("Browsing Menu");
 		    free(mfile);
 		    return 0;
-	    case 1: E_STR(  7,21,40,ttyinfo.comment,  "The ^Comment^ for this record")
-	    case 2: E_STR(  8,21,7, ttyinfo.tty,      "The ^Device name^ of this tty line")
-	    case 3: E_STR(  9,21,25,ttyinfo.phone,    "The ^Phone number^ or ^Hostname^ or ^IP address^ of this tty line")
-	    case 4: E_STR( 10,21,20,ttyinfo.speed,    "The ^Speed^ of this device")
-	    case 5: E_STR( 11,21,30,ttyinfo.flags,    "The ^Fidonet Capability Flags^ for this tty line")
+	    case 1: E_STR(  7,21,40,ttyinfo.comment,  "The ^Comment^ for this record"); break;
+	    case 2: E_STR(  8,21,7, ttyinfo.tty,      "The ^Device name^ of this tty line"); break;
+	    case 3: E_STR(  9,21,25,ttyinfo.phone,    "The ^Phone number^ or ^Hostname^ or ^IP address^ of this tty line"); break;
+	    case 4: E_STR( 10,21,20,ttyinfo.speed,    "The ^Speed^ of this device"); break;
+	    case 5: E_STR( 11,21,30,ttyinfo.flags,    "The ^Fidonet Capability Flags^ for this tty line"); break;
 	    case 6: ttyinfo.type = edit_linetype(12,21, ttyinfo.type);
 		    if (ttyinfo.type == POTS) {
 			if (!ttyinfo.portspeed)
@@ -459,16 +458,16 @@ int EditTtyRec(int Area)
 			}
 		    }
 		    break;
-	    case 8: E_BOOL(14,21,   ttyinfo.honor_zmh,"Honor ^Zone Mail Hour^ for bbs users on this tty")
-	    case 9: E_BOOL(15,21,   ttyinfo.deleted,  "Is this tty line ^deleted") 
-	    case 10:E_BOOL(16,21,   ttyinfo.callout,  "Is this line available for ^calling out^")
-	    case 11:E_INT (14,45,   ttyinfo.portspeed,"The ^locked speed^ of this tty port (only for modems)")
+	    case 8: E_BOOL(14,21,   ttyinfo.honor_zmh,"Honor ^Zone Mail Hour^ for bbs users on this tty"); break;
+	    case 9: E_BOOL(15,21,   ttyinfo.deleted,  "Is this tty line ^deleted") ; break;
+	    case 10:E_BOOL(16,21,   ttyinfo.callout,  "Is this line available for ^calling out^"); break;
+	    case 11:E_INT (14,45,   ttyinfo.portspeed,"The ^locked speed^ of this tty port (only for modems)"); break;
 	    case 12:if ((ttyinfo.type == POTS) || (ttyinfo.type == ISDN)) {
 			strcpy(ttyinfo.modem, PickModem((char *)"6.12")); 
 			TtyScreen();
 		    }
 		    break;
-	    case 13:E_STR( 16,45,30,ttyinfo.name,     "The ^EMSI name^ for this tty line")
+	    case 13:E_STR( 16,45,30,ttyinfo.name,     "The ^EMSI name^ for this tty line"); break;
 	}
     }
 

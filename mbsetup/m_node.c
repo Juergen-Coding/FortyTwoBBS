@@ -28,7 +28,6 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
-#include "../config.h"
 #include "../lib/mbselib.h"
 #include "screen.h"
 #include "mutil.h"
@@ -424,13 +423,13 @@ void E_UplMgr(void)
 
 	switch(select_menu(7)) {
 	    case 0: return;
-	    case 1: E_STR(  7,35, 8, nodes.UplAmgrPgm,   "Name of the uplink ^areamanager program^")
-	    case 2: E_STR(  8,35,15, nodes.UplAmgrPass,  "Uplink ^areamanager password^ for this node")
-	    case 3: E_BOOL( 9,35,    nodes.UplAmgrBbbs,  "Uplink ^areamanager^ is ^BBBS^ software")
-            case 4: E_STR( 10,35,8,  nodes.UplFmgrPgm,   "Name of the uplink ^filemanager^ program")
-	    case 5: E_STR( 11,35,15, nodes.UplFmgrPass,  "Uplink ^filemanager password^ for this node")
-	    case 6: E_BOOL(12,35,    nodes.UplFmgrBbbs,  "Uplink ^filemanager^ is ^BBBS^ software")
-	    case 7: E_STR( 13,35,15, nodes.Apasswd,      "The area and filemanager ^password^ for this node")
+	    case 1: E_STR(  7,35, 8, nodes.UplAmgrPgm,   "Name of the uplink ^areamanager program^"); break;
+	    case 2: E_STR(  8,35,15, nodes.UplAmgrPass,  "Uplink ^areamanager password^ for this node"); break;
+	    case 3: E_BOOL( 9,35,    nodes.UplAmgrBbbs,  "Uplink ^areamanager^ is ^BBBS^ software"); break;
+            case 4: E_STR( 10,35,8,  nodes.UplFmgrPgm,   "Name of the uplink ^filemanager^ program"); break;
+	    case 5: E_STR( 11,35,15, nodes.UplFmgrPass,  "Uplink ^filemanager password^ for this node"); break;
+	    case 6: E_BOOL(12,35,    nodes.UplFmgrBbbs,  "Uplink ^filemanager^ is ^BBBS^ software"); break;
+	    case 7: E_STR( 13,35,15, nodes.Apasswd,      "The area and filemanager ^password^ for this node"); break;
 	}
     }
 }
@@ -468,11 +467,11 @@ void E_Mail(void)
 
 	switch(select_menu(6)) {
 	    case 0: return;
-	    case 1: E_STR(  7,25,15, nodes.Epasswd,       "The ^Mail (.pkt)^ password^ for this node")
-	    case 2: E_BOOL( 8,25,    nodes.MailPwdCheck,  "Check the ^mail PKT^ password")
-	    case 3: E_BOOL( 9,25,    nodes.MailFwd,       "^Forward^ echomail for this node")
-	    case 4: E_BOOL(10,25,    nodes.ARCmailCompat, "Use ^ARCmail 0.60^ file naming convention for out of zone mail")
-	    case 5: E_BOOL(11,25,    nodes.ARCmailAlpha,  "Allow ^0..9 and a..z^ filename extensions for ARCmail archives")
+	    case 1: E_STR(  7,25,15, nodes.Epasswd,       "The ^Mail (.pkt)^ password^ for this node"); break;
+	    case 2: E_BOOL( 8,25,    nodes.MailPwdCheck,  "Check the ^mail PKT^ password"); break;
+	    case 3: E_BOOL( 9,25,    nodes.MailFwd,       "^Forward^ echomail for this node"); break;
+	    case 4: E_BOOL(10,25,    nodes.ARCmailCompat, "Use ^ARCmail 0.60^ file naming convention for out of zone mail"); break;
+	    case 5: E_BOOL(11,25,    nodes.ARCmailAlpha,  "Allow ^0..9 and a..z^ filename extensions for ARCmail archives"); break;
 	    case 6: strcpy(temp, PickArchive((char *)"7.4", TRUE));
 		    if (strlen(temp) != 0)
 			strcpy(nodes.Archiver, temp);
@@ -513,14 +512,14 @@ void E_Files(void)
 
 	switch(select_menu(8)) {
 	    case 0: return;
-	    case 1: E_STR(  7,26,15,nodes.Fpasswd,    "The ^TIC^ files ^password^ for this node")
-	    case 2: E_BOOL( 8,26,   nodes.Message,    "Send ^messages^ with files send to this node")
-	    case 3: E_BOOL( 9,26,   nodes.Tic,        "Send ^TIC^ files to this node")
-	    case 4: E_BOOL(10,26,   nodes.AdvTic,     "Send ^advanced^ TIC files to this node")
-	    case 5: E_BOOL(11,26,   nodes.TIC_AdvSB,  "Send ^advanced Seen-By^ lines in ticfiles to this node")
-	    case 6: E_BOOL(12,26,   nodes.TIC_To,     "Send ^To^ line in ticfiles to this node")
-	    case 7: E_BOOL(13,26,   nodes.FileFwd,    "^Forward TIC^ files for this node")
-	    case 8: E_BOOL(14,26,   nodes.Tic4d,      "Use ^4d addresses^ in TIC files for this node")
+	    case 1: E_STR(  7,26,15,nodes.Fpasswd,    "The ^TIC^ files ^password^ for this node"); break;
+	    case 2: E_BOOL( 8,26,   nodes.Message,    "Send ^messages^ with files send to this node"); break;
+	    case 3: E_BOOL( 9,26,   nodes.Tic,        "Send ^TIC^ files to this node"); break;
+	    case 4: E_BOOL(10,26,   nodes.AdvTic,     "Send ^advanced^ TIC files to this node"); break;
+	    case 5: E_BOOL(11,26,   nodes.TIC_AdvSB,  "Send ^advanced Seen-By^ lines in ticfiles to this node"); break;
+	    case 6: E_BOOL(12,26,   nodes.TIC_To,     "Send ^To^ line in ticfiles to this node"); break;
+	    case 7: E_BOOL(13,26,   nodes.FileFwd,    "^Forward TIC^ files for this node"); break;
+	    case 8: E_BOOL(14,26,   nodes.Tic4d,      "Use ^4d addresses^ in TIC files for this node"); break;
 	}
     }
 }
@@ -622,9 +621,9 @@ fidoaddr e_a(fidoaddr n, int x)
 				fclose(fil);
 			}
 			break;
-		case 2:	E_IRC( 8,17,n.net,   1, 32767, "The ^net^ number 1..32767")
-		case 3:	E_IRC( 9,17,n.node,  0, 32767, "The ^node^ number 0..32767")
-		case 4:	E_IRC(10,17,n.point, 0, 32767, "The ^point^ number 0..32767")
+		case 2:	E_IRC( 8,17,n.net,   1, 32767, "The ^net^ number 1..32767"); break;
+		case 3:	E_IRC( 9,17,n.node,  0, 32767, "The ^node^ number 0..32767"); break;
+		case 4:	E_IRC(10,17,n.point, 0, 32767, "The ^point^ number 0..32767"); break;
 		case 5: memset(&n, 0, sizeof(n));
 			break;
 		}
@@ -741,7 +740,7 @@ void GeneralEdit(void)
 
 	switch(select_menu(15)) {
 	case 0: return;
-	case 1: E_STR( 7,23,35, nodes.Sysop,        "The name of the ^sysop^ for this node")
+	case 1: E_STR( 7,23,35, nodes.Sysop,        "The name of the ^sysop^ for this node"); break;
 	case 2: if (strlen(nodes.OutBox) == 0) {
 		    if (nodes.Aka[0].zone) {
 			snprintf(nodes.OutBox, 65, "%s/var/boxes/node%d_%d_%d", getenv("MBSE_ROOT"), 
@@ -755,14 +754,14 @@ void GeneralEdit(void)
 			}
 		    }
 		}
-		E_PTH( 8,23,55, nodes.OutBox,       "Private extra ^outbound directory^ for this node", 0770)
-	case 3: E_STR( 9,23,16, nodes.Ct_phone,     "Contact info: ^private phone number^")
-	case 4: E_STR(10,23,16, nodes.Ct_fax,       "Contact info: ^private fax number^")
-	case 5: E_STR(11,23,20, nodes.Ct_cellphone, "Contact info: ^private cellphone/GSM^")
-	case 6: E_STR(12,23,30, nodes.Ct_email,     "Contact info: ^private e-mail address^")
-	case 7: E_STR(13,23,55, nodes.Ct_remark,    "Contact info: ^private remark^")
+		E_PTH( 8,23,55, nodes.OutBox,       "Private extra ^outbound directory^ for this node", 0770); break;
+	case 3: E_STR( 9,23,16, nodes.Ct_phone,     "Contact info: ^private phone number^"); break;
+	case 4: E_STR(10,23,16, nodes.Ct_fax,       "Contact info: ^private fax number^"); break;
+	case 5: E_STR(11,23,20, nodes.Ct_cellphone, "Contact info: ^private cellphone/GSM^"); break;
+	case 6: E_STR(12,23,30, nodes.Ct_email,     "Contact info: ^private e-mail address^"); break;
+	case 7: E_STR(13,23,55, nodes.Ct_remark,    "Contact info: ^private remark^"); break;
 	case 8: nodes.RouteVia = e_a(nodes.RouteVia, 6); GeneralScreen(); break;
-	case 9: E_BOOL(15,23, nodes.Direct,     "Set the ^direct^ flag on netmail")
+	case 9: E_BOOL(15,23, nodes.Direct,     "Set the ^direct^ flag on netmail"); break;
 	case 10:nodes.Crash = edit_bool(16,23, nodes.Crash, (char *)"Set the ^crash^ flags for this node");
 		if (nodes.Crash)
 		    nodes.Hold = FALSE;
@@ -771,8 +770,8 @@ void GeneralEdit(void)
                 if (nodes.Hold)
                     nodes.Crash = FALSE;
                 break;
-	case 12:E_BOOL(18,23, nodes.PackNetmail, "^Pack mail^ for this node")
-	case 13:E_BOOL(16,63, nodes.Notify,  "Send ^notify^ messages to this node")
+	case 12:E_BOOL(18,23, nodes.PackNetmail, "^Pack mail^ for this node"); break;
+	case 13:E_BOOL(16,63, nodes.Notify,  "Send ^notify^ messages to this node"); break;
 	case 14:i = PickLanguage((char *)"7.1.14");
 		if (i != '\0')
 		    nodes.Language = i;
@@ -795,7 +794,7 @@ void GeneralEdit(void)
 		    errmsg((char *)"Node is connected to %d tic areas", count);
 		    break;
 		}
-		E_BOOL(18,63, nodes.Deleted, "Is this node ^Deleted^")
+		E_BOOL(18,63, nodes.Deleted, "Is this node ^Deleted^"); break;
 	}
     }
 }
@@ -870,31 +869,31 @@ void SessionEdit(void)
 
 	switch(select_menu(23)) {
 	case 0: return;
-	case 1: E_STR(  7,26,15, nodes.Spasswd,     "The ^Session password^ for this node")
-	case 2: E_STR(  8,26,40, nodes.dial,        "If needed, give a special modem ^dial command^ for this node")
-	case 3: E_STR(  9,26,20, nodes.phone[0],    "Enter ^phone number^ to override the nodelist")
-	case 4: E_STR( 10,26,20, nodes.phone[1],    "Enter ^phone number^ to override the nodelist")
-	case 5: E_STR( 11,26,54, nodes.Nl_flags,    "^Nodelist flags^ override")
-	case 6: E_STR( 12,26,40, nodes.Nl_hostname, "Node internet ^hostname/IP address^ override")
+	case 1: E_STR(  7,26,15, nodes.Spasswd,     "The ^Session password^ for this node"); break;
+	case 2: E_STR(  8,26,40, nodes.dial,        "If needed, give a special modem ^dial command^ for this node"); break;
+	case 3: E_STR(  9,26,20, nodes.phone[0],    "Enter ^phone number^ to override the nodelist"); break;
+	case 4: E_STR( 10,26,20, nodes.phone[1],    "Enter ^phone number^ to override the nodelist"); break;
+	case 5: E_STR( 11,26,54, nodes.Nl_flags,    "^Nodelist flags^ override"); break;
+	case 6: E_STR( 12,26,40, nodes.Nl_hostname, "Node internet ^hostname/IP address^ override"); break;
 	case 7: nodes.Session_out = edit_sessiontype(13,23, nodes.Session_out);
 		break;
 	case 8: nodes.Session_in =  edit_sessiontype(14,23, nodes.Session_in);
 		break;
-	case 9: E_BOOL(15,23,    nodes.NoEMSI,      "Disable ^EMSI handshake^ with this node")
-	case 10:E_BOOL(16,23,    nodes.NoWaZOO,     "Disable ^YooHoo/2U2 handshake^ (FTSC-0006) with this node")
-	case 11:E_BOOL(17,23,    nodes.NoFreqs,     "Disallow ^file requests^ from this node")
-	case 12:E_BOOL(18,23,    nodes.NoCall,      "Don't ^call^ this node")
-	case 13:E_BOOL(19,23,    nodes.FNC,         "Node needs ^DOS 8.3^ filenames")
-	case 14:E_BOOL(13,52,    nodes.DoNR,	    "Use ^NR-mode^ in outgoing binkp sessions")
-	case 15:E_BOOL(14,52,    nodes.DoCRC,       "Use ^Binkp CRC^ error checking")	
-	case 16:E_BOOL(15,52,    nodes.NoPLZ,       "Disable ^Binkp PLZ^ compression with this node")
-	case 17:E_BOOL(16,52,    nodes.NoGZ,        "Disable ^Binkp GZ and BZ2^ compression with this node")
-	case 18:E_BOOL(17,52,    nodes.NoZmodem,    "Disable ^Zmodem^ protocol with this node")
-	case 19:E_BOOL(18,52,    nodes.NoZedzap,    "Disable ^Zedzap^ protocol with this node")
-	case 20:E_BOOL(19,52,    nodes.NoHydra,     "Disable ^Hydra^ protocol with this node")
-	case 21:E_BOOL(17,76,    nodes.WrongEscape, "Use the ^old escape^ for long filenames (Argus, Irex)")
-	case 22:E_BOOL(18,76,    nodes.NoBinkp11,   "Disable ^binkp/1.1^ (fallback to binkp/1.0) mode for this node")
-	case 23:E_BOOL(19,76,    nodes.IgnHold,     "Ignore node ^Hold or Down^ nodelist status")
+	case 9: E_BOOL(15,23,    nodes.NoEMSI,      "Disable ^EMSI handshake^ with this node"); break;
+	case 10:E_BOOL(16,23,    nodes.NoWaZOO,     "Disable ^YooHoo/2U2 handshake^ (FTSC-0006) with this node"); break;
+	case 11:E_BOOL(17,23,    nodes.NoFreqs,     "Disallow ^file requests^ from this node"); break;
+	case 12:E_BOOL(18,23,    nodes.NoCall,      "Don't ^call^ this node"); break;
+	case 13:E_BOOL(19,23,    nodes.FNC,         "Node needs ^DOS 8.3^ filenames"); break;
+	case 14:E_BOOL(13,52,    nodes.DoNR,	    "Use ^NR-mode^ in outgoing binkp sessions"); break;
+	case 15:E_BOOL(14,52,    nodes.DoCRC,       "Use ^Binkp CRC^ error checking")	; break;
+	case 16:E_BOOL(15,52,    nodes.NoPLZ,       "Disable ^Binkp PLZ^ compression with this node"); break;
+	case 17:E_BOOL(16,52,    nodes.NoGZ,        "Disable ^Binkp GZ and BZ2^ compression with this node"); break;
+	case 18:E_BOOL(17,52,    nodes.NoZmodem,    "Disable ^Zmodem^ protocol with this node"); break;
+	case 19:E_BOOL(18,52,    nodes.NoZedzap,    "Disable ^Zedzap^ protocol with this node"); break;
+	case 20:E_BOOL(19,52,    nodes.NoHydra,     "Disable ^Hydra^ protocol with this node"); break;
+	case 21:E_BOOL(17,76,    nodes.WrongEscape, "Use the ^old escape^ for long filenames (Argus, Irex)"); break;
+	case 22:E_BOOL(18,76,    nodes.NoBinkp11,   "Disable ^binkp/1.1^ (fallback to binkp/1.0) mode for this node"); break;
+	case 23:E_BOOL(19,76,    nodes.IgnHold,     "Ignore node ^Hold or Down^ nodelist status"); break;
 	}
     }
 }
@@ -966,7 +965,7 @@ void DirectoryEdit(void)
 			    snprintf(nodes.Dir_out_path, 65, "%s/var/bbsftp/node%d_%d_%d/outbound", getenv("MBSE_ROOT"),
 				nodes.Aka[0].zone, nodes.Aka[0].net, nodes.Aka[0].node);
 			}
-			E_PTH( 8,23,56, nodes.Dir_out_path,    "^Outbound path^ for files and mail to this node", 0770)
+			E_PTH( 8,23,56, nodes.Dir_out_path,    "^Outbound path^ for files and mail to this node", 0770); break;
 		case 2: temp = edit_bool(9,23, nodes.Dir_out_chklck, (char *)"^Check^ outbound lockfile");
 			if (temp && !nodes.Dir_out_chklck && (strlen(nodes.Dir_out_clock) == 0)) {
 			    strcpy(nodes.Dir_out_clock, nodes.Dir_out_path);
@@ -979,8 +978,8 @@ void DirectoryEdit(void)
 			}
 			nodes.Dir_out_chklck = temp;
 			break;
-		case 3: E_BOOL( 9,62,   nodes.Dir_out_waitclr, "^Wait^ for lockfile to ^clear^")
-		case 4: E_STR(10,23,56, nodes.Dir_out_clock, "^Lockfile^ to check before adding files")
+		case 3: E_BOOL( 9,62,   nodes.Dir_out_waitclr, "^Wait^ for lockfile to ^clear^"); break;
+		case 4: E_STR(10,23,56, nodes.Dir_out_clock, "^Lockfile^ to check before adding files"); break;
 		case 5: temp = edit_bool(11,23, nodes.Dir_out_mklck, (char *)"^Create^ lockfile before adding files");
 			if (temp && !nodes.Dir_out_mklck && (strlen(nodes.Dir_out_mlock) == 0)) {
 			    strcpy(nodes.Dir_out_mlock, nodes.Dir_out_path);
@@ -993,7 +992,7 @@ void DirectoryEdit(void)
 			}
 			nodes.Dir_out_mklck = temp;
 			break;
-		case 6: E_STR(12,23,56, nodes.Dir_out_mlock, "^Lockfile^ to create while adding files")
+		case 6: E_STR(12,23,56, nodes.Dir_out_mlock, "^Lockfile^ to create while adding files"); break;
 		}
 	    }
 	} else {
@@ -1005,7 +1004,7 @@ void DirectoryEdit(void)
                             snprintf(nodes.Dir_in_path, 65, "%s/var/bbsftp/node%d_%d_%d/inbound", getenv("MBSE_ROOT"),
                                 nodes.Aka[0].zone, nodes.Aka[0].net, nodes.Aka[0].node);
                         }
-                        E_PTH(15,23,56, nodes.Dir_in_path,    "^Inbound path^ for files and mail from this node", 0770)
+                        E_PTH(15,23,56, nodes.Dir_in_path,    "^Inbound path^ for files and mail from this node", 0770); break;
                 case 8: temp = edit_bool(16,23, nodes.Dir_in_chklck, (char *)"^Check^ inbound lockfile");
                         if (temp && !nodes.Dir_in_chklck && (strlen(nodes.Dir_in_clock) == 0)) {
                             strcpy(nodes.Dir_in_clock, nodes.Dir_in_path);
@@ -1018,8 +1017,8 @@ void DirectoryEdit(void)
                         }
                         nodes.Dir_in_chklck = temp;
                         break;
-                case 9: E_BOOL(16,62,   nodes.Dir_in_waitclr, "^Wait^ for lockfile to ^clear^")
-		case 10:E_STR(17,23,56, nodes.Dir_in_clock, "^Lockfile^ to check before getting files")
+                case 9: E_BOOL(16,62,   nodes.Dir_in_waitclr, "^Wait^ for lockfile to ^clear^"); break;
+		case 10:E_STR(17,23,56, nodes.Dir_in_clock, "^Lockfile^ to check before getting files"); break;
 		case 11:temp = edit_bool(18,23, nodes.Dir_in_mklck, (char *)"^Create^ lockfile before getting files");
                         if (temp && !nodes.Dir_in_mklck && (strlen(nodes.Dir_in_mlock) == 0)) {
                             strcpy(nodes.Dir_in_mlock, nodes.Dir_in_path);
@@ -1032,7 +1031,7 @@ void DirectoryEdit(void)
                         }
                         nodes.Dir_in_mklck = temp;
                         break;
-		case 12:E_STR(19,23,56, nodes.Dir_in_mlock, "^Lockfile^ to create while getting files")
+		case 12:E_STR(19,23,56, nodes.Dir_in_mlock, "^Lockfile^ to create while getting files"); break;
 		}
 	    }
 	}
