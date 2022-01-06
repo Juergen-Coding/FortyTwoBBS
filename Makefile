@@ -6,8 +6,20 @@ include Makefile.global
 OTHER		= AUTHORS ChangeLog COPYING DEBUG CRON.sh FILE_ID.DIZ.in \
 		  INSTALL.in Makefile Makefile.global.in NEWS cpuflags \
                   README SETUP.sh TODO UPGRADE aclocal.m4 checkbasic \
-	          config.h.in configure configure.ac paths.h.in README.Gentoo\
-	      README.Ubuntu docs/mbse-1.odt docs/mbse-1.pdf
+	          config.h.in configure configure.ac paths.h.in README.Gentoo \
+	      README.Ubuntu docs/mbse-1.odt docs/mbse-1.pdf \
+	      docs/changelogs/ChangeLog_1998 docs/changelogs/ChangeLog_1999 \
+	      docs/changelogs/ChangeLog_2000 docs/changelogs/ChangeLog_2001 \
+	      docs/changelogs/ChangeLog_2002 docs/changelogs/ChangeLog_2003 \
+	      docs/changelogs/ChangeLog_2004 docs/changelogs/ChangeLog_2005 \
+	      docs/changelogs/ChangeLog_2006 docs/changelogs/ChangeLog_2007 \
+	      docs/changelogs/ChangeLog_2008 docs/changelogs/ChangeLog_2009 \
+	      docs/changelogs/ChangeLog_2010 docs/changelogs/ChangeLog_2011 \
+	      docs/changelogs/ChangeLog_2012 docs/changelogs/ChangeLog_2013 \
+	      docs/changelogs/ChangeLog_2014 docs/changelogs/ChangeLog_2015 \
+	      docs/changelogs/ChangeLog_2016 docs/changelogs/ChangeLog_2017 \
+	      docs/changelogs/ChangeLog_2018 docs/changelogs/ChangeLog_2019 \
+	      docs/changelogs/ChangeLog_2020 docs/changelogs/ChangeLog_2021
 TARFILE		= ${PACKAGE}-${VERSION}.tar.bz2
 
 ###############################################################################
