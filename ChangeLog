@@ -1,18 +1,10 @@
-v1.0.7.22	05-May-2021 - Andrew Leary
+v1.0.7.24	06-Jan-2022 - Michael Dillon/Andrew Leary
 
-		1.  Added a switch to mbsetup for force tossing of NetMail
-            packets only from the unprotected inbound.  The default is off.
-		    ARCmail packets in the unprotected inbound will still only be
-		    tossed if mbfido is called with the -unp switch.
+		1.  Addressed the vast majority of compile-time warnings.
 
-		2.  Updated copyright notices to 2021.
+		2.  Extensive refactoring to once again allow building on
+                    FreeBSD.
 
-v1.0.7.23	31-Oct-2021 - Andrew Leary
+		2.  Updated copyright notices to 2022.
 
-		1.  Door dropfiles will now list the actual or locked port
-		speed, instead of being forced to 19200 bps.
 
-		2.  Corrected the FidoNet address for FREQing the current
-		release of MBSEBBS.
-
-		3.  A few other minor spelling/grammer corrections.
