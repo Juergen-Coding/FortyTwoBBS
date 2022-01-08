@@ -217,10 +217,10 @@ int socket_shutdown(pid_t pid)
 	}
     }
 	
-    if (shutdown(sock, 1) == -1) {
-	perror(myname);
-	printf("Cannot shutdown socket\n");
-	return -1;
+    if (close(sock) == -1) {
+        perror(myname);
+        printf("Cannot close socket\n");
+        return -1;
     }
 
     sock = -1;
