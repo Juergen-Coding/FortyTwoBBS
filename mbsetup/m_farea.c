@@ -761,8 +761,8 @@ int PickFilearea(char *shdr)
 			if ((o - 20) >= 0)
 				o -= 20;
 
-                if (!atoi(pick)) /* 0 = passthru file area */
-                    return 0;
+        if (strncmp(pick, "0", 1) == 0) /* 0 = passthru file area */
+            return 0;
                 
 		if ((atoi(pick) >= 1) && (atoi(pick) <= records)) {
 			snprintf(temp, PATH_MAX, "%s/etc/fareas.data", getenv("MBSE_ROOT"));

@@ -142,8 +142,9 @@ int newuser(void)
 	badname = (BadNames(temp) || CheckName(temp) || ((strchr(temp, ' ') == NULL) && !CFG.iOneName));
 	if (badname) {
 	    /* That login name already exists, please choose another one. */
-	    language(LIGHTRED, BLACK, 386);
-	    Enter(1);
+		Syslog('+', "badname: User tried to use `%s` for name login", temp);
+		Enter(1);
+		poutCR(LIGHTRED, BLACK, (char *)Language(386));
 	}
 
     } while (badname);
