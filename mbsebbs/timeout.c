@@ -81,7 +81,7 @@ void die(int onsig)
 	} else {
 	    if (onsig <= NSIG) {
 		hanged_up = 1;
-		WriteError("Terminated on signal %d (%s)", onsig, SigName[onsig]);
+		WriteError("Terminated on signal %d (%s)", onsig, strsignal(onsig));
 	    } else {
 		WriteError("Terminated with error %d", onsig);
 	    }

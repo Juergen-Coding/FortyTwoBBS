@@ -631,7 +631,7 @@ void ExportEcho(sysconnect L, unsigned int MsgNum, fa_list **sbl)
 		     * At the end of the kludges, add the TID kludge.
 		     */
 		    kludges = FALSE;
-		    fprintf(qp, "\001TID: MBSE-FIDO %s (%s-%s)\r", VERSION, OsName(), OsCPU());
+		    fprintf(qp, "\001TID: MBSE-FIDO %s\r", versioned_sysinfo());
 		}
 		fprintf(qp, "%s", p);
 		if (strncmp(p, " * Origin:", 10) == 0)
@@ -724,7 +724,7 @@ void ExportNews(unsigned int MsgNum, fa_list **sbl)
 			 * After the first kludges, send RFC headers
 			 */
 			kludges = FALSE;
-			fprintf(qp, "\001TID: MBSE-FIDO %s (%s-%s)\n", VERSION, OsName(), OsCPU());
+			fprintf(qp, "\001TID: MBSE-FIDO %s\n", versioned_sysinfo());
 			fprintf(qp, "Subject: %s\n", Msg.Subject);
 			fprintf(qp, "\n");
 			fprintf(qp, "%s\n", p);
@@ -1130,7 +1130,7 @@ void ExportEmail(unsigned int MsgNum)
 		if (p[0] == '\001') {
 		    fprintf(qp, "%s\n", p+1);
 		    if (!strncmp(p, "\001PID:", 5)) {
-			fprintf(qp, "TID: MBSE-FIDO %s (%s-%s)\n", VERSION, OsName(), OsCPU());
+			fprintf(qp, "TID: MBSE-FIDO %s\n", versioned_sysinfo());
 		    }
 		} else {
 		    if (kludges) {

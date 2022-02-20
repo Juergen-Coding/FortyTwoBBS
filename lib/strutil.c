@@ -29,7 +29,7 @@
  *****************************************************************************/
 
 #include "mbselib.h"
-
+#include <stdbool.h>
 
 
 
@@ -353,46 +353,51 @@ char *GetDateDMY()
 	return StrDateDMY(time(NULL));
 }
 
+#define sizeof_member(type, member) sizeof(((type *)0)->member)
 
-char *OsName()
-{
-#ifdef __linux__
-    return (char *)"GNU/Linux";
-#elif __FreeBSD__
-    return (char *)"FreeBSD";
-#elif __NetBSD__
-    return (char *)"NetBSD";
-#elif __OpenBSD__
-    return (char *)"OpenBSD";
-#else
-#error "Unknown target OS"
-#endif
+/* On most POSIX-compliant environments this function will work; however,
+ * on IBM i-Series and IBM AIX environments, it may return a CPU serial number
+ * instead of an architecture name */
+const struct utsname *get_sysinfo(void) {
+  static struct utsname uts = { 0 };
+  static bool isSet = false;
+  if (false == isSet) {
+    const size_t machine_size = sizeof_member(struct utsname, machine);
+    const size_t sysname_size = sizeof_member(struct utsname, sysname);
+    if (0 != uname(&uts)) {
+      memccpy(uts.sysname, "Unknown", '\0', sysname_size);
+      memccpy(uts.machine, "Unknown", '\0', machine_size);
+    } else if (0 == strncmp(uts.sysname, "AIX", sysname_size)) {
+      memccpy(uts.machine, "ppc", '\0', machine_size);
+    } else if (0 == strncmp(uts.sysname, "OS400", sysname_size)) {
+      memccpy(uts.machine, "Unknown", '\0', machine_size);
+    }
+    isSet = true;
+  }
+
+  return &uts;
 }
 
-
-
-char *OsCPU()
-{
-#ifdef __i386__
-    return (char *)"i386";
-#elif __x86_64__
-    return (char *)"x86_64";
-#elif __PPC__
-    return (char *)"PPC";
-#elif __sparc__
-    return (char *)"Sparc";
-#elif __alpha__
-    return (char *)"Alpha";
-#elif __hppa__
-    return (char *)"HPPA";
-#elif __arm__
-    return (char *)"ARM";
-#else
-#error "Unknown CPU"
-#endif
+const char *sys_name(void) {
+  return (const char *)get_sysinfo()->sysname;
 }
 
+const char *cpu_arch(void) {
+  return (const char *)get_sysinfo()->machine;
+}
 
+const char *versioned_sysinfo(void) {
+	#define versioned_str_length (sizeof(VERSION) + sizeof_member(struct utsname, sysname) + sizeof_member(struct utsname, machine) + 8)
+	static char versioned_str[versioned_str_length] = { 0 };
+	static bool isSet = false;
+	if (false == isSet) {
+		snprintf(versioned_str, versioned_str_length, "%s (%s-%s)", VERSION, sys_name(), cpu_arch());
+		isSet = true;
+	}
+
+	return (const char *)versioned_str;
+	#undef versioned_str_length
+}
 
 /*
  * Return universal tearline, note if OS and CPU are
@@ -402,7 +407,7 @@ char *TearLine()
 {
     static char	    tearline[45];
 
-    snprintf(tearline, 45, "--- MBSE BBS v%s (%s-%s)", VERSION, OsName(), OsCPU());
+    snprintf(tearline, 45, "--- MBSE BBS v%.30s", versioned_sysinfo());
     return tearline;
 }
 

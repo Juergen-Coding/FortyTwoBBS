@@ -84,7 +84,7 @@ void die(int onsig)
 
     if (onsig) {
 	if (onsig <= NSIG)
-	    WriteError("Terminated on signal %d (%s)", onsig, SigName[onsig]);
+	    WriteError("Terminated on signal %d (%s)", onsig, strsignal(onsig));
 	else
 	    WriteError("Terminated with error %d", onsig);
     }
@@ -474,7 +474,7 @@ void Masterlist()
     MidLine((char *)"", fp, fu, TRUE);
     MidLine((char *)"", np, nu, TRUE);
 
-    snprintf(temp, 81, "Created by MBSE BBS v%s (%s-%s) at %s", VERSION, OsName(), OsCPU(), StrDateDMY(t_start));
+    snprintf(temp, 81, "Created by MBSE BBS v%s (%s-%s) at %s", VERSION, sys_name(), cpu_arch(), StrDateDMY(t_start));
     MidLine(temp, fp, fu, TRUE);
     MidLine(temp, np, nu, TRUE);
 

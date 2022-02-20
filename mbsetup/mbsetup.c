@@ -141,7 +141,7 @@ static void die(int onsig)
     ulockprogram((char *)"mbsetup");
     umask(oldmask);
     if (onsig && (onsig <= NSIG))
-	WriteError("MBSETUP finished on signal %s", SigName[onsig]);
+	WriteError("MBSETUP finished on signal %s", strsignal(onsig));
     else
 	Syslog(' ', "MBSETUP finished");
     ExitClient(onsig);
@@ -157,7 +157,7 @@ void soft_info(void)
 	temp = calloc(81, sizeof(char));
 	clr_index();
 	set_color(YELLOW, BLACK);
-	snprintf(temp, 81, "MBSE BBS (%s-%s)", OsName(), OsCPU());
+	snprintf(temp, 81, "MBSE BBS (%s-%s)", sys_name(), cpu_arch());
 	center_addstr( 6, temp);
 	set_color(WHITE, BLACK);
 	center_addstr( 8, (char *)COPYRIGHT);

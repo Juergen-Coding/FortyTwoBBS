@@ -2247,9 +2247,6 @@ extern struct _ftscprod {
 
 
 
-extern char SigName[32][16];
-
-
 extern int	ttyfd;				/* Filedescriptor for raw mode	*/
 extern struct	termios	tbufs, tbufsavs;	/* Structure for raw mode	*/
 
@@ -2428,8 +2425,9 @@ char		*GetLocalHMS(void);
 char		*StrDateMDY(time_t *);
 char		*StrDateDMY(time_t);
 char		*GetDateDMY(void);
-char		*OsName(void);
-char		*OsCPU(void);
+const char  *sys_name(void);
+const char  *cpu_arch(void);
+const char  *versioned_sysinfo(void);
 char		*TearLine(void);
 
 

@@ -27,6 +27,7 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
+#include <stdbool.h>
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
@@ -59,7 +60,7 @@ static void die(int onsig)
 	screen_stop(); 
     
     if (onsig && (onsig <= NSIG))
-	Syslog('?', "MBMON Finished on signal %s", SigName[onsig]);
+	Syslog('?', "MBMON Finished on signal %s", strsignal(onsig));
     else
 	Syslog(' ', "MBMON Normally finished");
     
@@ -405,43 +406,35 @@ void disk_stat(void)
 
 void soft_info(void)
 {
-	char	temp[81], *p;
+	char	temp[81], *p = NULL;
+	bool static_fallback = false;
+	char *static_fallback_str = (char *)"MBSE BBS (Unknown Unknown)";
 
 	clr_index();
 	set_color(YELLOW, BLACK);
 
-#if defined(__linux__)
-	p = xstrcpy((char *)"MBSE BBS (GNU/Linux");
-#elif defined(__FreeBSD__)
-	p = xstrcpy((char *)"MBSE BBS (FreeBSD");
-#elif defined(__NetBSD__)
-	p = xstrcpy((char *)"MBSE BBS (NetBSD");
-#elif defined(__OpenBSD__)
-	p = xstrcpy((char *)"MBSE BBS (OpenBSD");
-#else
-#error "Unknown OS"
-#endif
-
-#if defined(__i386__)
-	p = xstrcat(p, (char *)" i386)");
-#elif defined(__x86_64__)
-	p = xstrcat(p, (char *)" x86-64)");
-#elif defined(__PPC__) || defined(__ppc__)
-	p = xstrcat(p, (char *)" PPC)");
-#elif defined(__sparc__)
-	p = xstrcat(p, (char *)" Sparc)");
-#elif defined(__alpha__)
-	p = xstrcat(p, (char *)" Alpha)");
-#elif defined(__hppa__)
-	p = xstrcat(p, (char *)" HPPA)");
-#elif defined(__arm__)
-	p = xstrcat(p, (char *)" ARM)");
-#else
-#error "Unknown CPU"
-#endif
+	size_t bytes = snprintf(p, 0, "MBSE BBS (%s %s)", sys_name(), cpu_arch());
+	if (bytes < 0) {
+		p = strdup(static_fallback_str);
+		if (NULL == p) {
+			p = static_fallback_str;
+			static_fallback = true;
+		}
+	} else {
+		bytes++;
+		p = malloc(bytes * sizeof(char));
+		if (NULL == p) {
+			p = static_fallback_str;
+			static_fallback = true;
+		} else {
+			snprintf(p, bytes, "MBSE BBS (%s %s)", sys_name(), cpu_arch());
+		}
+	}
 
 	center_addstr( 6, p);
-	free(p);
+	if (false == static_fallback) {
+		free(p);
+	}
 	set_color(WHITE, BLACK);
 	center_addstr( 8, (char *)COPYRIGHT);
 	set_color(YELLOW, BLACK);

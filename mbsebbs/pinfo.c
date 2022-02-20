@@ -92,7 +92,7 @@ void cr(void)
     PUTSTR(chartran(pstr));
 
     ls();
-    snprintf(temp, 80, "MBSE Bulletin Board System %s (%s-%s)", VERSION, OsName(), OsCPU());
+    snprintf(temp, 80, "MBSE Bulletin Board System %s", versioned_sysinfo());
     strncat(pstr, pout_str(YELLOW, BLACK, padleft(temp, 76, ' ')), 255);
     rs();
     PUTSTR(chartran(pstr));

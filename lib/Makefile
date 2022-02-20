@@ -5,14 +5,14 @@
 include ../Makefile.global
 
 
-COMMON_SRCS	= clcomm.c client.c crc.c semafore.c signame.c charset.c remask.c \
+COMMON_SRCS	= clcomm.c client.c crc.c semafore.c charset.c remask.c \
 		  attach.c falists.c hdr.c parsedate.c rfcmsg.c unpacker.c rearc.c \
 		  batchrd.c ftn.c pktname.c mangle.c sectest.c proglock.c magic.c \
 		  dostran.c ftnmsg.c mbfile.c nodelock.c rawio.c strcasestr.c \
 		  execute.c expipe.c getheader.c noderecord.c rfcaddr.c strutil.c \
 		  faddr.c gmtoffset.c packet.c rfcdate.c term.c endian.c timers.c \
 		  pidinfo.c tmpwork.c virscan.c mbse.c mbsedb.c mbselib.c paths.c
-COMMON_OBJS	= clcomm.o client.o crc.o semafore.o signame.o charset.o remask.o \
+COMMON_OBJS	= clcomm.o client.o crc.o semafore.o charset.o remask.o \
 		  ftscprod.o attach.o falists.o hdr.o parsedate.o rfcmsg.o unpacker.o \
 		  batchrd.o ftn.o pktname.o mangle.o sectest.o proglock.o rearc.o \
 		  dostran.o ftnmsg.o mbfile.o nodelock.o rawio.o strcasestr.o magic.o \
@@ -120,7 +120,6 @@ clcomm.o: ../config.h mbselib.h
 client.o: ../config.h mbselib.h
 crc.o: ../config.h mbselib.h
 semafore.o: ../config.h mbselib.h
-signame.o: ../config.h mbselib.h
 charset.o: ../config.h mbselib.h
 remask.o: ../config.h mbselib.h
 attach.o: ../config.h mbselib.h

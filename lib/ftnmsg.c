@@ -131,7 +131,7 @@ FILE *ftnmsghdr(ftnmsg *fmsg, FILE *pkt, faddr *routeaddr, char flavor, char *Pi
 			fmsg->reply_n);
 
 	Now = time(NULL) - (gmt_offset((time_t)0) * 60);
-	fprintf(pkt, "\001PID: %s %s (%s-%s)\r", Pid, VERSION, OsName(), OsCPU());
+	fprintf(pkt, "\001PID: %s %s (%s-%s)\r", Pid, VERSION, sys_name(), cpu_arch());
 	fprintf(pkt, "\001TZUTC: %s\r", gmtoffset(Now));
 	if (ferror(pkt)) 
 		return NULL;

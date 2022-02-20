@@ -325,7 +325,7 @@ FILE *OpenMacro(const char *filename, int Language, int htmlmode)
 	}
 	rewind(fi);
 
-	snprintf(temp, PATH_MAX -1, "%s-%s", OsName(), OsCPU());
+	snprintf(temp, PATH_MAX -1, "%s-%s", sys_name(), cpu_arch());
 	if (CFG.aka[0].point)
 	    snprintf(aka, 80, "%d:%d/%d.%d@%s", CFG.aka[0].zone, CFG.aka[0].net, CFG.aka[0].node, CFG.aka[0].point, CFG.aka[0].domain);
 	else

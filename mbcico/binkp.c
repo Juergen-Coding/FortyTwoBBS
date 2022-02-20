@@ -2060,9 +2060,9 @@ int binkp_banner(int originate)
 	rc = binkp_send_command(MM_NUL,"TIME %s", rfcdate(t));
     if (!rc) {
 	if (nodes.NoBinkp11 || bp.buggyIrex)
-	    rc = binkp_send_command(MM_NUL,"VER mbcico/%s/%s-%s %s/%s", VERSION, OsName(), OsCPU(), PRTCLNAME, PRTCLOLD);
+	    rc = binkp_send_command(MM_NUL,"VER mbcico/%s/%s-%s %s/%s", VERSION, sys_name(), cpu_arch(), PRTCLNAME, PRTCLOLD);
 	else
-	    rc = binkp_send_command(MM_NUL,"VER mbcico/%s/%s-%s %s/%s", VERSION, OsName(), OsCPU(), PRTCLNAME, PRTCLVER);
+	    rc = binkp_send_command(MM_NUL,"VER mbcico/%s/%s-%s %s/%s", VERSION, sys_name(), cpu_arch(), PRTCLNAME, PRTCLVER);
     }
     if (strlen(CFG.IP_Phone) && !rc)
 	rc = binkp_send_command(MM_NUL,"PHN %s", CFG.IP_Phone);

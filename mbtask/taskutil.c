@@ -28,7 +28,6 @@
  *****************************************************************************/
 
 #include "../lib/mbselib.h"
-#include "signame.h"
 #include "scanout.h"
 #include "taskutil.h"
 

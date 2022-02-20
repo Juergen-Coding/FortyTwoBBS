@@ -241,7 +241,7 @@ void Add_Headkludges(faddr *dest, int IsReply)
     } else
 	Msg.ReplyCRC = 0xffffffff;
 
-    snprintf(temp, PATH_MAX, "\001PID: MBSE-BBS %s (%s-%s)", VERSION, OsName(), OsCPU());
+    snprintf(temp, PATH_MAX, "\001PID: MBSE-BBS %s", versioned_sysinfo());
     MsgText_Add2(temp);
     tt = time(NULL);
     snprintf(temp, PATH_MAX, "\001TZUTC: %s", gmtoffset(tt));

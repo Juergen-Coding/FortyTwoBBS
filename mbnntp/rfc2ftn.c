@@ -445,12 +445,12 @@ int rfc2ftn(FILE *fp)
 		fprintf(ofp, "\1PID:");
 		kludgewrite(p, ofp);
 	    } else {
-		fprintf(ofp, "\001PID: MBSE-NNTPD %s (%s-%s)\n", VERSION, OsName(), OsCPU());
+		fprintf(ofp, "\001PID: MBSE-NNTPD %s\n", versioned_sysinfo());
 	    }
 	}
 
 	if (!(hdr((char *)"X-FTN-Tearline", msg)) && !(hdr((char *)"X-FTN-TID", msg))) {
-	    snprintf(temp, 4096, " MBSE-NNTPD %s (%s-%s)", VERSION, OsName(), OsCPU());
+	    snprintf(temp, 4096, " MBSE-NNTPD %s", versioned_sysinfo());
 	    hdrsize += 4 + strlen(temp);
 	    fprintf(ofp, "\1TID:");
 	    kludgewrite(temp, ofp);

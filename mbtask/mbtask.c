@@ -29,7 +29,6 @@
 
 #include "../lib/mbselib.h"
 #include "../paths.h"
-#include "signame.h"
 #include "taskstat.h"
 #include "taskutil.h"
 #include "taskregs.h"
@@ -609,9 +608,9 @@ int checktasks(int onsig)
 
 	    if (onsig) {
 		if (kill(task[i].pid, onsig) == 0)
-		    Syslog('+', "%s to %s (pid %d) succeeded", SigName[onsig], task[i].name, task[i].pid);
+		    Syslog('+', "%s to %s (pid %d) succeeded", strsignal(onsig), task[i].name, task[i].pid);
 		else
-		    Syslog('+', "%s to %s (pid %d) failed", SigName[onsig], task[i].name, task[i].pid);
+		    Syslog('+', "%s to %s (pid %d) failed", strsignal(onsig), task[i].name, task[i].pid);
 	    }
 
 	    task[i].rc = wait4(task[i].pid, &status, WNOHANG | WUNTRACED, NULL);
@@ -671,7 +670,7 @@ int checktasks(int onsig)
 			    Syslog('+', "Task %s terminated", task[i].name);
 			} else if (WIFSTOPPED(task[i].status)) {
 			    rc = WSTOPSIG(task[i].status);
-			    Syslog('+', "Task %s stopped on signal %s (%d)", task[i].name, SigName[rc], rc);
+			    Syslog('+', "Task %s stopped on signal %s (%d)", task[i].name, strsignal(rc), rc);
 			}
 			break;
 	    }
@@ -705,7 +704,7 @@ int checktasks(int onsig)
  */
 void start_shutdown(int onsig)
 {
-    Syslog('+', "Trigger shutdown on signal %s", SigName[onsig]);
+    Syslog('+', "Trigger shutdown on signal %s", strsignal(onsig));
     signal(onsig, SIG_IGN);
     G_Shutdown = TRUE;
 }
@@ -724,9 +723,9 @@ void die(int onsig)
 
     if (onsig < NSIG) {
 	if ((onsig == SIGTERM) || (nodaemon && (onsig == SIGINT))) {
-	    Syslog('+', "Starting normal shutdown (%s)", SigName[onsig]);
+	    Syslog('+', "Starting normal shutdown (%s)", strsignal(onsig));
 	} else {
-	    Syslog('+', "Abnormal shutdown on signal %s", SigName[onsig]);
+	    Syslog('+', "Abnormal shutdown on signal %s", strsignal(onsig));
 	}
     } else {
 	Syslog('+', "Shutdown on error %d", onsig);

@@ -89,7 +89,7 @@ void Msg_Pid(int charset)
 	time_t	tt;
 
 	temp = calloc(81, sizeof(char));
-	snprintf(temp, 81, "\001PID: MBSE-FIDO %s (%s-%s)", VERSION, OsName(), OsCPU());
+	snprintf(temp, 81, "\001PID: MBSE-FIDO %s", versioned_sysinfo());
 	MsgText_Add2(temp);
 	if (charset != FTNC_NONE) {
 	    snprintf(temp, 81, "\001CHRS: %s", getftnchrs(charset));

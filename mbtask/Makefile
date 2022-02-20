@@ -5,13 +5,13 @@
 include ../Makefile.global
 
 SRCS		= callstat.c scanout.c taskcomm.c taskinfo.c taskstat.c taskibc.c \
-		  mbtask.c outstat.c signame.c taskdisk.c taskregs.c taskutil.c \
+		  mbtask.c outstat.c taskdisk.c taskregs.c taskutil.c \
 		  ports.c calllist.c ping.c taskchat.c crc.c pidinfo.c
-HDRS		= callstat.h mbtask.h outstat.h signame.h taskdisk.h taskregs.h  taskutil.h \
+HDRS		= callstat.h mbtask.h outstat.h taskdisk.h taskregs.h  taskutil.h \
 		  scanout.h taskcomm.h taskinfo.h taskstat.h taskibc.h \
 		  ports.h calllist.h ping.h taskchat.h
 OBJS		= callstat.o scanout.o taskcomm.o taskinfo.o taskstat.o taskibc.o \
-		  mbtask.o outstat.o signame.o taskdisk.o taskregs.o taskutil.o \
+		  mbtask.o outstat.o taskdisk.o taskregs.o taskutil.o \
 		  ports.o calllist.o ping.o taskchat.o crc.o pidinfo.o
 SLIBS		= ../lib/libnodelist.a ../lib/libmbse.a
 OTHER		= Makefile issue issue.netbsd
@@ -74,12 +74,11 @@ taskcomm.o: ../config.h ../lib/mbselib.h taskstat.h taskregs.h taskdisk.h taskin
 taskinfo.o: ../config.h ../lib/mbselib.h taskinfo.h
 taskstat.o: ../config.h ../lib/mbselib.h taskstat.h callstat.h outstat.h taskibc.h taskutil.h
 taskibc.o: ../config.h ../lib/mbselib.h taskstat.h taskutil.h taskchat.h taskibc.h
-mbtask.o: ../config.h ../lib/mbselib.h ../paths.h signame.h taskstat.h taskutil.h taskregs.h taskcomm.h taskdisk.h taskibc.h callstat.h outstat.h ../lib/nodelist.h ports.h calllist.h ping.h taskchat.h mbtask.h
+mbtask.o: ../config.h ../lib/mbselib.h ../paths.h taskstat.h taskutil.h taskregs.h taskcomm.h taskdisk.h taskibc.h callstat.h outstat.h ../lib/nodelist.h ports.h calllist.h ping.h taskchat.h mbtask.h
 outstat.o: ../config.h ../lib/mbselib.h taskutil.h taskstat.h scanout.h ../lib/nodelist.h callstat.h ports.h outstat.h
-signame.o: ../config.h signame.h
 taskdisk.o: ../config.h ../lib/mbselib.h taskdisk.h taskutil.h
 taskregs.o: ../config.h ../lib/mbselib.h taskstat.h taskregs.h taskchat.h taskutil.h
-taskutil.o: ../config.h ../lib/mbselib.h signame.h scanout.h taskutil.h
+taskutil.o: ../config.h ../lib/mbselib.h scanout.h taskutil.h
 ports.o: ../config.h ../lib/mbselib.h taskutil.h ../lib/nodelist.h ports.h
 calllist.o: ../config.h ../lib/mbselib.h taskstat.h taskutil.h callstat.h outstat.h mbtask.h calllist.h
 ping.o: ../config.h ../lib/mbselib.h taskstat.h taskutil.h ping.h

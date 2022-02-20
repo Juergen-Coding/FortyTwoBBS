@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 	Fast_Bye(MBERR_OK);
     }
 
-    snprintf(temp, 81, "MBSE BBS v%s (Release: %s) on %s/%s", VERSION, ReleaseDate, OsName(), OsCPU());
+    snprintf(temp, 81, "MBSE BBS v%s (Release: %s) on %s/%s", VERSION, ReleaseDate, sys_name(), cpu_arch());
     poutCR(YELLOW, BLACK, temp);
     pout(WHITE, BLACK, (char *)COPYRIGHT);
     Enter(2);
