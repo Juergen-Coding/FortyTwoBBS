@@ -505,7 +505,7 @@ void user(void)
 	 * Displays file if it exists DD-MM.A??
 	 */
     time_t t = time(NULL);
-    strftime(temp, 5, "%d-%m", localtime(&t));
+    strftime(temp, 6, "%d-%m", localtime(&t));
 	DisplayFile(temp);
 	
 	/*
