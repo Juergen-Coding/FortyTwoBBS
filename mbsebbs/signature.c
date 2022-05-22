@@ -138,7 +138,6 @@ int loadsignature(void)
 	i++;
     }
     fclose(fp);
-    free(temp);
 
     toprow();
     for (i = 0; i < MAXSIGLINES; i++) {
@@ -146,6 +145,7 @@ int loadsignature(void)
 	pout(LIGHTRED, BLACK, temp);
 	poutCR(CFG.MoreF, CFG.MoreB, sLiNE[i]);
     }
+    free(temp);
     botrow();
 
     return TRUE;

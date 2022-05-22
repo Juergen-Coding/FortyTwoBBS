@@ -463,35 +463,55 @@ int EditProtRec(int Area)
 		    IsDoing("Browsing Menu");
 		    return 0;
 	    case 1: E_UPS(  7,21,1, PROT.ProtKey,   "The ^Key^ to select this protocol"); break;
-	    case 2: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_STR(  8,21,20,PROT.ProtName,  "The ^name^ of this protocol"); break;
-	    case 3: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_STR(  9,21,50,PROT.ProtUp,    "The ^Upload^ path, binary and parameters"); break;
-	    case 4: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_STR( 10,21,50,PROT.ProtDn,    "The ^Download^ path, binary and parameters"); break;
+	    case 2: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_STR(  8,21,20,PROT.ProtName,  "The ^name^ of this protocol");
+			}
+			break;
+	    case 3: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_STR(  9,21,50,PROT.ProtUp,    "The ^Upload^ path, binary and parameters"); }
+			break;
+	    case 4: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_STR( 10,21,50,PROT.ProtDn,    "The ^Download^ path, binary and parameters"); 
+			}
+			break;
 	    case 5: E_BOOL(11,21,   PROT.Available, "Is this protocol ^available^"); break;
-	    case 6: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_BOOL(12,21,   PROT.Internal,  "Is this a ^internal^ transfer protocol"); break;
-	    case 7: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_STR( 13,21,30,PROT.Advice,    "A small ^advice^ to the user, eg \"Press Ctrl-X to abort\""); break;
-	    case 8: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_INT( 14,21,   PROT.Efficiency,"The ^efficiency^ in % of this protocol"); break;
-	    case 9: if (PROT.Internal)
-			errmsg((char *)"Editing not allowd with internal protocol");
-		    else
-			E_BOOL(15,21,   PROT.Deleted,   "Is this protocol ^Deleted^"); break;
+	    case 6: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_BOOL(12,21,   PROT.Internal,  "Is this a ^internal^ transfer protocol"); 
+			}
+			break;
+	    case 7: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_STR( 13,21,30,PROT.Advice,    "A small ^advice^ to the user, eg \"Press Ctrl-X to abort\""); 
+			}
+			break;
+	    case 8: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_INT( 14,21,   PROT.Efficiency,"The ^efficiency^ in % of this protocol"); 
+			}
+			break;
+	    case 9: 
+			if (PROT.Internal) {
+				errmsg((char *)"Editing not allowd with internal protocol");
+			} else {
+				E_BOOL(15,21,   PROT.Deleted,   "Is this protocol ^Deleted^"); 
+			}
+			break;
 	    case 10:E_SEC( 16,21,   PROT.Level,     "8.5.11  PROTOCOL SECURITY LEVEL"); s_protrec(); break;
 	}
     }

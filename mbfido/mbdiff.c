@@ -217,8 +217,8 @@ int main(int argc, char **argv)
 
     if ((dp = opendir(wrk)) == 0) {
 	show_log = TRUE;
-	free(wrk);
 	WriteError("$Error opening directory %s", wrk);
+	free(wrk);
 	die(MBERR_INIT_ERROR);
     }
 
