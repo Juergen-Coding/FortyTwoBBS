@@ -153,13 +153,23 @@ char *get_routetype(int val)
 }
 
 
+static int calc_match_weight(const fidoaddr *data) {
+	if (NULL == data) {
+		return 0;
+	}
+	return ((data->zone  == 65535 ? 1 : 16) +
+	        (data->net   == 65535 ? 1 :  8) + 
+			(data->node  == 65535 ? 1 :  4) + 
+			(data->point == 65535 ? 1 :  2));
+}
+
 
 int GetTableRoute(char *ftn, fidoaddr *res)
 {
     char	*temp;
     faddr	*dest;
     fidoaddr	mask;
-    int		match, last;
+    int		last = -1;
     int		ptr;
     FILE	*fil;
 
@@ -184,31 +194,24 @@ int GetTableRoute(char *ftn, fidoaddr *res)
     }
     Syslog('r', "Get table route for: %s", ascfnode(dest, 0xff));
 
-    match = last = METRIC_MAX;
     ptr = ftell(fil);
 
     while (fread(&route, routehdr.recsize, 1, fil) == 1) {
         if (route.Active) {
             ParseMask(route.mask, &mask);
             Syslog('r', "Table %s (%s) => %s", route.mask, get_routetype(route.routetype), aka2str(route.dest));
-            match = METRIC_MAX;
             if (mask.zone) {
-                if ((mask.zone == 65535) || (mask.zone == dest->zone)) {
-                    match = METRIC_ZONE;
-                    if ((mask.net == 65535) || (mask.net == dest->net)) {
-                        match = METRIC_NET;
-                        if ((mask.node == 65535) || (mask.node == dest->node)) {
-                            match = METRIC_NODE;
-                            if ((mask.point == 65535) || (mask.point == dest->point))
-                                match = METRIC_POINT;
-                        }
-                    }
-                }
-                if (match < last) {
-                    Syslog('r', "Best util now");
-                    last = match;
-                    ptr = ftell(fil) - routehdr.recsize;
-                }
+				if (((mask.zone  == 65535) || (mask.zone  == dest->zone)) &&
+				    ((mask.net   == 65535) || (mask.net   == dest->net))  &&
+					((mask.node  == 65535) || (mask.node  == dest->node)) &&
+					((mask.point == 65535) || (mask.point == dest->point))) {
+						int current = 0;
+						if ((current = calc_match_weight(&mask)) > last) {
+							Syslog('r', "Best until now");
+							last = current;
+							ptr = ftell(fil) - routehdr.recsize;
+						}
+				}
             } else {
                 Syslog('!', "Warning, internal error in routing table");
             }
@@ -216,7 +219,7 @@ int GetTableRoute(char *ftn, fidoaddr *res)
     }
     tidy_faddr(dest);
 
-    if (last < METRIC_MAX) {
+    if (last > -1) {
         fseek(fil, ptr, SEEK_SET);
         fread(&route, routehdr.recsize, 1, fil);
         fclose(fil);
