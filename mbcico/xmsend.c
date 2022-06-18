@@ -206,7 +206,7 @@ SM_STATE(sendblk0)
 		for (i=23;(i>8) && (xmblk.data[i] == '\0');i--)
 			xmblk.data[i]=' ';
 	memcpy(xmblk.data+25, "mbcico ", 7);
-	memcpy(xmblk.data+32, VERSION, 8);
+	memcpy(xmblk.data+32, VERSION, sizeof(VERSION) < 8 ? sizeof(VERSION) : 8);
 	xmblk.data[40]=((session_flags & FTSC_XMODEM_SLO) != 0);
 	xmblk.data[41]=((session_flags & FTSC_XMODEM_RES) != 0);
 	xmblk.data[42]=((session_flags & FTSC_XMODEM_XOF) != 0);
