@@ -84,6 +84,10 @@ int SearchUser(char *Name)
 	}
 	fread(&usrhdr, sizeof(usrhdr), 1, fil);
 
+	if (usrhdr.recsize > sizeof(usr) || usrhdr.recsize < 0) {
+		return FALSE; // malformed header
+	}
+
 	while (fread(&usr, usrhdr.recsize, 1, fil) == 1) {
 		if (TestUser(Name)) {
 			fclose(fil);
