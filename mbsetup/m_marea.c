@@ -27,6 +27,7 @@
  * Software Foundation, 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  *****************************************************************************/
 
+#include <stdbool.h>
 #include "../lib/mbselib.h"
 #include "../lib/msg.h"
 #include "../lib/users.h"
@@ -1075,6 +1076,97 @@ void MsgGlobal(void)
 
 
 
+typedef struct _rc_marea_has_dup {
+	bool has_duplicate;
+	bool has_error;
+	const char *error_msg;
+} rcareadupe;
+
+// returns false if no duplicates found or true on any
+// error conditions as well as duplicates (api will change)
+static rcareadupe marea_has_duplicates(struct msgareas *msgarea) {
+	char *buffer = NULL;
+	int bytes = snprintf(NULL, 0, "%s/etc/mareas.temp", getenv("MBSE_ROOT"));
+	FILE *fin = NULL;
+	rcareadupe retval = { false, false, "" };
+	
+	do {
+		if (bytes < 0) {
+			retval.error_msg = "Internal error creating a variable.";
+			retval.has_error = true;
+			break;
+		}
+
+		buffer = (char *)calloc(bytes, sizeof(char));
+		if (NULL == buffer) {
+			retval.error_msg = "Unable to allocate memory.";
+			retval.has_error = true; // unable to allocate memory
+			break;
+		}
+		int bytes_written = snprintf(buffer, bytes, "%s/etc/mareas.temp", getenv("MBSE_ROOT"));
+		if (bytes_written != bytes) {
+			// something changed??
+			retval.error_msg = "An internal value changed unexpectedly";
+			retval.has_error = true; // MBSE_ROOT may have changed
+			break;
+		}
+
+		fin = fopen(buffer, "r");
+		if (NULL == fin) {
+			retval.error_msg = "Unable to open the mareas file";
+			retval.has_error = true; // file error
+			break;
+		}
+
+		struct msgareashdr mheader;
+		struct msgareas entry;
+		sysconnect syscon;
+
+		if (1 == fread(&mheader, sizeof(mheader), 1, fin)) {
+			if (mheader.recsize != sizeof(struct msgareas) || mheader.hdrsize != sizeof(mheader) || mheader.syssize != (CFG.toss_systems * sizeof(syscon))) {
+				retval.error_msg = "Invalid header sizes";
+				retval.has_error = true;
+				break;
+			}
+		} else {
+			retval.error_msg = "Unable to read message header in temporary file";
+			retval.has_error = true;
+			break;
+		}
+
+		unsigned int crc = upd_crc32((char *)msgarea, 0xffffffff, sizeof(struct msgareas));
+
+		while (1 == fread(&entry, sizeof(struct msgareas), 1, fin)) {
+			unsigned int entry_crc = upd_crc32((char *)&entry, 0xffffffff, sizeof(struct msgareas));
+			if (entry_crc == crc || 0 == strncmp(msgarea->Name, entry.Name, sizeof(msgarea->Name))) {
+				// same record, skip
+				continue;
+			}
+			if ((0 == strncmp(msgarea->Base, entry.Base, sizeof(msgarea->Base))) ||
+			    (0 == strncmp(msgarea->Tag,  entry.Tag,  sizeof(msgarea->Tag)))) {
+					// duplicate entry
+					retval.has_duplicate = true;
+					break;
+			}
+			fseek(fin, mheader.syssize, SEEK_CUR); // skip system records
+		}
+
+		if (ferror(fin)) {
+			retval.error_msg = "Error reading the temporary mareas file";
+			retval.has_error = true;
+			break;
+		}
+
+	} while (1);
+
+
+	if (fin) { fclose(fin); }
+	if (buffer) { free(buffer); }
+
+	return retval;
+}
+
+
 /*
  * Edit one record, return -1 if record doesn't exist, 0 if ok.
  */
@@ -1155,6 +1247,15 @@ int EditMsgRec(int Area)
 			if (msgs.Active && !strlen(msgs.Base)) {
 			    errmsg((char *)"JAM message base is not set");
 			    break;
+			} else if (msgs.Active) {
+				  rcareadupe rcd = marea_has_duplicates(&msgs);
+				  if (rcd.has_error) {
+					errmsg((char *)rcd.error_msg);
+					break;
+				  } else if (rcd.has_duplicate) {
+                    errmsg((char *)"The message area has a duplicate tag or message base.");
+  				    break;
+				  }
 			} else if (msgs.Active && !strlen(msgs.Group) && 
 				(msgs.Type == ECHOMAIL || msgs.Type == NEWS || msgs.Type == LIST)) {
 			    errmsg((char *)"Message area has no group assigned");
