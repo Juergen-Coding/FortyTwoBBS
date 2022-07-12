@@ -1224,7 +1224,7 @@ node_list *searchSysop( char *SysopName )
 
        while (fread(&nluEntry, sizeof(nluEntry), 1, fp) == 1) {
 
-               if ( strcmp( fixedSysopName, nluEntry.user ) == 0 ){
+               if ( strncasecmp( fixedSysopName, nluEntry.user, 36 ) == 0 ){
 
                        addr.zone = nluEntry.zone;
                        addr.net = nluEntry.net;
