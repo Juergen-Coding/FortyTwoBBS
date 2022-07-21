@@ -1086,7 +1086,7 @@ typedef struct _rc_marea_has_dup {
 // error conditions as well as duplicates (api will change)
 static rcareadupe marea_has_duplicates(struct msgareas *msgarea) {
 	char *buffer = NULL;
-	int bytes = snprintf(NULL, 0, "%s/etc/mareas.temp", getenv("MBSE_ROOT"));
+	int bytes = snprintf(NULL, 0, "%s/etc/mareas.temp", getenv("MBSE_ROOT")) + 5;
 	FILE *fin = NULL;
 	rcareadupe retval = { false, false, "" };
 	
@@ -1104,7 +1104,7 @@ static rcareadupe marea_has_duplicates(struct msgareas *msgarea) {
 			break;
 		}
 		int bytes_written = snprintf(buffer, bytes, "%s/etc/mareas.temp", getenv("MBSE_ROOT"));
-		if (bytes_written != bytes) {
+		if (bytes_written > bytes || bytes_written < 0) {
 			// something changed??
 			retval.error_msg = "An internal value changed unexpectedly";
 			retval.has_error = true; // MBSE_ROOT may have changed
@@ -1247,7 +1247,7 @@ int EditMsgRec(int Area)
 			if (msgs.Active && !strlen(msgs.Base)) {
 			    errmsg((char *)"JAM message base is not set");
 			    break;
-			} else if (msgs.Active) {
+			} /*else if (msgs.Active) {
 				  rcareadupe rcd = marea_has_duplicates(&msgs);
 				  if (rcd.has_error) {
 					errmsg((char *)rcd.error_msg);
@@ -1255,8 +1255,8 @@ int EditMsgRec(int Area)
 				  } else if (rcd.has_duplicate) {
                     errmsg((char *)"The message area has a duplicate tag or message base.");
   				    break;
-				  }
-			} else if (msgs.Active && !strlen(msgs.Group) && 
+				  } 
+			}*/ else if (msgs.Active && !strlen(msgs.Group) && 
 				(msgs.Type == ECHOMAIL || msgs.Type == NEWS || msgs.Type == LIST)) {
 			    errmsg((char *)"Message area has no group assigned");
 			    break;
