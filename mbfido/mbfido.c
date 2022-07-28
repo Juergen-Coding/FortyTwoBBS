@@ -723,6 +723,35 @@ int TossMail(void)
     int		    files = 0, files_ok = 0, rc = 0, maxrc = 0;
     fd_list	    *fdl = NULL;
 
+    if (CFG.PKTunp) {
+        /* Auto process .PKTs in the unprotected inbound */
+        if (!do_unprot) {
+            /* Not using the -unp switch, so we change the flag to do the
+               unprotected inbound anyway. */
+            do_unprot = TRUE;
+            inbound = xstrcpy(CFG.inbound);
+            Syslog('+', "Pass: toss netmail (%s)", inbound);
+            if (chdir(inbound) == -1) {
+                WriteError("$Can't chdir(%s)", inbound);
+                die(MBERR_INIT_ERROR);
+	    }
+	    maxrc = rc = TossPkts();
+            (void)chdir(inbound);
+            do_unprot = FALSE;  /* Change the flag back so the next passes
+                                   do the secure inbound. */
+        } else {
+              inbound = xstrcpy(CFG.inbound);
+              Syslog('+', "Pass: toss netmail (%s)", inbound);
+              if (chdir(inbound) == -1) {
+                  WriteError("$Can't chdir(%s)", inbound);
+                  die(MBERR_INIT_ERROR);
+	      }
+	      maxrc = rc = TossPkts();
+	      (void)chdir(inbound);
+	}
+    }
+   
+
     if (do_unprot)
 	inbound = xstrcpy(CFG.inbound);
     else

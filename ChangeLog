@@ -1,3 +1,30 @@
+v1.0.8.2	28-Jul-2022 - Andrew Leary/Michael Dillon
+
+		1.  Revert message area duplicate checking for further testing.
+
+		2.  Fix bug in the Auto processing of NetMail packets from the
+                    unprotected inbound.  This feature is still experimental &
+                    not recommended for use on a production system.
+
+v1.0.8.1	21-Jul-2022 - Andrew Leary/Michael Dillon
+
+		1.  Fix bug that was leaving .PKTs unprocessed in the inbound.
+
+		2.  Compare names case insensitively when searching the
+		    nodelist.
+
+		3.  Check message areas for duplicate entries before saving.
+
+		4.  Fix bug in routing that could result in messages being sent to
+		    the wrong node.
+
+		5.  Cleaned up several buffer overflow, use after free, and 
+		    other similar bugs.
+
+v1.0.8		05-Feb-2022 - Andrew Leary
+		
+		1.  Release Candidate for the next public release of MBSE BBS.
+
 v1.0.7.24	06-Jan-2022 - Michael Dillon/Andrew Leary
 
 		1.  Addressed the vast majority of compile-time warnings.
@@ -5,6 +32,6 @@ v1.0.7.24	06-Jan-2022 - Michael Dillon/Andrew Leary
 		2.  Extensive refactoring to once again allow building on
                     FreeBSD.
 
-		2.  Updated copyright notices to 2022.
+		3.  Updated copyright notices to 2022.
 
 
