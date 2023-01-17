@@ -1157,7 +1157,7 @@ static rcareadupe marea_has_duplicates(struct msgareas *msgarea) {
 			break;
 		}
 
-	} while (1);
+	} while (0);
 
 
 	if (fin) { fclose(fin); }
@@ -1247,7 +1247,7 @@ int EditMsgRec(int Area)
 			if (msgs.Active && !strlen(msgs.Base)) {
 			    errmsg((char *)"JAM message base is not set");
 			    break;
-			} /*else if (msgs.Active) {
+			} else if (msgs.Active) {
 				  rcareadupe rcd = marea_has_duplicates(&msgs);
 				  if (rcd.has_error) {
 					errmsg((char *)rcd.error_msg);
@@ -1256,7 +1256,7 @@ int EditMsgRec(int Area)
                     errmsg((char *)"The message area has a duplicate tag or message base.");
   				    break;
 				  } 
-			}*/ else if (msgs.Active && !strlen(msgs.Group) && 
+			} else if (msgs.Active && !strlen(msgs.Group) &&
 				(msgs.Type == ECHOMAIL || msgs.Type == NEWS || msgs.Type == LIST)) {
 			    errmsg((char *)"Message area has no group assigned");
 			    break;

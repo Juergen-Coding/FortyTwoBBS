@@ -570,6 +570,27 @@ int newuser(void)
     Pause();
     alarm_off();
     Enter(1);
+
+    /* Run a new user script */
+    const char scriptname[] = "nuscript.sh";
+    if (snprintf(temp, PATH_MAX, "%s/bin/%s", getenv("MBSE_ROOT"), scriptname) >= PATH_MAX) {
+        /* failed to write to string, log issue */
+        Syslog('+', "Insufficient space for path while running %s", scriptname);
+    } else {
+		size_t len = strnlen(FullName, 81);
+		char env_username[len + 16];
+		snprintf(env_username, sizeof(env_username), "USERNAME=%s", FullName);
+        const char *envdata[] = {
+            env_username,
+            (char *)0,
+        };
+        int ret = execle(temp, scriptname, (char *)0, envdata);
+        if (-1 == ret) {
+            Syslog('+', "Error running execle for %s: %s", scriptname, strerror(errno));
+        }
+    }
+
+
     return 0;
 }
 
