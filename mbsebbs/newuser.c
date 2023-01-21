@@ -573,30 +573,39 @@ int newuser(void)
 
     /* Run a new user script */
     const char scriptname[] = "nuscript";
-    if (snprintf(temp, PATH_MAX, "%s/bin/%s", getenv("MBSE_ROOT"), scriptname) >= PATH_MAX) {
+	char *root_cached = strdup(getenv("MBSE_ROOT"));
+	size_t root_len = strlen(root_cached);
+	if (NULL == root_cached) {
+		Syslog('+', "Insufficient memory for storing a copy of MBSE_ROOT: %s", strerror(errno));
+		return 0;
+	}
+
+	if (snprintf(temp, PATH_MAX, "%s/bin/%s", root_cached, scriptname) >= PATH_MAX) {
         /* failed to write to string, log issue */
         Syslog('+', "Insufficient space for path while running %s", scriptname);
+		free(root_cached);
     } else {
 		size_t len = strnlen(FullName, 81);
 		/* The 16 here is just a buffer space */
 		char env_username[len + 16];
-		size_t envlen = strlen(getenv("MBSE_ROOT")) + sizeof("MBSE_ROOT=") + 16;
-		char *root_path = (char *)calloc(envlen, sizeof(char));
-		if (NULL == root_path) {
+		size_t envlen = root_len + sizeof("MBSE_ROOT=") + 16;
+		char *root_env_val = (char *)calloc(envlen, sizeof(char));
+		if (NULL == root_env_val) {
 			Syslog('+', "Error for MBSE_ROOT variable creation in call to %s: %s", scriptname, strerror(errno));
 		} else {
 			snprintf(env_username, sizeof(env_username), "USERNAME=%s", FullName);
-			snprintf(root_path, envlen, "MBSE_ROOT=%s", getenv("MBSE_ROOT"));
+			snprintf(root_env_val, envlen, "MBSE_ROOT=%s", root_cached);
 			const char *envdata[] = {
 				env_username,
-				root_path,
+				root_env_val,
 				(char *)0,
 			};
 			int ret = execle(temp, scriptname, (char *)0, envdata);
 			if (-1 == ret) {
 				Syslog('+', "Error running execle for %s: %s", scriptname, strerror(errno));
 			}
-			free(root_path);
+			free(root_env_val);
+			free(root_cached);
 		}
     }
 
