@@ -572,7 +572,7 @@ int newuser(void)
     Enter(1);
 
     /* Run a new user script */
-    const char scriptname[] = "nuscript";
+    char scriptname[] = "nuscript";
 	char *root_cached = strdup(getenv("MBSE_ROOT"));
 	size_t root_len = strlen(root_cached);
 	if (NULL == root_cached) {
@@ -595,14 +595,40 @@ int newuser(void)
 		} else {
 			snprintf(env_username, sizeof(env_username), "USERNAME=%s", FullName);
 			snprintf(root_env_val, envlen, "MBSE_ROOT=%s", root_cached);
-			const char *envdata[] = {
+			char *envdata[] = {
 				env_username,
 				root_env_val,
 				(char *)0,
 			};
-			int ret = execle(temp, scriptname, (char *)0, envdata);
-			if (-1 == ret) {
-				Syslog('+', "Error running execle for %s: %s", scriptname, strerror(errno));
+			pid_t pid = fork();
+			if (pid == -1) {
+				/* error */
+				Syslog('+', "Unable to invoke fork(), new user script cannot be run: %s", strerror(errno));
+			} else if (pid != 0) {
+				/* parent */
+				int status;
+				do {
+					int r = waitpid(pid, &status, 0);
+					if (r == -1 && errno != EINTR) {
+						/* There was an error in waiting */
+						Syslog('+', "Error while waiting on the child process: %s", strerror(errno));
+						break;
+					}
+				} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+				if (WIFEXITED(status)) {
+					Syslog('+', "New user script completed with status code: %d", WEXITSTATUS(status));
+				}
+			} else {
+				/* child */
+				char *args_new[] = {
+					scriptname,
+					NULL,
+				};
+				int ret = execve(temp, args_new, envdata);
+				if (ret == -1) {
+					Syslog('+', "Error running new user script: %s", strerror(errno));
+				}
+				_Exit(127);
 			}
 			free(root_env_val);
 			free(root_cached);
