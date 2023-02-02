@@ -63,6 +63,31 @@ time_t		t_end;			/* End time			    */
 
 
 
+static void die_simple(int onsig) {
+    if (onsig && (onsig < NSIG))
+	signal(onsig, SIG_IGN);
+
+    if (!do_quiet) {
+		mbse_colour(CYAN, BLACK);
+		show_log = TRUE;
+    }
+
+    if (onsig) {
+	if (onsig <= NSIG)
+	    WriteError("Terminated on signal %d (%s)", onsig, strsignal(onsig));
+	else
+	    WriteError("Terminated with error %d", onsig);
+    }
+
+    t_end = time(NULL);
+    Syslog(' ', "MBINDEX finished in %s", t_elapsed(t_start, t_end));
+
+    if (!do_quiet)
+		mbse_colour(LIGHTGRAY, BLACK);
+	exit(onsig);
+}
+
+
 
 /*
  * If we don't know what to type
@@ -80,7 +105,7 @@ void Help(void)
     printf("	-quiet		Quiet mode\n");
     mbse_colour(LIGHTGRAY, BLACK);
     printf("\n");
-    die(MBERR_COMMANDLINE);
+    die_simple(MBERR_COMMANDLINE);
 }
 
 
