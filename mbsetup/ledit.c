@@ -1613,7 +1613,7 @@ char *getemailmode(int val)
 		case E_NOISP:	return (char *)"No internet   ";
 		case E_TMPISP:	return (char *)"No maildomain ";
 		case E_PRMISP:	return (char *)"Own maildomain";
-		default:	return NULL;
+		default:	return (char *)"Undefined";
 	}
 }
 
