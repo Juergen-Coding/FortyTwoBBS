@@ -1143,7 +1143,7 @@ static rcareadupe marea_has_duplicates(struct msgareas *msgarea) {
 				continue;
 			}
 			if ((0 == strncmp(msgarea->Base, entry.Base, sizeof(msgarea->Base))) ||
-			    (0 == strncmp(msgarea->Tag,  entry.Tag,  sizeof(msgarea->Tag)))) {
+			    (*(msgarea->Tag) != '\0' && (0 == strncmp(msgarea->Tag,  entry.Tag,  sizeof(msgarea->Tag))))) {
 					// duplicate entry
 					retval.has_duplicate = true;
 					break;
