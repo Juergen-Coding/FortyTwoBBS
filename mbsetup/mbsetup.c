@@ -215,7 +215,7 @@ void site_docs(void)
     Syslog('+', "Start creating sitedocs");
 
     set_color(WHITE, BLACK);
-    mbse_mvprintw( 5, 6, "21.  CREATING SITEDOCS");
+    mbse_mvprintw( 5, 6, "22.  CREATING SITEDOCS");
     set_color(CYAN, BLACK);
     mbse_mvprintw( 7,11, (char *)"Erasing directory         %s/share/doc/html", getenv("MBSE_ROOT"));
     fflush(stdout);
