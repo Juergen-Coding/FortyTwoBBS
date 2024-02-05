@@ -1,9 +1,7 @@
-v1.0.8.3	19-Jan-2023 - Andrew Leary/Michael Dillon
+v1.0.8.5	05-Feb-2024 - Andrew Leary
 
-		1.  MBSE will now run nuscript.sh after a new user logs in.
-		    This can be used to notify the SysOp of a new user, send
-		    a welcome message to the new user, etc.
+		1.  Fix crash/segfault in the internal full screen editor after
+                    displaying the Help screen.  Thanks to Niels Haedecke for
+                    the report and fix.
 
-		2.  Fixed & re-enabled the message area duplicate checking.
-
-		3.  Update copyright notices to 2023.
+		2.  Update copyright notices to 2024.

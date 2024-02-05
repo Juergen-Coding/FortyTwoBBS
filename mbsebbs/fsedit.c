@@ -124,6 +124,12 @@ void Hl(int y, char *txt)
 
 void Full_Help(void)
 {
+    int hc, hr;
+    
+    /* Save the column and row */
+    hc=Col;
+    hr=Row;
+    
     strcpy(hstr, colour_str(LIGHTGREEN, BLUE));
 
     /* Top row */
@@ -164,6 +170,10 @@ void Full_Help(void)
     strncat(hstr, hLine_str(58), 80);
     strncat(hstr, (char *)"\xD9", 80);
     PUTSTR(chartran(hstr));
+    
+    /* Restore the column and row values. */
+    Col=hc;
+    Row=hr;
 }
 
 
