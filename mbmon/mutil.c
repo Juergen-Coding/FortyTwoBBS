@@ -376,14 +376,24 @@ void show_date(int fg, int bg, int y, int x)
     char	*p, buf[128], *pid, *page, *reason;
 
     now = time(NULL);
-    if (now != lasttime) {
+    if (now >= lasttime + CFG.StatusUpd) {
 	lasttime = now;
 	set_color(LIGHTGREEN, BLUE);
 	p = ctime(&now);
 	Striplf(p);
+	if (CFG.SuppSecs) {
+	    *(p + 16) = ' ';
+	    *(p + 17) = ' ';
+	    *(p + 18) = ' ';
+	}
 	mbse_mvprintw(1, cols - 36, (char *)"%s TZUTC %s", p, gmtoffset(now)); 
 	p = asctime(gmtime(&now));
 	Striplf(p);
+	if (CFG.SuppSecs) {
+	    *(p + 16) = ' ';
+	    *(p + 17) = ' ';
+	    *(p + 18) = ' ';
+	}
 	mbse_mvprintw(2, cols - 36, (char *)"%s UTC", p);
 
 	/*

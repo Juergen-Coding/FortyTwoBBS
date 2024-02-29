@@ -1279,6 +1279,8 @@ struct	sysconfig {
 	unsigned	ca_Check	: 1;	/* Flag for upgrade check   */
         unsigned        PKTunp		: 1;	/* Always toss .PKTs from
                                                    unprotected inbound      */
+        unsigned        SuppSecs        : 1;    /* Suppress seconds in clock
+                                                   in mbmon/mbsetup         */                                           
 	char		rulesdir[65];		/* Area rules directory	    */
 	char		debuglog[15];		/* Debug logfile	    */
 	char		tmailshort[65];		/* T-Mail short filebox base*/
@@ -1295,6 +1297,8 @@ struct	sysconfig {
 	char		nntpuser[32];		/* NNTP username            */
 	char		nntppass[32];		/* NNTP password            */
 	unsigned int	nntpport;		/* NNTP port if not 119	    */
+	int		StatusUpd;		/* Clock/Status Update Freq.
+	                                           (seconds) 1-60           */
 };
 
 

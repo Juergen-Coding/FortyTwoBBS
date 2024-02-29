@@ -1,3 +1,18 @@
+v1.0.8.6	29-Feb-2024 - Andrew Leary
+
+		1.  MBSE will now allow users to delete messages addressed to
+                    them, as well as messages they have sent.  Thanks to Niels
+                    Haedecke for the report and fix.
+
+		2.  You can now reduce the frequency of screen updates for the
+                    clock and system status in mbmon and mbsetup.  This is
+                    useful when running them over a slower connection.  mbsetup
+                    1.5.26 will set the delay between screen updates in seconds
+                    while 1.5.25 will allow you to turn off the seconds display
+                    in the clock.  These options default to 1 second and No,
+                    which will produce identical behavior to earlier versions
+                    of MBSE.
+
 v1.0.8.5	05-Feb-2024 - Andrew Leary
 
 		1.  Fix crash/segfault in the internal full screen editor after

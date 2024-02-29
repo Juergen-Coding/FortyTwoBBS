@@ -1574,7 +1574,7 @@ int ReadPanel()
 	Read_a_Msg(LastNum, TRUE);
 
     } else if (input == Keystroke(214, 6)) { /* (D)elete */
-	if ((msgs.UsrDelete && IsMe(Msg.From)) || (exitinfo.Security.level >= CFG.sysop_access) ||
+	if ((msgs.UsrDelete && (IsMe(Msg.From) || IsMe(Msg.To))) || (exitinfo.Security.level >= CFG.sysop_access) ||
 		                Access(exitinfo.Security, msgs.SYSec)) {
 	    Delete_MsgNum(LastNum);
 	    if (LastNum < MsgBase.Highest) {
@@ -2005,7 +2005,7 @@ void Delete_Msg()
     /*
      * Message does exist and a valid number is suplied, check and finally mark the message deleted.
      */
-    if ((msgs.UsrDelete && IsMe(Msg.From)) || (exitinfo.Security.level >= CFG.sysop_access) ||
+    if ((msgs.UsrDelete && (IsMe(Msg.From) || IsMe(Msg.To))) || (exitinfo.Security.level >= CFG.sysop_access) ||
 	                Access(exitinfo.Security, msgs.SYSec)) {
 	Delete_MsgNum(Msgnum);
     } else {

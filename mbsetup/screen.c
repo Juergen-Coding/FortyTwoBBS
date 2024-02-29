@@ -97,14 +97,24 @@ void show_date(int fg, int bg, int y, int x)
     char	*p, buf[128];
 
     now = time(NULL);
-    if (now != lasttime) {
+    if (now >= lasttime + CFG.StatusUpd) {
 	lasttime = now;
 	set_color(LIGHTGREEN, BLUE);
 	p = ctime(&now);
 	Striplf(p);
+	if (CFG.SuppSecs) { 
+	    *(p + 16) = ' ';   /* Zap colon and seconds digits */
+	    *(p + 17) = ' ';
+	    *(p + 18) = ' ';
+	} 
 	mbse_mvprintw(1, 44, (char *)"%s TZUTC %s", p, gmtoffset(now)); 
 	p = asctime(gmtime(&now));
 	Striplf(p);
+	if (CFG.SuppSecs) {
+	    *(p + 16) = ' ';   /* Zap colon and seconds digits */
+	    *(p + 17) = ' ';
+	    *(p + 18) = ' ';
+	}
 	mbse_mvprintw(2, 44, (char *)"%s UTC", p);
 
 	/*
