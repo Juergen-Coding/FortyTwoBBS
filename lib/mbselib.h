@@ -1290,7 +1290,8 @@ struct	sysconfig {
 	unsigned	do_sync		: 1;	/* Sync() during execute    */
 	unsigned	is_upgraded	: 1;	/* For internal upgrade use */
 	unsigned	nntpforceauth	: 1;	/* Force NNTP authenticate  */
-
+        unsigned        SupTearL        : 1;    /* Suppress tearline in loc.
+                                                   message areas            */
 	char		myfqdn[64];		/* My real FQDN		    */
 	int		www_mailerlines;	/* Limit mailhistory lines  */
 

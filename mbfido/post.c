@@ -40,7 +40,7 @@ extern int		do_quiet;		/* Suppress screen output    */
 
 
 
-int Post(char *To, int Area, char *Subj, char *File, char *Flavor)
+int Post(char *From, char *To, int Area, char *Subj, char *File, char *Flavor)
 {
     int		    i, rc = FALSE, has_tear = FALSE, has_origin = FALSE;
     char	    *aka, *temp, *sAreas;
@@ -53,7 +53,7 @@ int Post(char *To, int Area, char *Subj, char *File, char *Flavor)
 
     if (!do_quiet) {
 	mbse_colour(CYAN, BLACK);
-	printf("Post \"%s\" to \"%s\" in area %d\n", File, To, Area);
+	printf("Post \"%s\" from \"%s\" to \"%s\" in area %d\n", File, From, To, Area);
     }
 
     IsDoing("Posting");
@@ -162,7 +162,7 @@ int Post(char *To, int Area, char *Subj, char *File, char *Flavor)
     /*
      * Start writing the message
      */
-    snprintf(Msg.From, 101, "%.*s", 100, CFG.sysop_name);
+    snprintf(Msg.From, 101, "%.*s", 100, From);
     snprintf(Msg.To, 101, "%.*s", 100, To);
 
     /*
@@ -213,10 +213,12 @@ int Post(char *To, int Area, char *Subj, char *File, char *Flavor)
     }
 
     temp = calloc(PATH_MAX, sizeof(char));
-    snprintf(temp, PATH_MAX, "\001MSGID: %s %08x", aka2str(msgs.Aka), sequencer());
-    MsgText_Add2(temp);
-    Msg.MsgIdCRC = upd_crc32(temp, crc, strlen(temp));
-    Msg.ReplyCRC = 0xffffffff;
+    if (! Msg.Localmail) {
+      snprintf(temp, PATH_MAX, "\001MSGID: %s %08x", aka2str(msgs.Aka), sequencer());
+      MsgText_Add2(temp);
+      Msg.MsgIdCRC = upd_crc32(temp, crc, strlen(temp));
+      Msg.ReplyCRC = 0xffffffff;
+    }
     snprintf(temp, PATH_MAX, "\001PID: MBSE-FIDO %s", versioned_sysinfo());
     MsgText_Add2(temp);
     if (msgs.Charset != FTNC_NONE) {
@@ -246,27 +248,35 @@ int Post(char *To, int Area, char *Subj, char *File, char *Flavor)
     /*
      * Finish the message
      */
-    if ((! has_tear) && (! has_origin)) {
-	MsgText_Add2((char *)"");
-	MsgText_Add2(TearLine());
-    }
+    
+    if (! Msg.Localmail) { 
+        if ((! has_tear) && (! has_origin)) {
+            MsgText_Add2((char *)"");
+	    MsgText_Add2(TearLine());
+        }
 
-    if (! has_origin) {
-	aka = calloc(40, sizeof(char));
+        if (! has_origin) {
+	    aka = calloc(40, sizeof(char));
 
-	if (msgs.Aka.point)
-	    snprintf(aka, 40, "(%d:%d/%d.%d)", msgs.Aka.zone, msgs.Aka.net, msgs.Aka.node, msgs.Aka.point);
-	else
-	    snprintf(aka, 40, "(%d:%d/%d)", msgs.Aka.zone, msgs.Aka.net, msgs.Aka.node);
+	    if (msgs.Aka.point)
+	        snprintf(aka, 40, "(%d:%d/%d.%d)", msgs.Aka.zone, msgs.Aka.net, msgs.Aka.node, msgs.Aka.point);
+	    else
+	        snprintf(aka, 40, "(%d:%d/%d)", msgs.Aka.zone, msgs.Aka.net, msgs.Aka.node);
 
-	if (strlen(msgs.Origin))
-	    snprintf(temp, 81, " * Origin: %s %s", msgs.Origin, aka);
-	else
-	    snprintf(temp, 81, " * Origin: %s %s", CFG.origin, aka);
+            if (strlen(msgs.Origin))
+	        snprintf(temp, 81, " * Origin: %s %s", msgs.Origin, aka);
+	    else
+	        snprintf(temp, 81, " * Origin: %s %s", CFG.origin, aka);
 
-	MsgText_Add2(temp);
-	free(aka);
-    }
+	    MsgText_Add2(temp);
+	    free(aka);
+        }
+    } else {
+          if (! CFG.SupTearL) {
+              MsgText_Add2((char *)"");
+              MsgText_Add2(TearLine());
+          }
+    }      
 
     Msg_AddMsg();
     Msg_UnLock();

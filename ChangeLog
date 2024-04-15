@@ -1,3 +1,35 @@
+v1.0.8.7	15-Apr-2024 - Andrew Leary
+
+		1.  MBSE will now allow you to suppress adding a tearline to
+		    messages in local message areas.  To enable this option,
+		    toggle mbsetup 1.5.27 to Yes.
+
+		2.  MBMSG will no longer add a MSGID or Origin line to messages
+		    in local message areas.
+
+		3.  MBMSG will also respect the suppress tearlines in local
+                    message areas option in mbsetup (1.5.27).
+
+                4.  You can now specify the From name used in messages posted by
+                    MBMSG post.  The new syntax is:
+
+                    mbmsg post <from> <to> <#> <subj> <file> <flavor>
+
+                    <from>, <to>, and <subj> need to be enclosed in double
+                    quotes if they contain spaces.
+
+                    <#> is the message area number to post in.
+
+                    <file> is the text file to use as the message body.
+
+                    <flavor> is one of the following:
+
+                    p private, c crash, h hold, n normal
+
+                    In netmail areas, these will set the corresponding flags in
+                    the created message.  The <to> field needs to include the
+                    destination FTN address after an @ character.
+
 v1.0.8.6	29-Feb-2024 - Andrew Leary
 
 		1.  MBSE will now allow users to delete messages addressed to

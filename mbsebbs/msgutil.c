@@ -286,16 +286,19 @@ void Add_Footkludges(int Quote, char *tear, int HasTear)
 	MsgText_Add2((char *)"");
     }
 
-    /*
-     * The offline reader may override the tearline
-     */
-    if (!HasTear) {
-	if (tear == NULL) {
-	    MsgText_Add2(TearLine());
-	} else {
-	    snprintf(temp, 81, "--- %s", tear);
-	    MsgText_Add2(temp);
-	}
+    if ((msgs.Type == LOCALMAIL) && (!CFG.SupTearL)) {
+      
+      /*
+       * The offline reader may override the tearline
+       */
+      if (!HasTear) {
+	  if (tear == NULL) {
+	      MsgText_Add2(TearLine());
+	  } else {
+	      snprintf(temp, 81, "--- %s", tear);
+	      MsgText_Add2(temp);
+	  }
+      }
     }
 
     if ((msgs.Type == ECHOMAIL) || (msgs.Type == LIST)) {

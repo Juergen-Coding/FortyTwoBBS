@@ -76,7 +76,7 @@ void ProgName()
 int main(int argc, char **argv)
 {
     int		    i;
-    char	    *cmd, *too = NULL, *subj = NULL, *mfile = NULL, *flavor = NULL;
+    char	    *cmd, *frm = NULL, *too = NULL, *subj = NULL, *mfile = NULL, *flavor = NULL;
     struct passwd   *pw;
     int		    tarea = 0;
 
@@ -112,9 +112,10 @@ int main(int argc, char **argv)
 	if (strncasecmp(argv[i], "pa", 2) == 0)
 	    do_pack = TRUE;
 	if (strncasecmp(argv[i], "po", 2) == 0) {
-	    if (((argc - i) < 6) || ((argc - i) > 7))
+	    if (((argc - i) < 7) || ((argc - i) > 8))
 		Help();
 	    do_post = TRUE;
+	    frm = argv[++i];
 	    too = argv[++i];
 	    cmd = xstrcat(cmd, (char *)" \"");
 	    cmd = xstrcat(cmd, too);
@@ -163,7 +164,7 @@ int main(int argc, char **argv)
     }
 
     if (do_post) {
-	if (Post(too, tarea, subj, mfile, flavor))
+	if (Post(frm, too, tarea, subj, mfile, flavor))
 	    die(MBERR_GENERAL);
     }
 
@@ -186,7 +187,7 @@ void Help()
     printf("	l  link					Link messages by subject\n");
     printf("	k  kill					Kill messages (age & count)\n");
     printf("	pa pack					Pack deleted messages\n");
-    printf("	po post <to> <#> <subj> <file> <flavor>	Post file in message area #\n\n");
+    printf("	po post <from> <to> <#> <subj> <file> <flavor>	Post file in msg area #\n\n");
     mbse_colour(LIGHTBLUE, BLACK);
     printf("	Options are:\n\n");
     mbse_colour(CYAN, BLACK);
