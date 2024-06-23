@@ -1616,7 +1616,7 @@ void Reply_Msg(int IsReply)
     if (!Post_Allowed())
 	    return;
 
-	memccpy(from, Msg.To, '\0', 100);
+    memccpy(from, Msg.To, '\0', 100);
     memccpy(to, Msg.From, '\0', 100);
     memccpy(replyto, Msg.ReplyTo, '\0', 80);
 
@@ -1626,7 +1626,7 @@ void Reply_Msg(int IsReply)
      */
     tmp = Msg.ReplyAddr;
     while (*tmp && isspace(*tmp))
-	tmp++;
+        tmp++;
     strncpy(replyaddr, tmp, 100);
 
     Dest = parsefnode(Msg.FromAddress);
@@ -1727,7 +1727,7 @@ void Reply_Msg(int IsReply)
 	    case 2: Msg.Immediate = TRUE;
 		    break;
 	    case -1:printf("\r");
-		    /* Node not known, continue anayway [y/N]: */
+		    /* Node not known, continue anyway [y/N]: */
 		    pout(CYAN, BLACK, (char *) Language(241));
 		    alarm_on();
 		    if (toupper(Readkey()) == Keystroke(241, 0)) {

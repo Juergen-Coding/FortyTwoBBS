@@ -891,7 +891,9 @@ void MsgGlobal(void)
 						Found = TRUE;
 						break;
 					    }
-					if (Found)
+					if (Found) /* AKA is already connected */
+					    break;
+					if (msgs.Type == NETMAIL) /* Don't add connections to netmail areas */
 					    break;
 					fseek(tfil, 0, SEEK_SET);
 					while (fread(&Sc, sizeof(sysconnect), 1, tfil) == 1) {

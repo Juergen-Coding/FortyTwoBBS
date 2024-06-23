@@ -1,3 +1,10 @@
+v1.0.8.8	02-Jun-2024 - Andrew Leary
+		1.  MBSETUP will no longer globally add connections to NetMail
+                    areas.
+
+		2.  Fixed bug that caused MBSE to omit tearlines in EchoMail
+		    messages.
+  
 v1.0.8.7	15-Apr-2024 - Andrew Leary
 
 		1.  MBSE will now allow you to suppress adding a tearline to

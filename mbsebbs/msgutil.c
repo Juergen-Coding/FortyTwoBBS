@@ -286,7 +286,9 @@ void Add_Footkludges(int Quote, char *tear, int HasTear)
 	MsgText_Add2((char *)"");
     }
 
-    if ((msgs.Type == LOCALMAIL) && (!CFG.SupTearL)) {
+    if ((msgs.Type == LOCALMAIL) && (CFG.SupTearL)) {
+      ;
+      } else {
       
       /*
        * The offline reader may override the tearline
