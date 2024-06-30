@@ -73,8 +73,8 @@ SN|¨Quieres men£s r pidos? [S/n]:
 |No encuentro 
 |Localidad anterior : 
 |Localidad demasiado corta: (min. 
-|
-|
+|Modo ANSI activado
+|Modo ANSI desactivado
 |No existe el mensaje
 |Noticias activadas
 |Noticias desactivadas

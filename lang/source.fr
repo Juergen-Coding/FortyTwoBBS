@@ -73,8 +73,8 @@ ON|Voulez vous les menus Hot-Keyed ? [O/n]:
 |Ne peut pas trouver 
 |Ancienne ville : 
 |veuillez entrer un nom plus long (min 
-|
-|
+|ANSI mode est ON
+|ANSI mode est OFF
 |Message n'existe pas
 |News bulletins est ON
 |News bulletins est OFF

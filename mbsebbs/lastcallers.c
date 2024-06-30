@@ -79,14 +79,23 @@ void LastCallers(char *OpData)
     else {
 	fread(&lcallhdr, sizeof(lcallhdr), 1, fp);
 
-	strcpy(lstr, colour_str(WHITE, BLACK));
-	/* Todays callers to */
-	snprintf(Heading, 81, "%s%s", (char *) Language(84), CFG.bbs_name);
-	strncat(lstr, Center_str(Heading), 200);
+	if (exitinfo.GraphMode) {
+	    strcpy(lstr, colour_str(WHITE, BLACK));
+	    /* Todays callers to */
+	    snprintf(Heading, 81, "%s%s", (char *) Language(84), CFG.bbs_name);
+	    strncat(lstr, Center_str(Heading), 200);
+	} else {
+	    snprintf(Heading, 81, "%s%s", (char *) Language(84), CFG.bbs_name);
+	    strncpy(lstr, Center_str(Heading), 200);
+	}
 	PUTSTR(chartran(lstr));
 
-	strcpy(lstr, colour_str(LIGHTRED, BLACK));
-	strncat(lstr, Center_str(hLine_str(strlen(Heading))), 200);
+	if (exitinfo.GraphMode) {
+	    strcpy(lstr, colour_str(LIGHTRED, BLACK));
+	    strncat(lstr, Center_str(hLine_str(strlen(Heading))), 200);
+	} else {
+	    strncpy(lstr, Center_str(hLine_str(strlen(Heading))), 200);
+	}
 	PUTSTR(chartran(lstr));
 	Enter(1);
 
@@ -94,19 +103,29 @@ void LastCallers(char *OpData)
 	strcpy(lstr, poutCR_str(LIGHTGREEN, BLACK, (char *) Language(85)));
 	PUTSTR(chartran(lstr));
 
-	strcpy(lstr, colour_str(GREEN, BLACK));
-	strncat(lstr, fLine_str(cols -1), 200);
+	if (exitinfo.GraphMode) {
+	    strcpy(lstr, colour_str(GREEN, BLACK));
+	    strncat(lstr, fLine_str(cols -1), 200);
+	} else {
+	    strncpy(lstr, fLine_str(cols -1), 200);
+	}
 	PUTSTR(chartran(lstr));
 
 	while (fread(&lcall, lcallhdr.recsize, 1, fp) == 1) {
 	    if (!lcall.Hidden) {
 		count++;
 
-		strcpy(lstr, colour_str(WHITE, BLACK));
-		snprintf(Heading, 80, "%-5d", count);
-		strncat(lstr, Heading, 200);
-
-		strncat(lstr, colour_str(LIGHTCYAN, BLACK), 200);
+		if (exitinfo.GraphMode) {
+		    strcpy(lstr, colour_str(WHITE, BLACK));
+		    snprintf(Heading, 80, "%-5d", count);
+		    strncat(lstr, Heading, 200);
+		} else {
+		    snprintf(Heading, 80, "%-5d", count);
+		    strncpy(lstr, Heading, 200);
+		}
+		if (exitinfo.GraphMode) {
+		    strncat(lstr, colour_str(LIGHTCYAN, BLACK), 200);
+		}
 		if ((strcasecmp(OpData, "/H")) == 0) {
 		    if ((strcmp(lcall.Handle, "") != 0 && *(lcall.Handle) != ' '))
 			snprintf(Heading, 80, "%-20s", lcall.Handle);
@@ -142,8 +161,12 @@ void LastCallers(char *OpData)
 	    } /* End of check if user is hidden */
 	}
 
-	strcpy(lstr, colour_str(GREEN, BLACK));
-	strncat(lstr, fLine_str(cols -1), 200);
+	if (exitinfo.GraphMode) {
+	    strcpy(lstr, colour_str(GREEN, BLACK));
+	    strncat(lstr, fLine_str(cols -1), 200);
+	} else {
+	    strncpy(lstr, fLine_str(cols -1), 200);
+	}
 	PUTSTR(chartran(lstr));
 
 	fclose(fp);

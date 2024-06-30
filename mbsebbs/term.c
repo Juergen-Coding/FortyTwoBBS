@@ -59,8 +59,12 @@ char *pout_str(int fg, int bg, char *Str)
 {
     static char	temp[256];
 
-    strncpy(temp, colour_str(fg, bg), 255);
-    strncat(temp, Str, 255);
+    if (exitinfo.GraphMode) {
+        strncpy(temp, colour_str(fg, bg), 255);
+        strncat(temp, Str, 255);
+    } else {
+        strncpy(temp, Str, 255);
+    }
     return temp;
 }
 
@@ -77,8 +81,12 @@ char *poutCenter_str(int fg, int bg, char *Str)
 {
     static char	temp[256];
 
-    strncpy(temp, colour_str(fg, bg), 255);
-    strncat(temp, Center_str(Str), 255);
+    if (exitinfo.GraphMode) {
+        strncpy(temp, colour_str(fg, bg), 255);
+        strncat(temp, Center_str(Str), 255);
+    } else {
+        strncpy(temp, Center_str(Str), 255);
+    }
     return temp;
 }
 
@@ -95,8 +103,12 @@ char *poutCR_str(int fg, int bg, char *Str)
 {
     static char	temp[256];
 
-    strncpy(temp, colour_str(fg, bg), 255);
-    strncat(temp, Str, 255);
+    if (exitinfo.GraphMode) {
+        strncpy(temp, colour_str(fg, bg), 255);
+        strncat(temp, Str, 255);
+    } else {
+        strncpy(temp, Str, 255);
+    }
     strncat(temp, (char *)"\r\n", 255);
     return temp;
 }
@@ -164,7 +176,9 @@ char *colour_str(int fg, int bg)
 
 void colour(int fg, int bg)
 {
-    PUTSTR(colour_str(fg, bg));
+    if (exitinfo.GraphMode) { /* User has ANSI enabled */
+        PUTSTR(colour_str(fg, bg));
+    }
 }
 
 
@@ -308,6 +322,3 @@ void mvprintw(int y, int x, const char *format, ...)
     PUTSTR(outputstr);
     free(outputstr);
 }
-
-
-

@@ -280,17 +280,18 @@ void Screen2(void)
 	mbse_mvprintw(17, 2, "12. Archiver");
 	mbse_mvprintw(18, 2, "13. Charset");
 
-	mbse_mvprintw( 7,58, "14. Language");
-	mbse_mvprintw( 8,58, "15. Hotkeys");
-	mbse_mvprintw( 9,58, "16. Silent");
-	mbse_mvprintw(10,58, "17. CLS");
-	mbse_mvprintw(11,58, "18. More");
-	mbse_mvprintw(12,58, "19. Editor");
-	mbse_mvprintw(13,58, "20. MailScan");
-	mbse_mvprintw(14,58, "21. ShowNews");
-	mbse_mvprintw(15,58, "22. NewFiles");
-	mbse_mvprintw(16,58, "23. Emacs");
-	mbse_mvprintw(17,58, "24. OLRext");
+	mbse_mvprintw( 6,58, "14. Language");
+	mbse_mvprintw( 7,58, "15. Hotkeys");
+	mbse_mvprintw( 8,58, "16. Color");
+	mbse_mvprintw( 9,58, "17. Silent");
+	mbse_mvprintw(10,58, "18. CLS");
+	mbse_mvprintw(11,58, "19. More");
+	mbse_mvprintw(12,58, "20. Editor");
+	mbse_mvprintw(13,58, "21. MailScan");
+	mbse_mvprintw(14,58, "22. ShowNews");
+	mbse_mvprintw(15,58, "23. NewFiles");
+	mbse_mvprintw(16,58, "24. Emacs");
+	mbse_mvprintw(17,58, "25. OLRext");
 }
 
 
@@ -315,8 +316,9 @@ void Fields2(void)
 	show_charset(18,17,usrconfig.Charset);
 
 	snprintf(temp, 4, "%c",usrconfig.iLanguage);
-	show_str(  7,71,1, temp);
-	show_bool( 8,71,   usrconfig.HotKeys);
+	show_str(  6,71,1, temp);
+	show_bool( 7,71,   usrconfig.HotKeys);
+	show_bool( 8,71,   usrconfig.GraphMode);
 	show_bool( 9,71,   usrconfig.DoNotDisturb);
 	show_bool(10,71,   usrconfig.Cls);
 	show_bool(11,71,   usrconfig.More);
@@ -411,17 +413,18 @@ int EditUsrRec2(void)
 		    clr_index();
 		    Screen2();
 		    break;
-            case 15:E_BOOL( 8,71,usrconfig.HotKeys,      "Is user using ^HotKeys^ for menus"); break;
-            case 16:E_BOOL( 9,71,usrconfig.DoNotDisturb, "User will not be ^disturbed^"); break;
-            case 17:E_BOOL(10,71,usrconfig.Cls,          "Send ^ClearScreen code^ to users terminal"); break;
-            case 18:E_BOOL(11,71,usrconfig.More,         "User uses the ^More prompt^"); break;
-            case 19:usrconfig.MsgEditor = edit_msgeditor(12,71,usrconfig.MsgEditor);
+            case 15:E_BOOL( 7,71,usrconfig.HotKeys,      "Is user using ^HotKeys^ for menus"); break;
+            case 16:E_BOOL( 8,71,usrconfig.GraphMode,    "Is user using ^ANSI^ color"); break;
+            case 17:E_BOOL( 9,71,usrconfig.DoNotDisturb, "User will not be ^disturbed^"); break;
+            case 18:E_BOOL(10,71,usrconfig.Cls,          "Send ^ClearScreen code^ to users terminal"); break;
+            case 19:E_BOOL(11,71,usrconfig.More,         "User uses the ^More prompt^"); break;
+            case 20:usrconfig.MsgEditor = edit_msgeditor(12,71,usrconfig.MsgEditor);
 		    break;
-            case 20:E_BOOL(13,71,usrconfig.MailScan,     "Don't check for ^new mail^"); break;
-            case 21:E_BOOL(14,71,usrconfig.ieNEWS,       "Show ^News Bulletins^ when logging in"); break;
-            case 22:E_BOOL(15,71,usrconfig.ieFILE,       "Show ^New Files^ when logging in"); break;
-            case 23:E_BOOL(16,71,usrconfig.FSemacs,      "Use ^Emacs^ or Wordstar shorcut keys in FS editor"); break;
-            case 24:E_INT( 17,71,usrconfig.OLRext,       "Next ^OLR^ packet extension"); break;
+            case 21:E_BOOL(13,71,usrconfig.MailScan,     "Don't check for ^new mail^"); break;
+            case 22:E_BOOL(14,71,usrconfig.ieNEWS,       "Show ^News Bulletins^ when logging in"); break;
+            case 23:E_BOOL(15,71,usrconfig.ieFILE,       "Show ^New Files^ when logging in"); break;
+            case 24:E_BOOL(16,71,usrconfig.FSemacs,      "Use ^Emacs^ or Wordstar shorcut keys in FS editor"); break;
+            case 25:E_INT( 17,71,usrconfig.OLRext,       "Next ^OLR^ packet extension"); break;
         }
     }
 }
@@ -730,6 +733,7 @@ void users_doc(void)
 	    snprintf(temp, 4, "%c", usrconfig.iLanguage);
 	    add_webtable(wp, (char *)"Language", temp);
 	    add_webtable(wp, (char *)"Use hotkeys", getboolean(usrconfig.HotKeys));
+	    add_webtable(wp, (char *)"Use ANSI color", getboolean(usrconfig.GraphMode));
 	    add_webtable(wp, (char *)"Do not disturb", getboolean(usrconfig.DoNotDisturb));
 	    add_webtable(wp, (char *)"Clear Screen", getboolean(usrconfig.Cls));
 	    add_webtable(wp, (char *)"More prompt", getboolean(usrconfig.More));

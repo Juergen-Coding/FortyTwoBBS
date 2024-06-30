@@ -1,4 +1,12 @@
+v1.0.9		30-Jun-2024 - Andrew Leary
+
+		1.  Re-implemented plain ASCII support.  This should allow the
+                    BBS to support access from a dumb terminal or teletype.
+
+		2.  Several minor spelling and grammar corrections.
+
 v1.0.8.8	02-Jun-2024 - Andrew Leary
+
 		1.  MBSETUP will no longer globally add connections to NetMail
                     areas.
 

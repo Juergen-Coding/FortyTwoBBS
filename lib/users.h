@@ -96,7 +96,7 @@ struct	userrec {
 
 	unsigned	Hidden		: 1;	/* Hide User from Lists     */
 	unsigned	HotKeys		: 1;	/* Hot-Keys ON/OFF          */
-	unsigned	xGraphMode	: 1;
+	unsigned	GraphMode	: 1;    /* ANSI ON/OFF              */
 	unsigned	Deleted		: 1;	/* Deleted Status           */
 	unsigned	NeverDelete	: 1;	/* Never Delete User        */
 	unsigned	xChat		: 1;

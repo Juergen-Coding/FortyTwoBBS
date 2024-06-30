@@ -237,13 +237,25 @@ int DisplayFile(char *filename)
      * Open the file in the following search order:
      *  1 - users language .ans
      *  2 - default language .ans
-     *  3 - Abort, there is no file to show.
+     *  3 - users language .asc
+     *  4 - default language .asc
+     *  5 - Abort, there is no file to show.
      */
-    snprintf(newfile, PATH_MAX, "%s/share/int/txtfiles/%s/%s.ans", getenv("MBSE_ROOT"), lang.lc, filename);
-    if ((fp = fopen(newfile, "rb")) == NULL) {
-	snprintf(newfile, PATH_MAX, "%s/share/int/txtfiles/%s/%s.ans", getenv("MBSE_ROOT"), CFG.deflang, filename);
-	if ((fp = fopen(newfile, "rb")) == NULL) {
-	    return FALSE;
+    
+    if (exitinfo.GraphMode) {
+        snprintf(newfile, PATH_MAX, "%s/share/int/txtfiles/%s/%s.ans", getenv("MBSE_ROOT"), lang.lc, filename);
+        if ((fp = fopen(newfile, "rb")) == NULL) {
+	    snprintf(newfile, PATH_MAX, "%s/share/int/txtfiles/%s/%s.ans", getenv("MBSE_ROOT"), CFG.deflang, filename);
+	    fp = fopen(newfile, "rb");
+	}
+    }
+    if (fp == NULL) {
+        snprintf(newfile, PATH_MAX, "%s/share/int/txtfiles/%s/%s.asc", getenv("MBSE_ROOT"), lang.lc, filename);
+        if ((fp = fopen(newfile, "rb")) == NULL) {
+            snprintf(newfile, PATH_MAX, "%s/share/int/txtfiles/%s/%s.asc", getenv("MBSE_ROOT"), CFG.deflang, filename);
+            if ((fp = fopen(newfile, "rb")) == NULL) {
+                return FALSE;
+	    }
 	}
     }
 
@@ -474,15 +486,15 @@ char *ControlCodeU(int ch)
 		break;
 
 	case 'Q':
-	 	snprintf(temp, 81, "%s", exitinfo.ieNEWS ? (char *) Language(147) : (char *) Language(148));
+	 	snprintf(temp, 81, "%s", exitinfo.ieNEWS?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case 'P':
-		snprintf(temp, 81, "%s", (char *) Language(147));
+		snprintf(temp, 81, "%s", exitinfo.GraphMode?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case 'R':
-		snprintf(temp, 81, "%s", exitinfo.HotKeys ? (char *) Language(147) : (char *) Language(148));
+		snprintf(temp, 81, "%s", exitinfo.HotKeys?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case 'S':
@@ -506,15 +518,15 @@ char *ControlCodeU(int ch)
 		break;
 
 	case 'Z':
-	 	snprintf(temp, 81, "%s", exitinfo.DoNotDisturb ? (char *) Language(147) : (char *) Language(148));
+	 	snprintf(temp, 81, "%s", exitinfo.DoNotDisturb?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case '1':
-		snprintf(temp, 81, "%s", exitinfo.MailScan ? (char *) Language(147) : (char *) Language(148));
+		snprintf(temp, 81, "%s", exitinfo.MailScan?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case '2':
-		snprintf(temp, 81, "%s", exitinfo.ieFILE ? (char *) Language(147) : (char *) Language(148));
+		snprintf(temp, 81, "%s", exitinfo.ieFILE?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case '3':
@@ -530,7 +542,7 @@ char *ControlCodeU(int ch)
 		break;
 
 	case '4':
-		snprintf(temp, 81, "%s", exitinfo.FSemacs ? (char *) Language(147) : (char *) Language(148));
+		snprintf(temp, 81, "%s", exitinfo.FSemacs?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case '5':
@@ -546,7 +558,7 @@ char *ControlCodeU(int ch)
 		break;
 
 	case '8':
-		snprintf(temp, 81, "%s", exitinfo.OL_ExtInfo ? (char *) Language(147) : (char *) Language(148));
+		snprintf(temp, 81, "%s", exitinfo.OL_ExtInfo?(char *)Language(147):(char *)Language(148));
 		break;
 
 	case '9':

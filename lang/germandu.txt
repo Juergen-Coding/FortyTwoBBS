@@ -73,8 +73,8 @@ JN|Moechtest Du Menues mit "Hot-Keys" verwenden? [<J>a/<n>ein]:
 |Unbekannt 
 |Bisheriger Ort: 
 |Bitte gib eine laengere Bezeichung fuer den Ort ein (min 
-|
-|
+|ANSI Modus ist jetzt EIN
+|ANSI Modus ist jetzt AUS
 |Die Mitteilung existiert nicht
 |System-Mitteilungen sind jetzt EIN
 |System-Mitteilungen sind jetzt AUS

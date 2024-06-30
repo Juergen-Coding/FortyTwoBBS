@@ -73,8 +73,8 @@ JN|Wilt U sneltoets menus? [J/n]:
 |Niet gevonden 
 |Oude woonplaats: 
 |Geef een langere woonplaats naam (minimaal 
-|
-|
+|ANSI kleuren staan nu AAN
+|ANSI kleuren staan nu UIT
 |Bericht bestaat niet
 |News berichten staan nu AAN
 |News berichten staan nu UIT

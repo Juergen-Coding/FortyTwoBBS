@@ -613,10 +613,11 @@ void e_flags(int Users)
 
     clr_index();
     set_color(WHITE, BLACK);
-    if (Users)
+    if (Users) {
 	mbse_mvprintw( 5, 6, "1.6   EDIT USER FLAG DESCRIPTIONS");
+    } else {
 	mbse_mvprintw( 5, 6, "1.16  EDIT MANAGER FLAG DESCRIPTIONS");
-    
+    }
     set_color(CYAN, BLACK);
     for (i = 0; i < 32; i++) {
 	if (i < 11) 

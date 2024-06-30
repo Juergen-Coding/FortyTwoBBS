@@ -594,6 +594,33 @@ void Chg_Address()
 
 
 
+
+/*
+ * Toggle Graphics
+ */
+void Chg_Graphics()
+{
+    ReadExitinfo();
+    Enter(2);
+    
+    if (exitinfo.GraphMode) {
+        exitinfo.GraphMode = FALSE;
+        /* ANSI mode turned OFF */
+        pout(WHITE, BLACK, (char *) Language(76));
+    } else {
+        exitinfo.GraphMode = TRUE;
+        /* ANSI mode turned ON */
+        pout(WHITE, BLACK, (char *) Language(75));
+    }
+    
+    Syslog ('+', "Graphics mode now %s", exitinfo.GraphMode?"On":"Off");
+    Enter(2);
+    WriteExitinfo();
+    sleep(2);
+}
+
+
+
 void Chg_VoicePhone()
 {
     char	temp[81];
