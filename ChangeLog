@@ -1,3 +1,11 @@
+v1.1.0		04-Jul-2024 - Andrew Leary
+
+		1.  Re-implemented the line editor for messages.
+
+		2.  When the user has ANSI color support off, the message 
+		    header for the external editor will no longer have ANSI
+		    color codes.
+
 v1.0.9		30-Jun-2024 - Andrew Leary
 
 		1.  Re-implemented plain ASCII support.  This should allow the

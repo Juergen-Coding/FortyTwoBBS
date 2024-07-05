@@ -1843,7 +1843,7 @@ int edit_newsmode(int y, int x, int val)
 char *getmsgeditor(int val)
 {
     switch (val) {
-	case X_LINEEDIT:    return (char *)"FS. ";
+	case LINEEDIT:      return (char *)"Line";
 	case FSEDIT:	    return (char *)"FS. ";
 	case EXTEDIT:	    return (char *)"Ext.";
 	default:	    return NULL;
@@ -1875,7 +1875,7 @@ int edit_msgeditor(int y, int x, int val)
 		if (val < EXTEDIT)
 		    val++;
 		else
-		    val = FSEDIT;
+		    val = LINEEDIT;
 	    } else {
 		val = FSEDIT;
 	    }

@@ -1044,7 +1044,7 @@ struct	sysconfig {
 	securityrec	newuser_access;		/* New Users Access level   */
 	int		OLR_MaxMsgs;		/* OLR Max nr Msgs download */
 	unsigned	iCapUserName    : 1;	/* Capitalize Username      */
-	unsigned	xiAnsi	        : 1;
+	unsigned	iAnsi	        : 1;    /* Ask ANSI color           */
 	unsigned	iSex            : 1;	/* Ask Sex                  */
 	unsigned	iDataPhone      : 1;	/* Ask Data Phone           */
 	unsigned	iVoicePhone     : 1;	/* Ask Voice Phone          */

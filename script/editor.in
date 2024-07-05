@@ -36,7 +36,7 @@ PARAM="$HOME/edit.msg"
 # uncomment next line. If user select Emacs keys then this
 # editor was selected.
 
-if [ "BBSFSEDKEYS" = "1" ]; then EDITOR=@joebin@/bbsjmacs; fi
+if [[ $BBSFSEDKEYS == 1 ]]; then EDITOR=@joebin@/bbsjmacs; fi
 
 
 ## Setting Language environmment for msg header
@@ -90,12 +90,21 @@ esac
 alarma $TIME $EDITOR &
 
 ## Draw header and call editor
-echo -e "[2J[1;1H[0m[1;44m                                                                                 "
-echo -e "[1;1H[0m[1;44m$LANGAREA: [31m$AREANUM[37m [33m$AREA"
-echo -e "[2;1H[0m[1;33m$LANGFROM: [32m$MSGFROM [36m$MSGFROMADDR"
-echo -e "[3;1H[0m[1;33m$LANGTO: [0;32m$MSGTO [36m$MSGTOADDR"
-echo -e "[4;1H[0m[1;33m$LANGRE: [0;32m$MSGSUBJECT"
-echo -e "[5;1H[0m"
+if [[ $ANSIMODE == 1 ]]; then
+  echo -e "[2J[1;1H[0m[1;44m                                                                                 "
+  echo -e "[1;1H[0m[1;44m$LANGAREA: [31m$AREANUM[37m [33m$AREA"
+  echo -e "[2;1H[0m[1;33m$LANGFROM: [32m$MSGFROM [36m$MSGFROMADDR"
+  echo -e "[3;1H[0m[1;33m$LANGTO: [0;32m$MSGTO [36m$MSGTOADDR"
+  echo -e "[4;1H[0m[1;33m$LANGRE: [0;32m$MSGSUBJECT"
+  echo -e "[5;1H[0m"
+else
+  echo -e "[2J[1;1H[0m                                                                                 "
+  echo -e "[1;1H[0m$LANGAREA: $AREANUM $AREA"
+  echo -e "[2;1H[0m$LANGFROM: $MSGFROM $MSGFROMADDR"
+  echo -e "[3;1H[0m$LANGTO: $MSGTO $MSGTOADDR"
+  echo -e "[4;1H[0m$LANGRE: $MSGSUBJECT"
+  echo -e "[5;1H[0m"
+fi
 $EDITOR $PARAM
 ## kill alarm
 killall sleep >/dev/null 2>&1

@@ -384,7 +384,7 @@ void SysopComment(char *Cmt)
 int Edit_Msg()
 {
     switch (exitinfo.MsgEditor) {
-	case X_LINEEDIT:    return Fs_Edit();
+	case LINEEDIT:      return Line_Edit();
 	case FSEDIT:	    return Fs_Edit();
 	case EXTEDIT:	    return Ext_Edit();
     }
@@ -2925,6 +2925,7 @@ int Ext_Edit()
 	fprintf(fd,"BBSFSEDKEYS='%d'\n",exitinfo.FSemacs);
 	fprintf(fd,"LINES='%d'\n",rows);
 	fprintf(fd,"COLUMNS='80'\n");
+	fprintf(fd,"ANSIMODE='%d'\n", exitinfo.GraphMode);
 	fclose(fd);
     }
 

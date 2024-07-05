@@ -371,7 +371,7 @@ JN|Sind Sie sicher? [J/n]:
 |Neue Dateien suchen ist jetzt AN
 |Neue Dateien suchen ist jetzt AUS
 |Sie verwenden jetzt den 
-12|Auswahl: 1) Vollbild-Editor, 2) Externer Editor 
+123|Auswahl: 1) Zeilen-Editor, 2) Vollbild-Editor, 3) Externer Editor 
 |Es liegen keine Mitteilungen zum Herunterladen vor!
 |Weiter mit <Enter> ... 
 |Zentrieren
@@ -436,7 +436,7 @@ JN|Moechten Sie diese Mitteilungen herunterladen [J/n]?
 |Ihr Passwort ist abgelaufen, neues Passwort: 
 |Druecken Sie <Enter> um fortzufahren 
 |Kein Senden moeglich, dieser Bereich ist schreibgeschuetzt !
-1|Auswahl: 1) Vollbild-Editor
+1|Auswahl: 1) Zeilen-Editor, Vollbild-Editor
 |"Offline Reader" Paket heraufladen 
 |Kein oder fehlerhaftes Paket erhalten
 |Unbekannter Datenkompressionstyp

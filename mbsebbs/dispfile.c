@@ -531,7 +531,7 @@ char *ControlCodeU(int ch)
 
 	case '3':
 		switch(exitinfo.MsgEditor) {
-		    case X_LINEEDIT:	snprintf(temp, 81, "%s", Language(388));
+		    case LINEEDIT:	snprintf(temp, 81, "%s", Language(387));
 					break;
 		    case FSEDIT:	snprintf(temp, 81, "%s", Language(388));
 					break;

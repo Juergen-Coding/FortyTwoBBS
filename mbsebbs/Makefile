@@ -6,7 +6,7 @@ include ../Makefile.global
 
 SRCS		= signature.c filesub.c language.c mib.c \
 		  msgutil.c oneline.c morefile.c \
-		  email.c fsedit.c page.c \
+		  email.c fsedit.c lineedit.c page.c \
 		  bye.c funcs.c mail.c term.c ttyio.c openport.c \
 		  newuser.c pinfo.c timecheck.c change.c transfer.c \
 		  exitinfo.c mbsebbs.c menu.c pop3.c lastcallers.c \
@@ -15,7 +15,7 @@ SRCS		= signature.c filesub.c language.c mib.c \
 		  door.c dispfile.c userlist.c timestats.c logentry.c \
 		  ymsend.c ymrecv.c zmmisc.c zmsend.c zmrecv.c protocol.c
 HDRS		= signature.h filesub.h language.h mbsebbs.h misc.h offline.h \
-		  timeout.h email.h fsedit.h mib.h \
+		  timeout.h email.h fsedit.h lineedit.h mib.h \
 		  msgutil.h oneline.h user.h bye.h morefile.h \
 		  funcs.h mail.h page.h term.h ttyio.h openport.h \
 		  change.h exitinfo.h newuser.h \
@@ -24,7 +24,7 @@ HDRS		= signature.h filesub.h language.h mbsebbs.h misc.h offline.h \
 		  door.h dispfile.h userlist.h timestats.h logentry.h lastcallers.h \
 		  ymsend.h ymrecv.h zmmisc.h zmsend.h zmrecv.h protocol.h
 MBSEBBS_OBJS	= signature.o chat.o file.o funcs.o mail.o menu.o mib.o \
-		  misc.o pinfo.o oneline.o page.o fsedit.o transfer.o \
+		  misc.o pinfo.o oneline.o page.o fsedit.o lineedit.o transfer.o \
 		  bye.o change.o mbsebbs.o timeout.o user.o timecheck.o \
 		  exitinfo.o filesub.o offline.o language.o msgutil.o \
 		  pop3.o email.o input.o whoson.o door.o dispfile.o userlist.o timestats.o \
@@ -33,7 +33,7 @@ MBSEBBS_OBJS	= signature.o chat.o file.o funcs.o mail.o menu.o mib.o \
 MBSEBBS_LIBS	= ../lib/libmbse.a ../lib/libmsgbase.a ../lib/libdbase.a ../lib/libmbinet.a ../lib/libnodelist.a
 MBNEWUSR_OBJS	= mbnewusr.o newuser.o language.o timeout.o dispfile.o oneline.o ttyio.o mib.o \
 		  timecheck.o input.o exitinfo.o funcs.o misc.o change.o door.o term.o openport.o \
-		  filesub.o mail.o email.o msgutil.o pop3.o fsedit.o whoson.o protocol.o
+		  filesub.o mail.o email.o msgutil.o pop3.o fsedit.o lineedit.o whoson.o protocol.o
 MBNEWUSR_LIBS	= ../lib/libmbse.a ../lib/libmsgbase.a ../lib/libdbase.a ../lib/libmbinet.a ../lib/libnodelist.a
 OTHER		= Makefile
 TARGET		= mbsebbs mbnewusr

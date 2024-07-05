@@ -119,19 +119,8 @@ int OpenUsers(void)
 	     * will be empty.
 	     */
 	    memset(&usrconfig, 0, sizeof(usrconfig));
+
 	    while (fread(&usrconfig, oldsize, 1, fin) == 1) {
-		/*
-		 * Since 0.83.0 there is no more line editor.
-		 */
-		if ((usrconfig.MsgEditor == X_LINEEDIT) || 
-			((usrconfig.MsgEditor == EXTEDIT) && (strlen(CFG.externaleditor) == 0))) {
-		    if (strlen(CFG.externaleditor))
-			usrconfig.MsgEditor = EXTEDIT;
-		    else
-			usrconfig.MsgEditor = FSEDIT;
-		    UsrUpdated = 1;
-		    Syslog('+', "Adjusted editor setting for user %s", usrconfig.sUserName);
-		}
 		fwrite(&usrconfig, sizeof(usrconfig), 1, fout);
 		memset(&usrconfig, 0, sizeof(usrconfig));
 	    }
