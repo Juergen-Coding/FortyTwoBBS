@@ -1,10 +1,16 @@
-v1.1.0		04-Jul-2024 - Andrew Leary
+v1.1.0		11-Jul-2024 - Andrew Leary
 
 		1.  Re-implemented the line editor for messages.
 
 		2.  When the user has ANSI color support off, the message 
 		    header for the external editor will no longer have ANSI
 		    color codes.
+
+		3.  MBSETUP 1.7.16 will now allow you to decide if new users
+		    will be asked if they want ANSI color.
+
+		4.  MBNEWUSER will now ask new users if they want ANSI color,
+		    if MBSETUP 1.7.16 is toggled to Yes.
 
 v1.0.9		30-Jun-2024 - Andrew Leary
 

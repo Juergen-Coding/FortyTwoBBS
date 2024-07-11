@@ -42,7 +42,7 @@ YN|Check for new files at login? [Y/n]:
 |Your passwords do not match!  Try again.
 |Your password must contain at least 
 |characters!  Try again.
-|
+YN|Do you want ANSI and graphics mode? [Y/n]:
 |Please enter your voice number:
 |Message exported to your private directory as: 
 |Please enter a proper phone number!

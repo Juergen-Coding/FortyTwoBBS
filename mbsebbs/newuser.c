@@ -404,6 +404,30 @@ int newuser(void)
     usrconfig.Security = CFG.newuser_access;
     usrconfig.Email = CFG.GiveEmail;
 
+    if (CFG.iAnsi) {
+        while (TRUE) {
+            Enter(1);
+            /* Would you like ANSI colors [Y/n]: */
+            pout(LIGHTRED, BLACK, (char *) Language(44));
+            colour(CFG.InputColourF, CFG.InputColourB);
+            alarm_on();
+            GetstrC(temp, 8);
+            
+            if ((toupper(temp[0]) == Keystroke(44, 0)) || (strcmp(temp,"") == 0)) {
+                usrconfig.GraphMode = TRUE;
+                break;
+            }
+            if (toupper(temp[0]) == Keystroke(44, 1)) {
+                usrconfig.GraphMode = FALSE;
+                break;
+            } else {
+                /* Please answer Y or N */
+                pout(WHITE, BLACK, (char *) Language(63));
+            }
+        }
+    } else
+        usrconfig.GraphMode = TRUE; /* Default set it to ANSI */ 
+
     if (CFG.iHotkeys) {
 	while (TRUE) {
 	    Enter(1);

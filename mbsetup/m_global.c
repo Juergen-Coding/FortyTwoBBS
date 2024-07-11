@@ -484,7 +484,7 @@ void e_newuser(void)
 		show_asktype(13,68, CFG.AskNewfiles);
 		show_bool(14,68, CFG.iAnsi);
 
-		switch(select_menu(15)) {
+		switch(select_menu(16)) {
 		case 0:	return;
 		case 1: E_SEC(  7,28, CFG.newuser_access, "1.7.1 NEWUSER SECURITY"); s_newuser(); break;
 		case 2:	E_BOOL( 8,28, CFG.iCapUserName, "^Capitalize^ username"); break;
@@ -506,7 +506,7 @@ void e_newuser(void)
 		case 15:CFG.AskNewfiles = edit_asktype(13,68,CFG.AskNewfiles, 
 				(char *)"Set ^new files^ check at login, toggle wit space, Enter when done");
 			break;
-                case 16:E_BOOL(14,68), CFG.iAnsi, "Ask user if he wants ^ANSI color^"); break;
+                case 16:E_BOOL(14,68, CFG.iAnsi, "Ask user if he wants ^ANSI color^"); break;
 		}
 	};
 }

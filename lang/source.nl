@@ -42,7 +42,7 @@ JN|Kijk voor nieuwe bestanden tijdens login [J/n]:
 |De wachtwoorden zijn niet gelijk! Opnieuw.
 |Uw wachtwoord moet minstens 
 |karakters bevatten! Opnieuw.
-|
+JN|Wilt U ANSI karakters en kleuren [J/n]:
 |Geef Uw Spraak Telefoonnummer
 |Bericht weggeschreven naar Uw prive directory als: 
 |Geef het nummer in een goed formaat
