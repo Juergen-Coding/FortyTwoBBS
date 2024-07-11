@@ -456,6 +456,7 @@ void s_newuser(void)
 	mbse_mvprintw(11,46, "13.   Give email");
 	mbse_mvprintw(12,46, "14.   Do Newmail");
 	mbse_mvprintw(13,46, "15.   Do newfiles");
+	mbse_mvprintw(14,46, "16.   Ask ANSI");
 }
 
 
@@ -481,6 +482,7 @@ void e_newuser(void)
 		show_bool(11,68, CFG.GiveEmail);
 		show_asktype(12,68, CFG.AskNewmail);
 		show_asktype(13,68, CFG.AskNewfiles);
+		show_bool(14,68, CFG.iAnsi);
 
 		switch(select_menu(15)) {
 		case 0:	return;
@@ -504,6 +506,7 @@ void e_newuser(void)
 		case 15:CFG.AskNewfiles = edit_asktype(13,68,CFG.AskNewfiles, 
 				(char *)"Set ^new files^ check at login, toggle wit space, Enter when done");
 			break;
+                case 16:E_BOOL(14,68), CFG.iAnsi, "Ask user if he wants ^ANSI color^"); break;
 		}
 	};
 }

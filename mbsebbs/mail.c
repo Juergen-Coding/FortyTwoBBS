@@ -49,6 +49,7 @@
 #include "oneline.h"
 #include "exitinfo.h"
 #include "fsedit.h"
+#include "lineedit.h"
 #include "filesub.h"
 #include "msgutil.h"
 #include "pop3.h"

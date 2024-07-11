@@ -778,7 +778,7 @@ void Pause()
     string = malloc(81);
 
     /* Press (Enter) to continue: */
-    snprintf(string, 81, "\r%s\r\n", (char *) Language(375));
+    snprintf(string, 81, "\r%s", (char *) Language(375));
     colour(CFG.CRColourF, CFG.CRColourB);
     PUTSTR(string);
     

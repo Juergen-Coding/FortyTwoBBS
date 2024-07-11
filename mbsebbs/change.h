@@ -7,6 +7,7 @@ int  Chg_Language(int);		/* Change language			*/
 void Chg_Password(void);	/* Change BBS Password			*/
 void Chg_Handle(void);		/* Change Handle			*/
 void Chg_Hotkeys(void);		/* Toggle Hotkeys			*/
+void Chg_Graphics(void);	/* Toggle ANSI Color			*/
 void Chg_Disturb(void);		/* Toggle "Do not disturb"		*/
 void Chg_MailCheck(void);	/* Toggle New Mail Check		*/
 void Chg_FileCheck(void);	/* Toggle New Files Check		*/
