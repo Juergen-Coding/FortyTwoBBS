@@ -437,52 +437,74 @@ log "+" "[$?] chown mbse $MHOME/home/bbs"
 chgrp bbs $MHOME/home/bbs
 log "+" "[$?] chgrp bbs $MHOME/home/bbs"
 
-echo ", removing password:"
-if [ "$OSTYPE" = "Linux" ]; then
-   echo -n "$$" >/etc/passwd.lock
-   if [ -f /etc/shadow ]; then
-	log "+" "Standard shadow password system"
-	# Not all systems are the same...
-	if grep -q ^bbs:\!\!: /etc/shadow ; then
-	    sed /bbs:\!\!:/s/bbs:\!\!:/bbs::/ /etc/shadow >/etc/shadow.bbs
-	else
-	    sed /bbs:\!:/s/bbs:\!:/bbs::/ /etc/shadow >/etc/shadow.bbs
-	fi
-	log "+" "[$?] removed password from user bbs"
-	mv /etc/shadow /etc/shadow.mbse
-	log "+" "[$?] made backup of /etc/shadow"
-	mv /etc/shadow.bbs /etc/shadow
-	log "+" "[$?] moved new /etc/shadow in place"
-	if [ "$DISTNAME" = "Debian" ] || [ "$DISTNAME" = "Ubuntu" ] || [ "$DISTNAME" = "SuSE" ] || [ "$DISTNAME" = "openSuSE" ]; then
-	    # Debian, Ubuntu and SuSE use other ownership of /etc/shadow
-	    chmod 640 /etc/shadow
-	    chgrp shadow /etc/shadow
-	    log "+" "[$?] Debian/Ubuntu/SuSE style owner of /etc/shadow (0640 root.shadow)"
-	else
-	    chmod 600 /etc/shadow
-	    log "+" "[$?] Default style owner of /etc/shadow (0600 root.root)"
-	fi
-	echo " File /etc/shadow.mbse is your backup of /etc/shadow"
-    else
-	log "+" "Not a shadow password system"
-        if grep -q ^bbs:\!\!: /etc/passwd ; then
-            sed /bbs:\!\!:/s/bbs:\!\!:/bbs::/ /etc/passwd >/etc/passwd.bbs
-        else
-            sed /bbs:\!:/s/bbs:\!:/bbs::/ /etc/passwd >/etc/passwd.bbs
-        fi
-	log "+" "[$?] Removed password of user bbs"
-	mv /etc/passwd /etc/passwd.mbse
-	log "+" "[$?] Made backup of /etc/passwd"
-	mv /etc/passwd.bbs /etc/passwd
-	log "+" "[$?] Moved new /etc/passwd in place"
-        chmod 644 /etc/passwd
-	log "+" "[$?] Changed owner of /etc/passwd"
-	echo " File /etc/passwd.mbse is your backup of /etc/passwd"
-    fi
-    rm /etc/passwd.lock
-fi
-if [ "$OSTYPE" = "NetBSD" ] || [ "$OSTYPE" = "OpenBSD" ] || [ "$OSTYPE" = "Darwin" ]; then
 cat << EOF
+
+Do you want to set a password for the newuser (bbs) account?
+
+  Doing so will allow new users to register via SSH.  This is more
+  secure than the default of registering via telnet.  On some distros,
+  support for telnet connections is no longer installed by default,
+  so it is recommended to do this.  You might want to add the newuser
+  username and password to $MHOME/etc/issue so that it will be displayed
+  to telnet applicants upon connection.
+  
+EOF
+
+read -r -p "Set a password? [y/N] " response
+
+case "$response" in
+    [yY][eE][sS]|[yY])
+        passwd bbs
+        log "+" "[$?] Password is set for user bbs"
+        ;;
+    *)
+        echo ", removing password:"
+        if [ "$OSTYPE" = "Linux" ]; then
+           echo -n "$$" >/etc/passwd.lock
+           if [ -f /etc/shadow ]; then
+	        log "+" "Standard shadow password system"
+	        # Not all systems are the same...
+	        if grep -q ^bbs:\!\!: /etc/shadow ; then
+	            sed /bbs:\!\!:/s/bbs:\!\!:/bbs::/ /etc/shadow >/etc/shadow.bbs
+	        else
+	            sed /bbs:\!:/s/bbs:\!:/bbs::/ /etc/shadow >/etc/shadow.bbs
+	        fi
+	        log "+" "[$?] removed password from user bbs"
+	        mv /etc/shadow /etc/shadow.mbse
+	        log "+" "[$?] made backup of /etc/shadow"
+	        mv /etc/shadow.bbs /etc/shadow
+	        log "+" "[$?] moved new /etc/shadow in place"
+	    if [ "$DISTNAME" = "Debian" ] || [ "$DISTNAME" = "Ubuntu" ] || [ "$DISTNAME" = "SuSE" ] || [ "$DISTNAME" = "openSuSE" ]; then
+	        # Debian, Ubuntu and SuSE use other ownership of /etc/shadow
+	        chmod 640 /etc/shadow
+	        chgrp shadow /etc/shadow
+	        log "+" "[$?] Debian/Ubuntu/SuSE style owner of /etc/shadow (0640 root.shadow)"
+	    else
+	        chmod 600 /etc/shadow
+	        log "+" "[$?] Default style owner of /etc/shadow (0600 root.root)"
+	    fi
+	    echo " File /etc/shadow.mbse is your backup of /etc/shadow"
+        else
+	    log "+" "Not a shadow password system"
+            if grep -q ^bbs:\!\!: /etc/passwd ; then
+                sed /bbs:\!\!:/s/bbs:\!\!:/bbs::/ /etc/passwd >/etc/passwd.bbs
+            else
+                sed /bbs:\!:/s/bbs:\!:/bbs::/ /etc/passwd >/etc/passwd.bbs
+            fi
+	    log "+" "[$?] Removed password of user bbs"
+	    mv /etc/passwd /etc/passwd.mbse
+	    log "+" "[$?] Made backup of /etc/passwd"
+	    mv /etc/passwd.bbs /etc/passwd
+	    log "+" "[$?] Moved new /etc/passwd in place"
+            chmod 644 /etc/passwd
+	    log "+" "[$?] Changed owner of /etc/passwd"
+	    echo " File /etc/passwd.mbse is your backup of /etc/passwd"
+        fi
+        rm /etc/passwd.lock
+    fi
+    
+    if [ "$OSTYPE" = "NetBSD" ] || [ "$OSTYPE" = "OpenBSD" ] || [ "$OSTYPE" = "Darwin" ]; then
+        cat << EOF
 
 READ THIS CAREFULLY NOW   READ THIS CAREFULLY NOW
 
@@ -492,19 +514,20 @@ Next I start the editor you need to use, remove all the stars"
 after the word Password, then save the file with "wq!"
 
 EOF
-    echo -n "Press Enter when ready "
-    read junk
-    chpass bbs
-fi
-if [ "$OSTYPE" = "FreeBSD" ]; then
-    #
-    #  FreeBSD has a util to remove a password
-    #
-    chpass -p "" bbs
-    log "+" "[$?] Removed password of user bbs"
-fi
-echo ""
-
+        echo -n "Press Enter when ready "
+        read junk
+        chpass bbs
+    fi
+    if [ "$OSTYPE" = "FreeBSD" ]; then
+        #
+        #  FreeBSD has a util to remove a password
+        #
+        chpass -p "" bbs
+        log "+" "[$?] Removed password of user bbs"
+    fi
+    echo ""
+    ;;
+esac
 
 if grep -q ^binkp /etc/services ; then
     BINKD=FALSE

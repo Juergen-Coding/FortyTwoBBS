@@ -9,8 +9,22 @@ v1.1.0		11-Jul-2024 - Andrew Leary
 		3.  MBSETUP 1.7.16 will now allow you to decide if new users
 		    will be asked if they want ANSI color.
 
-		4.  MBNEWUSER will now ask new users if they want ANSI color,
+		4.  MBNEWUSR will now ask new users if they want ANSI color,
 		    if MBSETUP 1.7.16 is toggled to Yes.
+
+                5.  SETUP.sh will now prompt the SysOp if they want to set a
+                    password for the bbs (newuser) account on a first time
+                    installation of MBSE BBS.  This will allow new users to
+                    register for the BBS over an SSH connection, which is more
+                    secure than Telnet.  Some distributions also no longer
+                    include Telnet support by default, so it is recommended
+                    to enable this.
+
+                    Existing SysOps can enable this feature by executing:
+
+                    passwd bbs
+
+                    as root.
 
 v1.0.9		30-Jun-2024 - Andrew Leary
 
