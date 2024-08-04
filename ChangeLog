@@ -1,4 +1,4 @@
-v1.1.0		11-Jul-2024 - Andrew Leary
+v1.1.0		04-Aug-2024 - Andrew Leary
 
 		1.  Re-implemented the line editor for messages.
 
@@ -13,7 +13,7 @@ v1.1.0		11-Jul-2024 - Andrew Leary
 		    if MBSETUP 1.7.16 is toggled to Yes.
 
                 5.  SETUP.sh will now prompt the SysOp if they want to set a
-                    password for the bbs (newuser) account on a first time
+                    password for the newuser (bbs) account on a first time
                     installation of MBSE BBS.  This will allow new users to
                     register for the BBS over an SSH connection, which is more
                     secure than Telnet.  Some distributions also no longer
@@ -25,6 +25,8 @@ v1.1.0		11-Jul-2024 - Andrew Leary
                     passwd bbs
 
                     as root.
+
+                6.  SETUP.sh now supports installation on Linux Mint.
 
 v1.0.9		30-Jun-2024 - Andrew Leary
 

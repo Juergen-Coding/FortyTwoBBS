@@ -91,6 +91,11 @@ if [ "$OSTYPE" = "Linux" ]; then
 	    DISTNAME="Ubuntu"
 	    DISTVERS=$( cat /etc/issue | awk '{ print $2 }' )
 	fi
+	# Mint is based on Ubuntu
+	if grep -q "Mint" /etc/issue ; then
+	    DISTNAME="Linux Mint"
+	    DISTVERS=$( cat /etc/issue | awk '{ print $3 }' )
+	fi
     	# Devuan is based on Debian
     	if [ -f /etc/devuan_version ]; then
     	    DISTNAME="Devuan"
@@ -204,6 +209,7 @@ fi
 #
 # Check if this is Ubuntu. Ubuntu by default has no xinetd installed.
 #
+
 if [ "$DISTNAME" = "Ubuntu" ]; then
     if [ ! -f /etc/xinetd.d/echo ]; then
 	echo "*** You seem to be using Ubuntu but have not yet installed xinetd."
@@ -211,6 +217,20 @@ if [ "$DISTNAME" = "Ubuntu" ]; then
 	echo "*** SETUP aborted ***"
 	log "!" "Aborted, Ubuntu without xinetd package"
 	exit 2
+    fi
+fi
+
+#
+# Check if this is Linux Mint.  Linux Mint by default has no xinetd installed.
+#
+
+if [ "$DISTNAME" = "Linux Mint" ]; then
+    if [ ! -f /etc/xinetd.d/echo ]; then
+        echo "*** You seem to be using Linux Mint but have not yet installed xinetd."
+        echo "    'sudo apt-get install xinetd' will install that for you. ***"
+        echo "*** SETUP aborted ***"
+        log "!" "Aborted, Linux Mint without xinetd package"
+        exit 2
     fi
 fi
 
@@ -474,8 +494,8 @@ case "$response" in
 	        log "+" "[$?] made backup of /etc/shadow"
 	        mv /etc/shadow.bbs /etc/shadow
 	        log "+" "[$?] moved new /etc/shadow in place"
-	    if [ "$DISTNAME" = "Debian" ] || [ "$DISTNAME" = "Ubuntu" ] || [ "$DISTNAME" = "SuSE" ] || [ "$DISTNAME" = "openSuSE" ]; then
-	        # Debian, Ubuntu and SuSE use other ownership of /etc/shadow
+	    if [ "$DISTNAME" = "Debian" ] || [ "$DISTNAME" = "Ubuntu" ] || [ "$DISTNAME" = "Linux Mint" ] || [ "$DISTNAME" = "SuSE" ] || [ "$DISTNAME" = "openSuSE" ]; then
+	        # Debian, Ubuntu, Linux Mint and SuSE use other ownership of /etc/shadow
 	        chmod 640 /etc/shadow
 	        chgrp shadow /etc/shadow
 	        log "+" "[$?] Debian/Ubuntu/SuSE style owner of /etc/shadow (0640 root.shadow)"

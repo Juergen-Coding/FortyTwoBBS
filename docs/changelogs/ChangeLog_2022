@@ -1,4 +1,4 @@
-v1.0.8.2	28-Jul-2022 - Andrew Leary/Michael Dillon
+v1.0.8.2	28-Jul-2022 - Andrew Leary
 
 		1.  Revert message area duplicate checking for further testing.
 
@@ -6,7 +6,7 @@ v1.0.8.2	28-Jul-2022 - Andrew Leary/Michael Dillon
                     unprotected inbound.  This feature is still experimental &
                     not recommended for use on a production system.
 
-v1.0.8.1	21-Jul-2022 - Andrew Leary/Michael Dillon
+v1.0.8.1	21-Jul-2022 - Andrew Leary
 
 		1.  Fix bug that was leaving .PKTs unprocessed in the inbound.
 
@@ -25,7 +25,7 @@ v1.0.8		05-Feb-2022 - Andrew Leary
 		
 		1.  Release Candidate for the next public release of MBSE BBS.
 
-v1.0.7.24	06-Jan-2022 - Michael Dillon/Andrew Leary
+v1.0.7.24	06-Jan-2022 - Andrew Leary
 
 		1.  Addressed the vast majority of compile-time warnings.
 
