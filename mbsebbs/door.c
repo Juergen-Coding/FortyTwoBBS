@@ -288,7 +288,7 @@ void ExtDoor(char *Program, int NoDoorsys, int Y2Kdoorsys, int Comport, int NoSu
 		fprintf(fp, "0\r\n");			    /* COM port				*/
 		fprintf(fp, "0\r\n");			    /* Effective baudrate		*/
 	    }
-	    fprintf(fp, "%s\r\n", CFG.bbs_name);	    /* BBS name				*/
+	    fprintf(fp, "MBSE BBS v%.30s\r\n", versioned_sysinfo());	    /* BBS software/version	*/
 	    fprintf(fp, "%d\r\n", grecno);		    /* User record			*/
 	    fprintf(fp, "%s\r\n", exitinfo.sUserName);	    /* User's real name			*/
 	    fprintf(fp, "%s\r\n", exitinfo.sHandle);	    /* User's handle			*/
