@@ -68,17 +68,21 @@
  <LI value="7"><strong>Run external program:</strong> This will execute 
     external programs.<br>
    <strong>Optional data:</strong> The full path and filename of the external
-   program to run. There are a few switches you can give on the commandline:
+   program to run. There are a few switches you can give on the command line:
    <UL>
-    <LI><b>/N</B> will be replaced by the current nodenumber. The nodenumber is
+    <LI><b>/N</B> will be replaced by the current node number. The node number is
     faked by using the record number of the tty lines setup.
     <LI><b>/A</b> will prompt for a filename to enter. The filename the user
-    enters is then replaced on the commandline. This is a dangerous option!
+    enters is then replaced on the command line. This is a dangerous option!
     <LI><b>/T=your prompt</b> is an alternate prompt for entering a filename
     if used together with the <b>/A</b> option.
+    <li><b>/U</b> returns the full path to the user's home directory (i.e <tt>
+    /opt/mbse/user/jdoe</tt> and is used with /N to set up Linux-native BBS doors.</li>
    </UL>
-   <br>
-   <P>
+   <p>For more information on setting up DOS doors with DOSemu, please read the "<a href="../doors/doors.html">
+   Setting up DOS Doors"</a> page.  For Linux-native doors, please read the "<a href="../doors/linux.html">
+   Setting up Linux Doors"</a> page.</p>
+   
 
  <LI value="8"><strong>Show product information:</strong> This will show
    copyright information about MBSE BBS.<br>

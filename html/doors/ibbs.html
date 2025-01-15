@@ -1,0 +1,35 @@
+
+<h3>Netmail support</h3>
+<p>
+In the virtual c: drive you need some directories that point to several other
+mbse subdirectories. You may need at least three of them, one to put netmail in,
+one to put files in to send and one semafore directory to tell mbse there is
+something to send. For example like this:
+<pre>
+ln -s /opt/mbse/var/msgs /opt/mbse/var/dosemu/c/msgs
+ln -s /opt/mbse/var/boxes/node92_100_60 /opt/mbse/var/dosemu/c/outbox
+ln -s /opt/mbse/var/sema /opt/mbse/var/dosemu/c/sema
+</pre>
+In DOS you now have:
+<pre>
+C:\MSGS
+C:\OUTBOX
+C:\SEMA
+</pre>
+In <tt>C:\MSGS</tt> doors may put *.msg netmails. 
+File attaches won't work from these netmails because the netmails
+point to files with dosnames. (May be solved later). The script that calls the
+door, for example <tt>c:\doors\bre.bat</tt> must copy the file to send to
+the node outbound box. In the above example that would be copy to 
+<tt>C:\OUTBOX</tt>.
+To create the semafore to tell mbse to scan add to the batfile (for example
+<tt>C:\DOORS\BRE.BAT</tt> the following two lines:
+<pre>
+CD C:\SEMA
+ECHO ""&gt;MAILOUT
+</pre>
+See also the <a href="faq.html#_Doors">F.A.Q.</a> for some very usefull tips and
+tricks.
+Using the same method with symlinks, you can make all paths you need from the
+rest of mbse visible in DOS. Use with care.
+<p>&nbsp;<p>

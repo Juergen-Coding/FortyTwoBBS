@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<META http-equiv="Content-Style-Type" content="text/css">
+<META NAME="Language" content='en'>
+<META name="author" lang="en" content="MBSE Development Team">
+<META name="copyright" lang="en" content="Copyright MBSE Development Team">
+<META name="description" lang="en" content="MBSE BBS Manual: Nodelist and Nodediff Processing">
+<META name="keywords" lang="en" content="MBSE BBS, MBSE, BBS, manual, fido, fidonet, gateway, tosser, mail, tic, mailer">
+<TITLE>How to set up a FTN point</TITLE>
+<LINK rel=stylesheet HREF="manual.css">
+</HEAD>
+<BODY>
+<!-- MBSEADVERT -->
+<div align='right'><h5>Last update 10 October 2024</h5></div>
+<div align='center'><H1>How to set up a FTN point</H1></div>
+
+<H3>Introduction</H3>
+<p>Setting up a FTN point node is a relatively simple task.  Follow these
+steps in order to set up a point.</p>
+
+<h3>Steps to set up a point</h3>
+<ol>
+  <li>Set up and compile a pointlist.</li>
+  <li>Add the point to your system.</li>
+  <li>If the point is to use FTP, set up a FTP account for them.</li>
+</ol>
+
+<h3>Set up and compile a pointlist</h3>
+<p>MBSE uses the "Boss" type of pointlist as described in <a href="http://ftsc.org/docs/fts-5002.002"
+target="_blank">FTS-5002</a> or "Pointlist Formats".  From that document:</p>
+<blockquote>
+  <pre>
+  This is an extension of the St. Louis nodelist format, the
+  list of points is distributed separately from the nodelist.
+
+  The list contains of one or more lines of the format:
+
+  Boss,&lt;zone&gt;:&lt;net&gt;/&lt;node&gt;[,[&lt;additional fields&gt;]]
+
+  Where "&lt;additional fields&gt;" may be a copy of fields 3-8 of the
+  corresponding nodelist entry of the boss node. The second comma
+  and following fields are however optional and are usually omitted.
+  Current node/pointlist parsers ignore the additional fields but
+  some pointlist keepers include the second comma anyway just to be
+  on the safe side.
+
+  Directly below the 'Boss' line is a list of the points entered as
+  if they were nodes. The first field of a point entry must be empty.
+  The telephone number field may contain the actual number if the
+  point is online or "-Unpublished-" if it is not.</pre>
+</blockquote>
+<p><i>Important</i>: If you use multiple AKAs within a network, select 
+the one that you use for your echomail.  For example, in Micronet, my FTN network,
+I fly several AKAs but the mail is handled by 618:618/1.  So all points 
+will be 618:618/1.nnn.</p>
+<p>For this example, I create a pointlist called <tt>minpoint.999</tt> in
+<b>/opt/mbse/var/nodelist</b> as an example.  It is customary to name a
+static pointlist with the extension of .999.</p>
+<p>My <tt>minpoint.999</tt>:</p>
+  <pre>
+    Boss,618:618/1
+    10,Tiny's_Mailbox,Toronto_ON,Shawn_Highfield,-Unpublished-,300,MO,INA:t1ny.duckdns.org,IBN
+  </pre>
+<p>Note that the pointlist uses the same format as the standard St. Louis format nodelist. Points
+should always be set to MO ("mail only").</p>
+<p>Save that file and enter <tt>mbsetup</tt>. Select option 2 then the network you are
+setting up that point in.  Select the merge list number you will be using.  In this
+example, I'll be using "Merge list #1" or option 6.  You will need to enter the 
+pointlist name in the first field, which is "minpoint" here, and the 
+AKA you will be using, "618:618/1".</p>
+
+<p>After you save that data, drop to the command shell and run
+<tt>mbindex</tt>.  You should see something like the following:</p>
+<p><IMG SRC="../images/pointlist.png" Border="0" Alt="Pointlist example using mbindex"></p>
+<p>Note at the bottom of the list, you'll see the point address(es) being compiled in.</p>
+<p>&nbsp;</p>
+<A HREF="index.html"><IMG SRC="../images/b_arrow.png" ALT="Back" Border="0">Go Back</A>
+</BODY>
+</HTML>

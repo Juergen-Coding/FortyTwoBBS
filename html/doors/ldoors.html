@@ -1,0 +1,46 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+<HEAD>
+  <META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <META http-equiv="Content-Style-Type" content="text/css">
+  <META NAME="Language" content="en">
+  <META name="author" lang="en" content="MBSE Development Team">
+  <META name="copyright" lang="en" content="Copyright MBSE Development Team">
+  <META name="description" lang="en" content="MBSE BBS Manual: Running Linux Doors">
+  <META name="keywords" lang="en" content="MBSE BBS, MBSE, BBS, manual, fido, fidonet, gateway, tosser, mail, tic, mailer">
+  <TITLE>Running DOS doors on MBSE BBS</TITLE>
+  <LINK rel="stylesheet" HREF="../manual.css">
+</HEAD>
+<BODY>
+
+<div align="right"><h5>Last update 7 Sept 2024</h5></div>
+<div align="center"><H1>MBSE BBS: Running Linux doors with MBSE</H1></div>
+
+<h3>Introduction</h3>
+<div class="isa_warning"><b>VERY IMPORTANT!</b><br><br> 
+  <span style="text-align: center">You <b><i>must</i></b> perform these steps as user <tt>mbse</tt>.</span>
+</div>
+<p>Running Linux-native doors is very easy with MBSE.  For this example, I'll
+  use the Linux-native version of "Pimp Wars" by James Coyle (g00r00).</p>
+<p>Here's how to do this:</p>
+<ol>
+  <li>Install the door to a directory.  For this example, I will use
+    <tt>/opt/mbse/doors/pw</tt>.  Make sure to run <tt>umask 007</tt> first!</tt></li><br>
+  <li>Create a bash script similar to below in ~/bin (I call this "<tt>runpw</tt>"):<br><br>
+    <tt>#!/bin/bash<br>
+          cd /opt/mbse/doors/pw<br>
+         ./pimpwars /$1/door32.sys $2<br>
+    </tt><br>I'll explain that last line below.  Make sure to set your binary and the calling script to 0770 and the
+      other files to 0660.</li><br>
+  <li>Set up a menu entry in <tt>mbsetup</tt> similar to below:<br><br>
+      <img src="../images/pw.png" alt="Example of setting up a menu entry for a Linux door"><br><br>
+      Make sure the <tt>/U</tt> and <tt>/N</tt> options are in that exact order for this door.<br><br>
+      The script will expand the calling line in <tt>runpw</tt> to <tt>./pimpwars /opt/mbse/home/(username)/door32.sys
+       1</tt> which is what the door expects.
+  </li>
+</ol>
+<p>Test out the door and it should work fine.</p>
+<A HREF="index.html"><IMG SRC="../images/b_arrow.png" ALT="Back" Border="0">Go Back</A>
+</BODY>
+</HTML>
+

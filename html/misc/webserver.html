@@ -14,22 +14,21 @@
 <BLOCKQUOTE>
 <!-- MBSEADVERT -->
 <div align='right'><h5>Last update 03-Jan-2006</h5></div>
-<div align='center'><H1>How to setup an webserver to work with MBSE BBS.</H1></div>
+<div align='center'><H1>How to setup Apache to work with MBSE BBS</H1></div>
 
 <H3>Introduction</H3>
-<P>
+
 To let a webserver work with MBSE BBS you must organize a special file
 structure.
 Note that even if you don't setup a webserver you must still create a 
 structure like this for the fidonet mailer, if you don't, 
 <strong>mail and files will get lost!</strong>
-This description is written for <A HREF="http://www.apache.org" rel="nofollow">Apache</A>,
-this is installed on most GNU/Linux and xxxBSD distributions. 
-For the directory structure, read the setup for
-<A HREF="ftpserver.html">the FTP server</A>.
+This description is written for <A HREF="http://www.apache.org" rel="nofollow">Apache</A> which is
+installed on most *nix and BSD distributions upon installation.  For the directory structure, read the setup for
+<A HREF="ftpserver.html">the FTP server</A></p>
 <P>&nbsp;<P>
 
-<H3>Important settings in mbsetup.</H3>
+<H3>Important settings in <tt>mbsetup</tt></H3>
 <P>
 Screen 1.18:
 <pre>
@@ -37,18 +36,17 @@ Screen 1.18:
 </pre>
 Screen 1.19:
 <pre>
-1.  Docs root      /var/www/htdocs
+1.  Docs root      /srv/www/htdocs
 2.  Link to ftp    files
-3.  URL name       http://www.mbse.ym
+3.  URL name       http://www.example.com
 </pre>
-The base ftp path is the default which mbse bbs installs. The Docs root for the
+<p>The base FTP path is the default which MBSE BBS sets up during installation. The Docs root for the
 apache httpd server is different on each distribution, in this example it is set
-for <A HREF="http://www.slackware.com" rel="nofollow">Slackware 8.0</A>. Because the directory
+for <A HREF="http://www.slackware.com" rel="nofollow">Slackware 15.0</A>. Because the directory
 /var/www/htdocs has nothing to do with /opt/mbse/ftp/pub we make an alias link
-named <b>files</b>. For the URL name you must fill in the real internet name how
-your bbs is reached. If someone types this in, he must get the index.html from
-the directory /var/www/htdocs, the docs root. I just assume you have your http
-server up and running.
+named <b>files</b>. For the URL name, you must fill in the URL where
+your BBS is using. If someone types this in, they must get the index.html from
+the directory /srv/www/htdocs, the docs root.</p>
 <p>
 Now you can run the command <b>mbfile index</b>, this will create a main index
 in the directory /opt/mbse/ftp/pub and additional index.html files in all your
@@ -57,14 +55,15 @@ download areas.
 
 <H3>Change Apache server configuration.</H3>
 <P>
-As root edit your httpd.conf file, it is possible that you find it in
-/etc/apache, but that depends on your distribution. In the section between
-&lt;IfModule mod_alias.c&gt; and &lt;/IfModule&gt; insert the following lines:
+As root, edit your <code>httpd.conf</code> file.  Where that file is depends on your *nix distribution
+For this page we will use <code>/srv/www/htdocs</code> which is the default directory in Slackware 15.0.</p>
+
+<p>In the section between &lt;IfModule mod_alias.c&gt; and &lt;/IfModule&gt; insert the following lines:</p>
 <pre>
     #
     # Alias for MBSE BBS download areas.
     #
-    Alias /files/ /opt/mbse/ftp/pub/
+    Alias /files "/opt/mbse/ftp/pub"
     &lt;Directory "/opt/mbse/ftp/pub"&gt;
         Options Indexes MultiViews FollowSymLinks
         AllowOverride None
@@ -75,7 +74,7 @@ As root edit your httpd.conf file, it is possible that you find it in
     #
     # Alias to access the MBSE BBS documenatation
     #
-    Alias /mbseman/ /opt/mbse/html/
+    Alias /mbseman "/opt/mbse/html"
     &lt;Directory "/opt/mbse/html"&gt;
         Options Indexes MultiViews
         AllowOverride None
@@ -87,18 +86,6 @@ Then restart Apache with the command <b>apachectl restart</b> Now if you access
 your webserver with for example http://www.mybbs.com/files/ you must be able to
 browse the filelists. If you use http://www.mybbs.com/mbseman/ you must be able
 to browse this documentation online.
-<P>&nbsp;<P>
-
-<H3>Example views</H3>
-<P>
-This are some snapshots of how this will look like, click to enlarge:
-<TABLE>
- <TR>
-  <TD><A HREF="../images/dream1.png"><IMG SRC="../images/tdream1.png" Border="0" ALT='dreamlandbbs'></A></TD>
-  <TD><A HREF="../images/dream2.png"><IMG SRC="../images/tdream2.png" Border="0" ALT='dreamlandbbs'></A></TD>
-  <TD><A HREF="../images/dream3.png"><IMG SRC="../images/tdream3.png" Border="0" ALT='dreamlandbbs'></A></TD>
- </TR>
-</TABLE>
 <P>&nbsp;<P>
 
 <H3>Counting downloads</H3>

@@ -130,9 +130,12 @@ files.
 <strong>FileAttach level  </strong>Minimum level to allow attach files to netmail
 <strong>Min diskspace MB  </strong>At which low diskspace level utilities should stop working.
 <strong>Simult. logins    </strong>Maximum simultaneous logins allowed, 0 is unlimited, 1 is adviced.
-<strong>Child priority    </strong>Subproces nice priority, 0=high, 15=low CPU load.
+<strong>Child priority    </strong>Subprocess "nice" priority, 0=high, 15=low CPU load.
 <strong>Filesystem sync   </strong>Call sync before and after execute.
 <strong>Default language  </strong>Default language (English).
+<strong>Suppress seconds  </strong>Suppress the display of seconds in the mbmon/mbsetup clocks
+<strong>Update frquency   </strong>Clock/System Status update frequency (anything higher than 15 seconds will cause issues).
+<strong>Supp. tearline    </strong>Suppress tearline in local areas.
 </pre>
 The minimum diskspace setting is to prevent that files get corrupted if your filesystem
 is full. All drives are checked except CD-roms and floppies and the /boot directory if that
@@ -156,25 +159,102 @@ language that is complete in the default installation. In the user setup another
 language may be used, the language set here is then used as a backup.
 <p>
 
-<h3>1.6. User flag Descriptions.</h3>
+<h3>1.6. User flag Descriptions</h3>
 <p>
-In this menu you can give the 32 users flags a meaningfull description.
+In this menu, you can give the 32 user flags a meaningful description.
 <p>
 
-<h3>1.7. New users defaults.</h3>
+<h3>1.7. New User Defaults</h3>
+<table>
+  <tr>
+	<th>Option #</th>
+	<th>Option</th>
+	<th>Option description</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>Access level</td>
+    <td>The access level and flags after registration</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Cap. Username</td>
+    <td>Capitalize the username</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Ask Sex</td>
+    <td>Ask for Male/Female</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Ask Voicephone</td>
+    <td>Ask for voice phone number</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Ask Dataphone</td>
+    <td>Ask for data phonenumber</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Telephone scan</td>
+    <td>Scan for duplicate phone numbers</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>Ask Handle</td>
+    <td>Ask for handle (nickname)</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>Ask Birth date</td>
+    <td>Ask for birthdate (needed for checks)</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>Ask Location</td>
+    <td>Ask for user's location (city, state/province)</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>Ask Hot-Keys</td>
+    <td>Ask for hot-keyed menus (default is yes)</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>One word names</td>
+    <td>Allow one-word usernames</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
 <p>
 <pre>
-<strong>Access level      </strong>The access level and flags after registration
-<strong>Cap. Username     </strong>Capitalize the username
-<strong>Ask Sex           </strong>Ask for Male/Female
-<strong>Ask Voicephone    </strong>Ask for voice phonenumber
-<strong>Ask Dataphone     </strong>Ask for data phonenumber
-<strong>Telephone scan    </strong>Scan for duplicate numbers
-<strong>Ask Handle        </strong>Ask for handle (nickname)
-<strong>Ask Birth date    </strong>Ask for birthdate (needed for checks)
-<strong>Ask Location      </strong>Ask for users location
-<strong>Ask Hot-Keys      </strong>Ask for hot-keyed menus (default is yes)
-<strong>One word names    </strong>Allow one word names
+
 <strong>Ask address       </strong>Ask user for his/her home address
 <strong>Give email        </strong>Give new users email access (default is yes)
 <strong>Ask Screenlen     </strong>Ask new users to set their screen length

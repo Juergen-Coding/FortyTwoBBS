@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+<HEAD>
+  <META http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+  <META http-equiv="Content-Style-Type" content="text/css">
+  <META NAME="Language" content="en">
+  <META name="author" lang="en" content="MBSE Development Team">
+  <META name="copyright" lang="en" content="Copyright MBSE Development Team">
+  <META name="description" lang="en" content="MBSE BBS Manual - Running DOS Doors">
+  <META name="keywords" lang="en" content="MBSE BBS, MBSE, BBS, manual, fido, fidonet, gateway, tosser, mail, tic, mailer">
+  <TITLE>Running DOS doors on MBSE BBS</TITLE>
+  <LINK rel="stylesheet" HREF="../manual.css">
+</HEAD>
+<BODY>
+
+<div align="right"><h5>Last update 7 Sept 2024</h5></div>
+<div align="center"><H1>MBSE BBS: Running DOS doors with MBSE</H1></div>
+
+<h3>Introduction</h3>
+<p>
+Running DOS doors is possible on systems that can run 
+<a href="http://www.dosemu.org" rel="nofollow">DOSemu</a>.  Unfortunately, this is only possible in Linux as there is no currently supported DOS emulator for BSD.</p>
+<div class="isa_warning"><p><b>VERY IMPORTANT!</b> 
+<ul>
+	<li style="text-align: left">You <i>must</i> perform these steps as user <tt>mbse</tt>.</li>
+	<li style="text-align: left">The virtual DOS drive for MBSE is <tt>$MBSE_ROOT/var/dosemu/c</tt>.
+       Don't use another location or change the access rights as there will be several references from MBSE to that location for DOS support. 
+       Choose another one and you are on your own!</li>
+</ul></p></div><br>
+
+<h3>Installing DOSemu</h3>
+<p>Installing DOSemu is not very difficult but it does involve paying close attention.  Here's how to do this in order:</p>
+<p>Here's the steps to get this done:</p>
+	<ol>
+		<li>You will need to run the following command to install necessary dependencies for Debian-based systems:<br><br>
+		    <tt>apt install build-essential git libslang2-dev xaw3dg-dev libsdl-console libsdl-console-dev</tt></li><br>
+		    <ul>
+				<li>Slackware users have everything already installed to this (as of Slackware 15.0).</li>
+			</ul><br>
+		<li>In the <tt>/opt/mbse</tt> directory, run this command:<br><br>
+		    <tt>git clone git://git.code.sf.net/p/dosemu/code dosemu</tt></li><br>
+		<li>Download the following files into your new <tt>dosemu</tt> directory:<br>
+		  <ul>
+		    <li><a href="http://prdownloads.sourceforge.net/dosemu/dosemu-freedos-1.0-bin.tgz?download">FreeDOS image (if you are not using another DOS for your interpreter)</a>:  Make sure to rename it to <i> dosemu-freedos-bin.tgz</i> so DOSemu will see it during its compiling.  DO not extract the archive!  DOSemu will do the work for you.</a></li><br>
+		    <li><a href="http://outpostbbs.net/files/dosemu-segfault-fix.tgz">A patch that fixes segfaults in the DOSemu code</a>: Once copied to your <tt>dosemu</tt> directory, simply extract it using this command: <tt>tar xf dosemu-segfault-fix.tgz</tt>.  The patch will be installed into the DOSemu source code tree correctly.  Why this patch?  The shortcut command "<tt>sysctl -w vm.mmap_min_addr=0</tt>" trick doesn't work on all systems and the patch fixes this correctly in the source code.</a></li>
+		  </ul><br>
+		<li>If you do not run X, like I do, you should change your <tt>compiletime-settings</tt> file to look like mine:
+		   <pre>
+           config {
+                     experimental off
+                     sbemu off
+                     mitshm on
+                     vidmode off
+                     x off
+                     net off
+                     debug off
+                     cpuemu on
+                     aspi on
+                     svgalib off
+                     gpm off
+                     alsa off
+                     sndfile off
+                     dlplugins on
+                     plugin_kbd_unicode on
+                     plugin_extra_charsets on
+                     plugin_term on
+                     plugin_X off
+                     plugin_sdl off
+                     plugin_midimisc off
+                     plugin_fluidsynth off
+                     plugin_translate on
+                     plugin_commands on
+                     plugin_demo off
+                     target_bits auto
+                     target_cpu auto
+                     prefix /usr
+                     bindir ${prefix}/bin
+                     sysconfdir /etc/dosemu
+                     libdir ${prefix}/lib
+                     datadir ${prefix}/share
+                     mandir ${prefix}/man
+                     docdir ${datadir}/doc/dosemu
+                     syshdimagedir /var/lib/dosemu
+                     x11fontdir ${datadir}/dosemu/Xfonts
+                     fdtarball dosemu-freedos-bin.tgz
+                  }   
+		   </pre>
+		   <p>This is for systems that do not use X like me.  I don't need the sound or the mouse as I am not running X.</p>
+		   <p>If you want to use X on your system, make the following changes to the <tt>compiletime-settings</tt> file:</p>
+		   <pre>
+             vidmode on
+             x on
+             svgalib on
+             gpm on
+             plugin_X on
+           </pre>
+           <p>I have the sound turned off as I don't want to be bothered by any noises a door may make.</p>
+		</li>
+		<li>Run these commands in sequence:</li><br>
+		  <ol>
+			  <li><tt>./configure</tt></li><br>
+			  <li><tt>make</tt></li><br>
+			  <li><tt>su</tt><i> (DO NOT use 'sudo'!)</i></li><br>
+			  <li><tt>make install</tt></li>
+		 </ol>
+		</ol>
+		 <div class="isa_info"><b>NOTE:</b> If you get a warning during <tt>make install</tt> like this "<i>fatal: detected dubious ownership in repository at '/opt/mbse/dosemu'</i>"), you can
+		    fix this by running thus command <i>as root when you are using <tt>su</tt></i>: <tt>git config --global --add safe.directory /opt/mbse/dosemu</tt>.  Run <tt>make install</tt> and DOSemu will properly install.</div>
+		<p>If all is successful, DOSemu will give some additional information for you then you'll be returned to a prompt.  From there, type <tt>dosemu</tt> or, if you are running X, <tt>xdosemu</tt> and you should see a DOSemu window open.  To exit the emulator, type <tt>exitemu</tt>.</p>
+	</ol>
+<p>Stuck?  <a href="http://www.dosemu.org/docs/README/1.4/" target="_blank">Try here for some documentation</a></p><br>.  
+
+<h3>Setup DOSemu with MBSE</h3>
+<p>1. Copy <tt>/etc/dosemu/dosemu.conf</tt> into <tt>~/etc/dosemu</tt>.
+Then edit <tt>~/etc/dosemu/dosemu.conf</tt> so that we have a version for
+MBSE users. Set the following settings in <tt><tt>~/etc/dosemu</tt></tt> (these are
+in order from top to bottom in the file):<br>
+<pre>
+  $_hdimage = "/opt/mbse/var/dosemu/c"
+  $_floppy_a = ""
+  $_xms = (1024)
+  $_ems = (2048)
+  $_dpmi = (0x1000)
+  $_external_char_set = "utf8"
+  $_internal_char_set = "cp437"
+  $_layout = "us"
+  $_mouse_internal = (off)
+  $_mouse_dev = ""
+  $_speaker = ""
+  $_sound = (0)
+  $_pktdriver = (off)
+</pre>
+<p>Copy this new file to <tt>virtual.conf</tt> in
+<tt>~/etc/dosemu</tt>. Modify the line <tt>#$_com1 = ""</tt> to <tt>$_com1 = "virtual"</tt>.</p><br>
+
+<p>2. Time to setup the C: drive. Type the following commands in order from <tt>/opt/mbse</tt>:</p>
+<ol>
+  <li><tt>umask 007</tt> (this sets the create mode for directories to 0770 and files to 0660
+    so that we create all files and directories to read/write for all BBS users. <i>This
+    is very important!</i>)</li><br>
+  <li><tt>cd var/dosemu/c</tt></li><br>
+  <li>(from within <tt>~/var/dosemu/c</tt>) <tt>mkdir DOS dosemu temp util doors</tt></li>
+</ol>
+<br>
+<p>3. Now we must install DOS into <tt>~/var/dosemu/c</tt>.<br>
+<p>You will need to copy the following files into <tt>~/var/dosemu/c</tt>:</p>
+<ul>
+	<li>If you are using FreeDOS, copy the following files:</li><br>
+	<ul>
+		<li><tt>/usr/share/dosemu/drive_z/command.com</tt></li><br>
+		<li><tt>/usr/share/dosemu/drive_z/config.sys</tt></li><br>
+		<li><tt>/usr/share/dosemu/drive_z/kernel.sys</tt></li><br>
+	</ul>
+	<li>For other versions of DOS, copy your versions of <tt>command.com</tt>, <tt>msdos.sys</tt>, and <tt>config.sys</tt>.</li><br>
+    <li>Copy all DOS commands to <tt>~/var/dosemu/c/DOS</tt>.  For FreeDOS: <tt>cp /usr/share/dosemu/drive_z/bin/*.* ~/var/dosemu/c/dosewmu</tt></li><br>
+    <li>Install the DOSemu utilities to <tt>~/var/dosemu/c/dosemu</tt>.  For all versions of DOS: 
+        <tt>cp /usr/share/dosemu/drive_z/dosemu/*.* ~/var/dosemu/c/DOS</tt></li><br>
+    <li>In <tt>~/var/dosemu/c/util</tt>, copy your favorite DOS utilities, a good text editor, archivers, and your FOSSIL driver.</li>
+</ul>
+<div class="isa_info"><p>There are some *NIX utilities ported to DOS in <tt>/usr/share/dosemu/drive_z/gnu</tt>.  You can copy these
+  to <tt>~/var/dosemu/c/util</tt> if you want to use them.</p></div><br>
+<p>4. We must create <tt>config.sys</tt> and <tt>autoexec.bat</tt>. These
+  files must have DOS (CR/LF) line endings. You can do that with the <tt>joe</tt>
+  editor (<tt>joe -crlf config.sys</tt>). Examples:</p>
+<pre>
+  <b>config.sys:</b><br>
+  SWITCHES=/F
+  DOS=HIGH, UMB
+  DOSDATA=UMB
+  LASTDRIVE=Z
+  FILES=50
+  STACKS=0
+  BUFFERS=20
+  DEVICE=C:\DOSEMU\EMS.SYS
+  REM If you use FreeDOS, add the next line.
+  DEVICE=C:\DOS\NANSI.SYS
+  SHELLHIGH=C:\COMMAND.COM /E:1024 /P
+  SET TEMP=C:\TEMP
+  VERSION=6.22
+</pre>
+<div class="isa_info"><p>The VERSION command in CONFIG.SYS only works for
+  FreeDOS.  In FreeDOS, the VERSION command is global. Use a setting of 6.22
+  to imitate DOS 6.2, 5.0 to imitate DOS 5.0, or 7.1 to imitate Windows 98 in
+  DOS mode. This will allow you to run programs that expect those versions,
+  including utilities copied from that particular Microsoft version of DOS.
+  If you like FreeDOS but prefer specific functionality from one of Microsoft's
+  DOS tools, this command allows it.  For other versions of DOS, you will
+  need SETVER.EXE and put this command in CONFIG.SYS: <tt>DEVICE=C:\DOS
+  \SETVER.EXE</tt>.  Make sure SETVER.EXE is in <tt>~/var/dosemu/c/DOS</tt>.</p>
+  <p>The NANSI.SYS is for FreeDOS only but you will need some form of ANSI.SYS for
+    DOS doors to run correctly.</p></div>
+<pre>
+  <b>autoexec.bat:</b>
+  
+  @ECHO OFF
+  PROMPT $P$G
+  PATH C:\DOSEMU;C:\DOS;C:\UTIL;
+  SET TEMP=C:\TEMP
+  LH C:\DOS\SHARE
+  unix -e
+</pre>
+
+<p>Now we are ready to try it, type <tt>mbsedos</tt> and the DOS emulator
+should start. You can leave DOSemu with the command <tt>exitemu</tt>.</p><br>
+
+<h3>Installing a door</h3>
+<p>All DOS doors are started using the script <tt>~/bin/rundoor.sh</tt>. This script
+is never started directly. You should make a symlink with the name of the batch file
+you will use to run the door without the ".bat" extention.  For this example:</p>
+<pre>
+cd ~/bin
+ln -s rundoor.sh runtmo
+</pre>
+<p>Look at <tt>rundoor.sh</tt> for the instructions. This file does
+several things: it prepares the users home directory with the dosemu
+environment so that dosemu will run for the user then it creates a node
+directory in the DOS C: drive and copies the door dropfiles into that node
+directory. Finally, it starts dosemu in virtual comport mode and inserts the
+commands in DOS to start the door.</p>
+
+<p>But before we can run the door, the door itself must be installed in the DOS
+partition. In this example I will explain how to install one of my BBS doors for DOS
+called The Magic Oracle".  Start <tt>mbsedos</tt> and create a directory <tt>c:\doors\tmo</tt>.
+Unpack The Magic Oracle in that directory. Test the door with
+the command <tt>oracle /l</tt>. Now go to the directory <tt>c:\doors</tt> and
+create the file <tt>runtmo.bat</tt>. That file will be used to start the
+door.  It will be called by <tt>c:\doors.bat</tt> with two parameters, the
+name of the door and the nodenumber.  Here's what my RUNTMO.BAT looks like:</p>
+<pre>
+@echo off
+c:
+x00 e b,0,57600
+cd \doors\tmo
+oracle /n%1 /dc:\doors\node%1
+x00
+cd \doors\node%1
+echo y | del *.*
+</pre>
+<p>I have X00 in my DOS path so I call it without a path.  The last line
+removes all the files in that node's dropfile directory.</p>
+<p>You should exit <tt>mbsedos</tt> and cd to the door's actual Linux directory like
+this example's would be <tt>~/var/dosemu/c/doors/tmo</tt>.  Set any EXE files
+to read/write/executable for mbse:bbs by running <tt>chmod 0770 *.exe</tt>.  Set all other
+files to read write for mbse:bbs by running <tt>chmod 0660 (filespec)</tt>.  If
+the permissions are not set right, you will have all sorts of problems (ask me
+how I know)!</p>
+<p>I usually set all files to 0660 then all executables to 0770 in that order.
+Don't forget to check subdirectories!</p>
+
+<p>We have to make a menu entry to start the door. The Opt. Data line is
+the command to start the door.  The first option, <tt>/N</tt> passes the
+node number to the door.</p>
+
+<img src="../images/tmo.png" alt="Example of setting up a menu entry for a DOS door">
+
+
+<p>A few settings you should pay attention to when setting up the menu entry:</p>
+<ul>
+	<li>Make sure you use the full path to the symbolic link in /opt/mbse/bin;</li>
+	<li>Set the door name in option 10;</li>
+	<li>Set options 13 and 14 to yes;</li>
+	<li>Set option 15 if you do not need a prompt after the door has finished running;</li>
+	<li>Make sure to properly set the door name as that's what <tt>mbtask</tt> uses to enforce option 16.</li>
+</ul>
+
+<p>Option 16 is very important for doors that are not designed for multinode use.  Turning
+this option on will cause MBSE to check if someone is currently in the door and if so, it will
+send a prompt telling the second user that another user is inh the door and to try again
+later.  Some examples of doors you would use this on: Land of Devastation, The Clans, and Forces
+of Darkness.  Please check the door's instructions to see if you need to set this option.</p>
+
+<A HREF="index.html"><IMG SRC="../images/b_arrow.png" ALT="Back" Border="0">Go Back</A>
+</BODY>
+</HTML>

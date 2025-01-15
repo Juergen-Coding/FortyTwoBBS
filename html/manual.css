@@ -1,51 +1,72 @@
-/*
- * $Id: manual.css,v 1.5 2003/11/08 16:48:03 mbroek Exp $
- *
- * stylesheet for the MBSE BBS manual.
- */
+/* Originally writtwen by Michiel Broeck.
+ * Updated and revised by Sean Dennis.
+ * 15 April 2024.
+ */ 
 
-
-BODY      { background-color: white; font: 12pt sans-serif,helvetica,arial; }
+BODY      { background-color: white; font: 12pt sans-serif, Arial, Helvetica; }
 
 /*
  * H1 is the page header, H3 the paragraph header, H5 is topright update date.
  */
-H1        { color: red; font: 16pt sans-serif,helvetica,arial;  font-weight: bold }
-H2	      { color: red; font: 14pt sans-serif,helvetica,arial;  font-weight: bold }
-H3        { color: black; font: 14pt sans-serif,helvetica,arial; font-weight: bold }
-H5        { color: black; font: 10pt sans-serif,helvetica,arial; }
+H1        { color: red; font: 16pt sans-serif, Arial, Helvetica;  font-weight: bold; }
+H2	      { color: red; font: 14pt sans-serif, Arial, Helvetica;  font-weight: bold; }
+H3        { color: black; font: 14pt sans-serif, Arial, Helvetica; font-weight: bold; }
+H5        { color: black; font: 10pt sans-serif, Arial, Helvetica; }
 
-A:link	  { color: blue }
-A:visited { color: blue }
-A:active  { color: red  }
+A:link	  { color: blue; }
+A:visited { color: blue; }
+A:active  { color: red;  }
 
 TABLE     { color: black; }
-TH	      { font-family: Arial, Helvetica; font-size: 12pt; font-weight: bold; }
-TD        { font-family: Arial, Helvetica; font-size: 12pt; }
+TH	      { font-family: sans-serif, Arial, Helvetica; font-size: 12pt; font-weight: bold; }
+TD        { font-family: sans-serif, Arial, Helvetica; font-size: 12pt; }
 
-/* PRE       { color: green; font-family: fixed; }
-CODE      { color: green; font-family: fixed; } */
-HR        { border-top: solid medium navy }
+/* This fixes the auto-resizing of the system monospace font in browsers. SD */
+pre, code, kbd, samp, tt {
+  font-family: monospace, monospace;
+  font-size: 1em;
+  color: green }
+}
+
+HR       { border-top: solid medium navy; }
+
+/* The following is from:
+ * http://web.archive.org/web/20210226032418/http://isabelcastillo.com/error-info-messages-css
+ * SD
+ */
 
 .isa_info, .isa_success, .isa_warning, .isa_error {
     margin: 10px 0px;
     padding:12px;
+    text-align: center;
 }
 .isa_info {
-    color: #00529B;
-    background-color: #BDE5F8;
-}
+    color: MidnightBlue;
+    background-color: NavajoWhite;
+    border-style: solid;
+    border-color: Olive;
+    border-radius:.5em;
+ }
 .isa_success {
-    color: #4F8A10;
-    background-color: #DFF2BF;
+    color: MidnightBlue;
+    background-color: LightGreen;
+    border-style: solid;
+    border-color: LawnGreen;
+    border-radius:.5em;
 }
 .isa_warning {
-    color: #9F6000;
-    background-color: #FEEFB3;
+    color: MidnightBlue;
+    background-color: GreenYellow;
+    border-style: solid;
+    border-color: MediumVioletRed;
+    border-radius:.5em;
 }
 .isa_error {
-    color: #D8000C;
-    background-color: #FFD2D2;
+    color: MidnightBlue;
+    background-color: LightCoral;
+    border-style: solid;
+    border-color: Crimson;
+    border-radius:.5em;
 }
 
 
