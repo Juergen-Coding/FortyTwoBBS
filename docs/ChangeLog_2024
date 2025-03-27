@@ -1,0 +1,99 @@
+v1.1.0		04-Aug-2024 - Andrew Leary
+
+		1.  Re-implemented the line editor for messages.
+
+		2.  When the user has ANSI color support off, the message 
+		    header for the external editor will no longer have ANSI
+		    color codes.
+
+		3.  MBSETUP 1.7.16 will now allow you to decide if new users
+		    will be asked if they want ANSI color.
+
+		4.  MBNEWUSR will now ask new users if they want ANSI color,
+		    if MBSETUP 1.7.16 is toggled to Yes.
+
+                5.  SETUP.sh will now prompt the SysOp if they want to set a
+                    password for the newuser (bbs) account on a first time
+                    installation of MBSE BBS.  This will allow new users to
+                    register for the BBS over an SSH connection, which is more
+                    secure than Telnet.  Some distributions also no longer
+                    include Telnet support by default, so it is recommended
+                    to enable this.
+
+                    Existing SysOps can enable this feature by executing:
+
+                    passwd bbs
+
+                    as root.
+
+                6.  SETUP.sh now supports installation on Linux Mint.
+
+v1.0.9		30-Jun-2024 - Andrew Leary
+
+		1.  Re-implemented plain ASCII support.  This should allow the
+                    BBS to support access from a dumb terminal or teletype.
+
+		2.  Several minor spelling and grammar corrections.
+
+v1.0.8.8	02-Jun-2024 - Andrew Leary
+
+		1.  MBSETUP will no longer globally add connections to NetMail
+                    areas.
+
+		2.  Fixed bug that caused MBSE to omit tearlines in EchoMail
+		    messages.
+  
+v1.0.8.7	15-Apr-2024 - Andrew Leary
+
+		1.  MBSE will now allow you to suppress adding a tearline to
+		    messages in local message areas.  To enable this option,
+		    toggle mbsetup 1.5.27 to Yes.
+
+		2.  MBMSG will no longer add a MSGID or Origin line to messages
+		    in local message areas.
+
+		3.  MBMSG will also respect the suppress tearlines in local
+                    message areas option in mbsetup (1.5.27).
+
+                4.  You can now specify the From name used in messages posted by
+                    MBMSG post.  The new syntax is:
+
+                    mbmsg post <from> <to> <#> <subj> <file> <flavor>
+
+                    <from>, <to>, and <subj> need to be enclosed in double
+                    quotes if they contain spaces.
+
+                    <#> is the message area number to post in.
+
+                    <file> is the text file to use as the message body.
+
+                    <flavor> is one of the following:
+
+                    p private, c crash, h hold, n normal
+
+                    In netmail areas, these will set the corresponding flags in
+                    the created message.  The <to> field needs to include the
+                    destination FTN address after an @ character.
+
+v1.0.8.6	29-Feb-2024 - Andrew Leary
+
+		1.  MBSE will now allow users to delete messages addressed to
+                    them, as well as messages they have sent.  Thanks to Niels
+                    Haedecke for the report and fix.
+
+		2.  You can now reduce the frequency of screen updates for the
+                    clock and system status in mbmon and mbsetup.  This is
+                    useful when running them over a slower connection.  mbsetup
+                    1.5.26 will set the delay between screen updates in seconds
+                    while 1.5.25 will allow you to turn off the seconds display
+                    in the clock.  These options default to 1 second and No,
+                    which will produce identical behavior to earlier versions
+                    of MBSE.
+
+v1.0.8.5	05-Feb-2024 - Andrew Leary
+
+		1.  Fix crash/segfault in the internal full screen editor after
+                    displaying the Help screen.  Thanks to Niels Haedecke for
+                    the report and fix.
+
+		2.  Update copyright notices to 2024.
