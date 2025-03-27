@@ -21,7 +21,7 @@
 <p>
 First of all, if you upgrade from a previous version of MBSE BBS, 
 read all the ChangeLog entries from the version you are currently 
-running upto the new 1.0.8.6 version you are installing. 
+running upto the new @VERSION@ version you are installing. 
 Then make a backup of at least all files in /opt/mbse/bin and /opt/mbse/etc.
 <p>&nbsp;<P>
 
@@ -31,12 +31,12 @@ Then make a backup of at least all files in /opt/mbse/bin and /opt/mbse/etc.
 Login as user <b>mbse</b>. Yes, very important, <b>login as user mbse</b>.
 While in mbse's home directory (/opt/mbse) unpack the distribution archives:
 <pre>
-tar xfvj /path/to/mbsebbs-1.0.8.6.tar.bz2
+tar xfvj /path/to/mbsebbs-@VERSION@.tar.bz2
 </pre>
 You now have the subdirectory with sources in the right place. 
 Next build the binaries and install them using the following commands:
 <pre>
-cd ~/mbsebbs-1.0.8.6
+cd ~/mbsebbs-@VERSION@
 make clean
 ./configure
 make
@@ -46,7 +46,7 @@ make install
 </pre>
 Ubuntu users should do:
 <pre>
-cd ~/mbsebbs-1.0.8.6
+cd ~/mbsebbs-@VERSION@
 make clean
 ./configure
 make
@@ -79,7 +79,7 @@ different restart procedure if this is needed.
 Not everything is updated during the upgrade, only the binaries. Normally this is enough. 
 However it may be that the example menus, macro templates are updated in the distribution.
 Because these files may have some very personal changes, these files are not overwritten.
-You can force that, in the subdirectory ~/mbsebbs-1.0.8.6/examples type
+You can force that, in the subdirectory ~/mbsebbs-@VERSION@/examples type
 <pre>
 make help
 </pre>
