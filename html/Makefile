@@ -120,8 +120,7 @@ clean:
 		rm -f filelist
 		rm -f basic.html index.html upgrade.html
 
-filelist:
-		Makefile
+filelist:	Makefile
 		BASE=`pwd`; \
 		BASE=`basename $${BASE}`; \
 		(for f in ${FILES}; \
