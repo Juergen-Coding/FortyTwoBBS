@@ -1,3 +1,12 @@
+v1.1.2		30-Jun-2025 - Andrew Leary
+
+		1.  Updated the German language files to correct an issue with
+		    the menu/navigation bar in the message reader.  Thanks to
+                    Niels Haedecke for the report and fix.
+
+		2.  Moved the ChangeLog_2024 into the docs/changelogs directory
+                    with the rest of the historical ChangeLogs.
+
 v1.1.1		27-Mar-2025 - Andrew Leary
 
 		1.  Updates to the HTML documentation.
@@ -5,4 +14,3 @@ v1.1.1		27-Mar-2025 - Andrew Leary
 		2.  Fixed build errors related to the updated documentation.
 
 		3.  Update copyright notices to 2025.
-

@@ -212,8 +212,8 @@ JN=|Weiter (<J>a/<n>ein/<=>/Bereich-Nr.):
 |Naechste Antwort:
 |Antwort auf:
 |Mitteilungen in
-WNLAUEHX|<W>iederh. <N>aechste <L>etzte <A>ntwort ne<U> loesc<H>en <E>nde e<X>port
-|Wiederh. <N>aechste <L>etzte <A>ntwort ne<U> loesc<H>en <E>nde e<X>port
+WVZANQLX|(W)ieder (V)or (Z)ur. (A)ntwort (N)eu (L)oeschen (Q)uit (X)port
+|(W)ieder (V)or (Z)ur. (A)ntwort (N)eu (L)oeschen (Q)uit (X)port
 |Naechste
 |FEHLER
 ANE|<A>ntwort, <N>aechste, <E>nde: 
