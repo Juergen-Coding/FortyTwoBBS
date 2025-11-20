@@ -343,19 +343,21 @@ void b_screen(void)
     mbse_mvprintw(19, 2, "13.  OLR Newfile days");
     mbse_mvprintw(20, 2, "14.  OLR Max Filereq");
 
-    mbse_mvprintw( 7,37, "15.  BBS Log Level");
-    mbse_mvprintw( 8,37, "16.  Utils loglevel");
-    mbse_mvprintw( 9,37, "17.  Utils slowly");
-    mbse_mvprintw(10,37, "18.  CrashMail level");
-    mbse_mvprintw(11,37, "19.  FileAttach level");
-    mbse_mvprintw(12,37, "20.  Min diskspace MB");
-    mbse_mvprintw(13,37, "21.  Simult. logins");
-    mbse_mvprintw(14,37, "22.  Child priority");
-    mbse_mvprintw(15,37, "23.  Filesystem sync");
-    mbse_mvprintw(16,37, "24.  Default language");
-    mbse_mvprintw(17,37, "25.  Suppress seconds");
-    mbse_mvprintw(18,37, "26.  Update frequency");
-    mbse_mvprintw(19,37, "27.  Supp. tearline");
+    mbse_mvprintw( 7,31, "15.  BBS Log Level");
+    mbse_mvprintw( 8,31, "16.  Utils loglevel");
+    mbse_mvprintw( 9,31, "17.  Utils slowly");
+    mbse_mvprintw(10,31, "18.  CrashMail level");
+    mbse_mvprintw(11,31, "19.  FileAttach level");
+    mbse_mvprintw(12,31, "20.  Min diskspace MB");
+    mbse_mvprintw(13,31, "21.  Simult. logins");
+    mbse_mvprintw(14,31, "22.  Child priority");
+    mbse_mvprintw(15,31, "23.  Filesystem sync");
+    mbse_mvprintw(16,31, "24.  Default language");
+    mbse_mvprintw(17,31, "25.  Suppress seconds");
+    mbse_mvprintw(17,58, "26.  Upd. freq.");
+    mbse_mvprintw(18,31, "27.  No tearline (Loc)");
+    mbse_mvprintw(19,31, "28.  No tearline (Net)");
+    mbse_mvprintw(20,31, "29.  Empty tearline");
 
     set_color(WHITE, BLACK);
     show_bool( 7,24, CFG.exclude_sysop);
@@ -373,19 +375,21 @@ void b_screen(void)
     show_int( 19,24, CFG.OLR_NewFileLimit);
     show_int( 20,24, CFG.OLR_MaxReq);
 
-    show_logl( 7,59, CFG.bbs_loglevel);
-    show_logl( 8,59, CFG.util_loglevel);
-    show_bool( 9,59, CFG.slow_util);
-    show_int( 10,59, CFG.iCrashLevel);
-    show_int( 11,59, CFG.iAttachLevel);
-    show_int( 12,59, CFG.freespace);
-    show_int( 13,59, CFG.max_logins);
-    show_int( 14,59, CFG.priority);
-    show_bool(15,59, CFG.do_sync);
-    show_str( 16,59, 10, CFG.deflang);
-    show_bool(17,59, CFG.SuppSecs);
-    show_int( 18,59, CFG.StatusUpd);
-    show_bool(19,59, CFG.SupTearL);
+    show_logl( 7,54, CFG.bbs_loglevel);
+    show_logl( 8,54, CFG.util_loglevel);
+    show_bool( 9,54, CFG.slow_util);
+    show_int( 10,54, CFG.iCrashLevel);
+    show_int( 11,54, CFG.iAttachLevel);
+    show_int( 12,54, CFG.freespace);
+    show_int( 13,54, CFG.max_logins);
+    show_int( 14,54, CFG.priority);
+    show_bool(15,54, CFG.do_sync);
+    show_str( 16,54, 10, CFG.deflang);
+    show_bool(17,54, CFG.SuppSecs);
+    show_int( 17,74, CFG.StatusUpd);
+    show_bool(18,54, CFG.SupTearL);
+    show_bool(19,54, CFG.SupTearN);
+    show_bool(20,54, CFG.EmptyTear);
 }
 
 
@@ -395,7 +399,7 @@ void e_bbsglob(void)
     b_screen();
 
     for (;;) {
-	switch(select_menu(27)) {
+	switch(select_menu(29)) {
 	    case 0: return;
 	    case 1: E_BOOL( 7,24, CFG.exclude_sysop,         "^Exclude^ sysop from lists."); break;
 	    case 2: E_BOOL( 8,24, CFG.iConnectString,        "Show ^connect string^ at logon"); break;
@@ -411,23 +415,25 @@ void e_bbsglob(void)
 	    case 12:E_INT( 18,24, CFG.OLR_MaxMsgs,           "^Maximum messages^ to pack for download (0=unlimited)"); break;
 
 	    case 13:E_INT( 19,24, CFG.OLR_NewFileLimit,      "^Limit Newfiles^ listing for maximum days"); break;
-	    case 14:E_INT( 20,24, CFG.OLR_MaxReq,            "Maximum ^Filerequests^ to honor"); break;
+	    case 14:E_INT( 20,24 , CFG.OLR_MaxReq,            "Maximum ^Filerequests^ to honor"); break;
 	    case 15:E_LOGL(CFG.bbs_loglevel, "1.5.15"); b_screen(); break;
 	    case 16:E_LOGL(CFG.util_loglevel, "1.5.16"); b_screen(); break;
-	    case 17:E_BOOL( 9,59, CFG.slow_util,             "Let background utilities run ^slowly^"); break;
-	    case 18:E_INT( 10,59, CFG.iCrashLevel,           "The user level to allow sending ^CrashMail^"); break;
-	    case 19:E_INT( 11,59, CFG.iAttachLevel,          "The user level to allow sending ^File Attaches^"); break;
-	    case 20:E_IRC( 12,59, CFG.freespace, 2, 1000,    "Minimum ^free diskspace^ in MBytes on filesystems (2..1000)"); break;
-	    case 21:E_INT( 13,59, CFG.max_logins,            "Maximum ^simultaneous logins^ allowed, 0 means unlimited"); break;
-	    case 22:E_IRC( 14,59, CFG.priority, 0, 15,       "Subproces ^nice priority^, 0=high, 15=low CPU load"); break;
-	    case 23:E_BOOL(15,59, CFG.do_sync,               "Call ^sync^ before and after execute, use Yes on GNU/Linux"); break;
+	    case 17:E_BOOL( 9,54, CFG.slow_util,             "Let background utilities run ^slowly^"); break;
+	    case 18:E_INT( 10,54, CFG.iCrashLevel,           "The user level to allow sending ^CrashMail^"); break;
+	    case 19:E_INT( 11,54, CFG.iAttachLevel,          "The user level to allow sending ^File Attaches^"); break;
+	    case 20:E_IRC( 12,54, CFG.freespace, 2, 1000,    "Minimum ^free diskspace^ in MBytes on filesystems (2..1000)"); break;
+	    case 21:E_INT( 13,54, CFG.max_logins,            "Maximum ^simultaneous logins^ allowed, 0 means unlimited"); break;
+	    case 22:E_IRC( 14,54, CFG.priority, 0, 15,       "Subproces ^nice priority^, 0=high, 15=low CPU load"); break;
+	    case 23:E_BOOL(15,54, CFG.do_sync,               "Call ^sync^ before and after execute, use Yes on GNU/Linux"); break;
 	    case 24:PickLanguage((char *)"1.5.24");
 		    snprintf(CFG.deflang, 10, "%s", lang.lc);
 		    b_screen();
 		    break;
-            case 25:E_BOOL(17,59, CFG.SuppSecs,              "Suppress ^seconds^ in mbmon/mbsetup"); break;
-            case 26:E_INT( 18,59, CFG.StatusUpd,             "Clock/System Status update frequency"); break;
-            case 27:E_BOOL(19,59, CFG.SupTearL,              "Suppress ^tearline^ in local areas"); break;
+            case 25:E_BOOL(17,54 , CFG.SuppSecs,              "Suppress ^seconds^ in mbmon/mbsetup"); break;
+            case 26:E_INT( 17,74, CFG.StatusUpd,             "Clock/System Status update frequency"); break;
+            case 27:E_BOOL(18,54, CFG.SupTearL,              "Suppress ^tearline^ in local areas"); break;
+            case 28:E_BOOL(19,54, CFG.SupTearN,              "Suppress ^tearline^ in netmail areas"); break;
+            case 29:E_BOOL(20,54, CFG.EmptyTear,             "Use ^empty^ tearline"); break;
 	}
     }
 }

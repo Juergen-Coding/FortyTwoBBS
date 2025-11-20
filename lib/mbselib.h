@@ -1292,6 +1292,9 @@ struct	sysconfig {
 	unsigned	nntpforceauth	: 1;	/* Force NNTP authenticate  */
         unsigned        SupTearL        : 1;    /* Suppress tearline in loc.
                                                    message areas            */
+        unsigned	SupTearN	: 1;	/* Suppress tearline in
+                                                   netmail message areas    */
+        unsigned        EmptyTear	: 1;    /* Force empty tearline     */
 	char		myfqdn[64];		/* My real FQDN		    */
 	int		www_mailerlines;	/* Limit mailhistory lines  */
 
