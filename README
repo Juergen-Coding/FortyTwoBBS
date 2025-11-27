@@ -22,7 +22,7 @@ working on providing documentation in other formats such as PDF.
 
 Distribution naming scheme:
 
-mbsebbs-1.1.1.tar.bz2
+mbsebbs-1.1.5.tar.bz2
   |     | | |
   |     | | +--------- minor patchlevel
   |     | +----------- minor version
@@ -30,7 +30,7 @@ mbsebbs-1.1.1.tar.bz2
   +------------------- package name
 
 For FTN-style distribution, the tar archive and FILE_ID.DIZ are
-zipped together in a file with an 8.3-style filename like MBSE-111.ZIP.
+zipped together in a file with an 8.3-style filename like MBSE-115.ZIP.
 
 If you need support, we support MBSE in Fidonet's MBSE echo (this is
 our preferred method of support).
