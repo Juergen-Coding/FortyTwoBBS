@@ -311,6 +311,9 @@ int DisplayFile(char *filename)
 			    } 
 			    break;
 
+		case '':  strncat(out, (char *)"\x1b[2J", 5);
+		           break;
+
 		case '\r':  break;
 
 		case '\n':  strncat(out, (char *)"\r\n", 3);

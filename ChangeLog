@@ -1,3 +1,8 @@
+v1.1.5          27-Nov-2025 - Andrew Leary
+
+		1.  Added a new text file control code (CTRL-L) to clear the
+                    user's screen.
+
 v1.1.4          19-Nov-2025 - Andrew Leary
 
                 1.  Added the option to suppress adding a tearline in NetMail 
