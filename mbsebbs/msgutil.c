@@ -288,22 +288,17 @@ void Add_Footkludges(int Quote, char *tear, int HasTear)
 
     if (((msgs.Type == LOCALMAIL) && (CFG.SupTearL)) || ((msgs.Type == NETMAIL) && (CFG.SupTearN))) {
       ;
-      } else {
+    } else {
       
       /*
        * The offline reader may override the tearline
        */
       if (!HasTear) {
-	  if (CFG.EmptyTear) {
-	      snprintf(temp, 81, "--- ");
-	      MsgText_Add2(temp);
+	  if (tear == NULL) {
+	      MsgText_Add2(TearLine());
 	  } else {
-	      if (tear == NULL) {
-	          MsgText_Add2(TearLine());
-	      } else {
-	      snprintf(temp, 81, "--- %s", tear);
+              snprintf(temp, 81, "--- %s", tear);
 	      MsgText_Add2(temp);
-	      }
 	  }
       }
     }

@@ -213,12 +213,10 @@ int Post(char *From, char *To, int Area, char *Subj, char *File, char *Flavor)
     }
 
     temp = calloc(PATH_MAX, sizeof(char));
-    if (! Msg.Localmail) {
-      snprintf(temp, PATH_MAX, "\001MSGID: %s %08x", aka2str(msgs.Aka), sequencer());
-      MsgText_Add2(temp);
-      Msg.MsgIdCRC = upd_crc32(temp, crc, strlen(temp));
-      Msg.ReplyCRC = 0xffffffff;
-    }
+    snprintf(temp, PATH_MAX, "\001MSGID: %s %08x", aka2str(msgs.Aka), sequencer());
+    MsgText_Add2(temp);
+    Msg.MsgIdCRC = upd_crc32(temp, crc, strlen(temp));
+    Msg.ReplyCRC = 0xffffffff;
     snprintf(temp, PATH_MAX, "\001PID: MBSE-FIDO %s", versioned_sysinfo());
     MsgText_Add2(temp);
     if (msgs.Charset != FTNC_NONE) {
@@ -252,7 +250,7 @@ int Post(char *From, char *To, int Area, char *Subj, char *File, char *Flavor)
     if (! Msg.Localmail) { 
         if ((! has_tear) && (! has_origin)) {
             MsgText_Add2((char *)"");
-	    MsgText_Add2(TearLine());
+            MsgText_Add2(TearLine());
         }
 
         if (! has_origin) {

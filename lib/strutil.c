@@ -407,7 +407,11 @@ char *TearLine()
 {
     static char	    tearline[45];
 
-    snprintf(tearline, 45, "--- MBSE BBS v%.30s", versioned_sysinfo());
+    if (CFG.EmptyTear) {
+        snprintf(tearline, 5, "--- ");
+    } else {
+        snprintf(tearline, 45, "--- MBSE BBS v%.30s", versioned_sysinfo());
+    }
     return tearline;
 }
 
