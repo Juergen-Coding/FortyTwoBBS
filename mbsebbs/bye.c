@@ -76,35 +76,42 @@ void Good_Bye(int onsig)
     SaveLastCallers();
 
     /*
-     * Update the users database record.
+     * Update the users database record if we aren't on a guest account.
      */
-    snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
-    if ((pUsrConfig = fopen(temp,"r+")) != NULL) {
-	snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, exitinfo.Name);
-	if ((pExitinfo = fopen(temp,"rb")) != NULL) {
-	    fread(&usrconfighdr, sizeof(usrconfighdr), 1, pUsrConfig);
-	    fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo);
+    if (!usrconfig.Guest) {
+        snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
+        if ((pUsrConfig = fopen(temp,"r+")) != NULL) {
+	    snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, exitinfo.Name);
+	    if ((pExitinfo = fopen(temp,"rb")) != NULL) {
+	        fread(&usrconfighdr, sizeof(usrconfighdr), 1, pUsrConfig);
+	        fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo);
 
-	    usrconfig = exitinfo;
-	    fclose(pExitinfo);
-	    usrconfig.iLastFileArea = iAreaNumber;
+	        usrconfig = exitinfo;
+	        fclose(pExitinfo);
+	        
+	        /* Save current file area and message area in user record */
+	        
+	        usrconfig.iLastFileArea = iAreaNumber;
+                usrconfig.iLastMsgArea = iMsgAreaNumber;
 
-	    /* If time expired, do not say say successful logoff */
-	    if (!iExpired && !hanged_up)
-		Syslog('+', "User successfully logged off BBS");
+                /* If time expired, do not say successful logoff */
+                if (!iExpired && !hanged_up)
+               	    Syslog('+', "User successfully logged off BBS");
 
-	    usrconfig.iLastMsgArea = iMsgAreaNumber;
-
-	    offset = usrconfighdr.hdrsize + (grecno * usrconfighdr.recsize);
-	    if (fseek(pUsrConfig, offset, SEEK_SET) != 0) {
-		WriteError("$Can't move pointer in file %s/etc/users.data", getenv("MBSE_ROOT"));
-	    } else {
-	        fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
-	    }
-	    fclose(pUsrConfig);
-	}
-    }
-
+                offset = usrconfighdr.hdrsize + (grecno * usrconfighdr.recsize);
+                if (fseek(pUsrConfig, offset, SEEK_SET) != 0) {
+		    WriteError("$Can't move pointer in file %s/etc/users.data", getenv("MBSE_ROOT"));
+	        } else {
+	            fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
+                } /* else */
+	        fclose(pUsrConfig);
+            } /* if fopen exitinfo */
+        } /* if fopen userfile */
+    } else { /* If guest account time expired, do not say successful logoff */
+        if (!iExpired && !hanged_up)
+            Syslog('+', "Guest account successfully logged off BBS");
+    } 
+    
     /*
      * Update mib counters
      */

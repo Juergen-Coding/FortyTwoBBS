@@ -318,7 +318,19 @@ int Report(gr_list *ta, int filepos)
 		}
 		filepos3 = ftell(fi);
 	    }
-
+            
+            /*
+             * Origin node
+             */
+            if (strlen(T_File.Origin)) {
+                MacroVars("o", "s", T_File.Origin);
+                Msg_Macro(fi);
+	    } else {
+	        line = calloc(MAXSTR, sizeof(char));
+	        while ((fgets(line, MAXSTR-2, fi) != NULL) && ((line[0]!='@') || (line[1]!='|'))) {}
+	        free(line);
+	    }
+	    
 	    /*
 	     * Magic request
 	     */

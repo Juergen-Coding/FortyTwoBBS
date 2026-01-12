@@ -21,7 +21,7 @@ OTHER		= AUTHORS ChangeLog COPYING DEBUG CRON.sh FILE_ID.DIZ.in \
 	      docs/changelogs/ChangeLog_2018 docs/changelogs/ChangeLog_2019 \
 	      docs/changelogs/ChangeLog_2020 docs/changelogs/ChangeLog_2021 \
 	      docs/changelogs/ChangeLog_2022 docs/changelogs/ChangeLog_2023 \
-	      docs/changelogs/ChangeLog_2024
+	      docs/changelogs/ChangeLog_2024 docs/changelogs/ChangeLog_2025
 	      
 TARFILE		= ${PACKAGE}-${VERSION}.tar.bz2
 

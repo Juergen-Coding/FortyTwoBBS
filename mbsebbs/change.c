@@ -161,6 +161,15 @@ void Chg_Password()
     DisplayFile((char *)"password");
 
     Enter(1);
+
+    if (exitinfo.Guest) {
+        /* Guest account cannot change password */
+        language(LIGHTRED, BLACK, 482);
+        Enter(1);
+        Pause();
+        return;
+    }
+
     /* Old password: */
     language(WHITE, BLACK, 120);
     colour(CFG.InputColourF, CFG.InputColourB);

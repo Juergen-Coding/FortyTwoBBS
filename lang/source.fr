@@ -480,3 +480,4 @@ YN|) to post this message [Y/n]:
 |No more areas with unread messages
 |Addresse not in Nodelist
 |Found Addresse in Nodelist
+|Les comptes invites ne peuvent pas modifier leur mot de passe !

@@ -1,46 +1,25 @@
-v1.1.6		30-Nov-2025 - Andrew Leary
+v1.1.7          05-Jan-2026 - Andrew Leary
 
-		1.  MBFIDO will now respect the empty tearline option (MBSETUP
-                    1.5.29).
+                1.  File announcements will now include the Origin node.  This
+                    will require updating the newfiles template in your MBSE
+                    ~/share/int/macro/<language> directory.  To use the example
+                    template that comes with MBSE, unpack it from the templates
+                    .tar file:
 
-		2.  MBMSG will now respect the empty tearline option (MBSETUP
-                    1.5.29).
+                    cd ~/share/int/macro/en
+                    tar xvf ~/mbsebbs-1.1.7/examples/templates-en.tar newfiles
 
-v1.1.5          27-Nov-2025 - Andrew Leary
+                    The templates have been updated for English (en), Spanish
+                    (es), German (de), & Dutch (nl).  Contributions in other
+                    languages are welcome.
 
-		1.  Added a new text file control code (CTRL-L) to clear the
-                    user's screen.
+                2.  The Guest Account option in the user record will now
+                    work.  MBSE will not save any user settings or statistics
+                    when a guest account logs off.  A user logged into a guest
+                    account will not be able to change the password.  Any user
+                    setting changes (ANSI, hot keys, more prompts, etc.) will
+                    only be effective for the current call.  Once the user logs
+                    off, all settings will revert to what the SysOp has set up
+                    in the MBSETUP user editor.
 
-v1.1.4          19-Nov-2025 - Andrew Leary
-
-                1.  Added the option to suppress adding a tearline in NetMail 
-                    areas.
-
-                2.  Added the option for the BBS to add only an empty tearline.
-
-                3.  Reformatted the screen in MBSETUP 1.5 to make room for the
-                    new options.
-
-v1.1.3		17-Aug-2025 - Andrew Leary
-
-		1.  Changed the user home directory macro for doors from /U to
-                    /H.  /U will now be replaced by the user's Unixname only,
-                    to facilitate connecting MBSE to DoorParty or similar
-                    services.
-
-v1.1.2		30-Jun-2025 - Andrew Leary
-
-		1.  Updated the German language files to correct an issue with
-		    the menu/navigation bar in the message reader.  Thanks to
-                    Niels Haedecke for the report and fix.
-
-		2.  Moved the ChangeLog_2024 into the docs/changelogs directory
-                    with the rest of the historical ChangeLogs.
-
-v1.1.1		27-Mar-2025 - Andrew Leary
-
-		1.  Updates to the HTML documentation.
-
-		2.  Fixed build errors related to the updated documentation.
-
-		3.  Update copyright notices to 2025.
+                3.  Update copyright messages to 2026.

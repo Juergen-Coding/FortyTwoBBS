@@ -480,3 +480,4 @@ SN|) para este mensaje [S/n]:
 |No hay mas areas con mensajes no leidos
 |Addresse not in Nodelist
 |Found Addresse in Nodelist
+|La cuenta de invitado no puede cambiar la contrasena!

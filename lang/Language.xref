@@ -480,3 +480,4 @@
 479	mail.c				|No more areas with unread messages
 480	mail.c				|Addresse not in Nodelist
 481	mail.c				|Found Addresse in Nodelist
+482     change.c                        |Guest account cannot change password!

@@ -480,3 +480,4 @@ YN|) to post this message [Y/n]:
 |Geen gebieden meer met ongelezen berichten
 |Geadresseerde niet in de Nodelijst
 |Geadresseerde gevonden in de nodelijst
+|Gastaccounts kunnen hun wachtwoord niet wijzigen!
