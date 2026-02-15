@@ -29,7 +29,8 @@ log() {
 #------------------------------------------------------------------------
 #
 cat << EOF
-MBSE BBS for Unix, first time setup. Checking your system..."
+MBSE BBS for Linux/BSD
+Initial setup
 
 If anything goes wrong with this script, look at the output of
 the file SETUP.log that is created by this script in this
@@ -51,12 +52,11 @@ if [ "$OSTYPE" != "Linux" ] && [ "$OSTYPE" != "FreeBSD" ] && [ "$OSTYPE" != "Net
 
     cat << EOF
 
-Your are trying to install MBSE BBS on a $OSTYPE system, however
-at this time only Linux, FreeBSD, NetBSD, OpenBSD and Darwin (OS X)
-are supported.
+You are trying to install MBSE BBS on a $OSTYPE system, however
+at this time, only Linux and FreeBSD are supported.
 
 EOF
-    log "!" "Aborted, OS is $OSTYPE"
+    log "!" "Aborted! OS is $OSTYPE"
     exit 2
 fi
 
@@ -156,11 +156,11 @@ log "+" "Detected \"${OSTYPE}\" (${HOSTTYPE}) \"${DISTNAME}\" version \"${DISTVE
 if [ "$DISTNAME" = "Unknown" ]; then
     cat << EOF
 
-    Your are trying to install MBSE BBS on a $OSTYPE system, however
+    You are trying to install MBSE BBS on a $OSTYPE system, however,
     that distribution is unknown.
 
 EOF
-    log "!" "Aborted, OS is $OSTYPE, distribution is unknown"
+    log "!" "Aborted! OS is $OSTYPE, distribution is unknown"
     exit 2
 fi
 
@@ -241,7 +241,7 @@ fi
 if [ "$DISTNAME" = "Devuan" ]; then
     if [ ! -f /etc/xinetd.d/echo ]; then
     	echo "*** You seem to be using Devuan but have not yet installed xinetd."
-    	echo "    'apt-get install xinetd' as root will install that for you. ***"
+    	echo "    'sudo apt-get install xinetd' as root will install that for you. ***"
     	echo "*** SETUP aborted ***"
     	log "!" "Aborted, Devuan without xinetd package"
     	exit 2
@@ -306,11 +306,11 @@ cat << EOF
 
     Everything looks alright to start the installation now.
     Next, the script will install a new group 'bbs' and two new
-    users: 'mbse' which is the bbs system account and 'bbs' which
-    is the login account for bbs users. This account will have no
-    password!  The shell for this account is the main bbs program.
+    users: 'mbse' which is the BBS system account and 'bbs' which
+    is the login account for BBS users. This account will have no
+    password!  The shell for this account is the main BBS program.
 
-    One final important note: This script will make changes to some
+    One final important note: this script will make changes to some
     of your system files.  Because we don't have access to all kinds of
     distributions and configurations there is no guarantee that this
     script is perfect.  Please make sure you have a recent system 
@@ -340,7 +340,7 @@ echo "Installing MBSE BBS for the first time..."
 echo ""
 echo -n "Adding group 'bbs'..."
 $PW groupadd bbs
-log "+" "[$?] Added group bbs"
+log "+" "[$?] Added group 'bbs'"
 
 echo -n ", user 'mbse' $OSTYPE "
 if [ "$OSTYPE" = "Linux" ]; then
@@ -459,12 +459,12 @@ log "+" "[$?] chgrp bbs $MHOME/home/bbs"
 
 cat << EOF
 
-Do you want to set a password for the newuser (bbs) account?
+Do you want to set a password for the new user ('bbs') account?
 
   Doing so will allow new users to register via SSH.  This is more
   secure than the default of registering via telnet.  On some distros,
   support for telnet connections is no longer installed by default,
-  so it is recommended to do this.  You might want to add the newuser
+  so it is recommended to do this.  You might want to add the new user
   username and password to $MHOME/etc/issue so that it will be displayed
   to telnet applicants upon connection.
   
@@ -528,10 +528,10 @@ case "$response" in
 
 READ THIS CAREFULLY NOW   READ THIS CAREFULLY NOW
 
-I don't know how to automatic remove the password for the "bbs"
-user account in NetBSD/Darwin. You have to do this for me!
-Next I start the editor you need to use, remove all the stars"
-after the word Password, then save the file with "wq!"
+This script cannot automatically remove the password for the "bbs"
+user account in NetBSD/Darwin. You have to do this yourself!
+Remove all the stars after the word Password, then save the file 
+with "wq!"
 
 EOF
         echo -n "Press Enter when ready "
@@ -724,27 +724,27 @@ fi
 cat SETUP.log >> $MHOME/SETUP.log
 
 echo ""
-echo -n "Press Enter to continue"
+echo -n "Press <Enter> to continue.."
 read junk
 clear
 
 cat << EOF
-     The script made it to the end, that looks good. Before you logout do some
-     sanity checks;
+     The install script has completed. Before you logout do some
+     sanity checks:
 
-     1. Can you still login as a normal user.
+     1. Can you still login as a normal user?
 
      2. Login on another virtual console, network or whatever as user 'mbse'.
         Then type 'echo \$MBSE_ROOT'. Does this show the path to
-        '$MHOME' or nothing. 
+        '$MHOME' or nothing?
 
      3. Login on another virtual console as user 'bbs'. It should not ask for
-        a password, but should direct try to start the bbs. This is not
+        a password, but should direct try to start the BBS. This is not
         installed yet but you should see error messages and then be logged out.
 
-     If these three tests weren't successfull, restore /etc/passwd and
+     If these three tests weren't successful, restore /etc/passwd and
      or /etc/shadow, the backup copies have the extension '.mbse'.
-     Then issue (as root of course) the following commands:
+     Then, as root, issue the following commands:
 
 EOF
 if [ "$OSTYPE" = "Linux" ] || [ "$OSTYPE" = "NetBSD" ] || [ "$OSTYPE" = "OpenBSD" ]; then
