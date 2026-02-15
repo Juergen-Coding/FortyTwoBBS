@@ -3,7 +3,7 @@ will suit your BBSing needs now and in the future.
 
 Some of the features MBSE has:
 
-* Open source, written in C, and available for UNIX, Linux, and BSD.
+* Open source, written in C, and available for Linux and BSD.
 * Fully Fidonet capable with these features: built-in mail tosser, TIC
   handler, front-end mailer, areafix, filefix, and more.
 * Uses JAM for its message base format
@@ -32,8 +32,12 @@ mbsebbs-1.1.5.tar.bz2
 For FTN-style distribution, the tar archive and FILE_ID.DIZ are
 zipped together in a file with an 8.3-style filename like MBSE-115.ZIP.
 
-If you need support, we support MBSE in Fidonet's MBSE echo (this is
-our preferred method of support).
+If you need support, we support MBSE in the following FTN echoes:
+ * Fidonet: MBSE
+ * Micronet: MIN_BBS
+ * NixNet: NIX_BBS
+
+Please note that support through the above echoes is our preferred method of support.
 
 A note from MBSE's original author:
 
@@ -44,7 +48,3 @@ package. You can do that by changing the version numbers and messages in
 the file configure.ac and then run autoconf to update the configure scripts."
 
 -- The MBSE Development Team
-
-
-
-
