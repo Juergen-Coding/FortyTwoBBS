@@ -22,7 +22,7 @@ working on providing documentation in other formats such as PDF.
 
 Distribution naming scheme:
 
-mbsebbs-1.1.5.tar.bz2
+mbsebbs-1.1.7.tar.bz2
   |     | | |
   |     | | +--------- minor patchlevel
   |     | +----------- minor version

@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
 	    mbse_mvprintw( 5, 6, "0.    MAIN SETUP");
 	    set_color(CYAN, BLACK);
 	    mbse_mvprintw( 7, 6, "1.    Edit Global Configuration");
-	    mbse_mvprintw( 8, 6, "2.    Edit Fido Networks");
+	    mbse_mvprintw( 8, 6, "2.    Edit FTN Networks");
 	    mbse_mvprintw( 9, 6, "3.    Edit Archiver Programs");
 	    mbse_mvprintw(10, 6, "4.    Edit Virus Scanners");
 	    mbse_mvprintw(11, 6, "5.    Edit Modem Types");
@@ -557,4 +557,5 @@ int main(int argc, char *argv[])
     die(MBERR_OK);
     return 0;
 }
+
 

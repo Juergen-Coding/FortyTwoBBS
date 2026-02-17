@@ -257,7 +257,7 @@ int EditFidoRec(int Area)
     mbse_mvprintw( 8, 6, "2.  Domain name");
     mbse_mvprintw( 9, 6, "3.  Available");
     mbse_mvprintw(10, 6, "4.  Deleted");
-    mbse_mvprintw(11, 6, "5.  Main Nodelist");
+    mbse_mvprintw(11, 6, "5.  Main nodelist");
     mbse_mvprintw(12, 6, "6.  Merge list #1");
     mbse_mvprintw(13, 6, "7.  Merge list #2");
     mbse_mvprintw(14, 6, "8.  Merge list #3");
@@ -294,21 +294,21 @@ int EditFidoRec(int Area)
 	    case 0: if (fidonet.available && fidonet.deleted)
 			fidonet.available = FALSE;
 		    if (fidonet.available && (strlen(fidonet.domain) == 0)) {
-			errmsg("You must fill in a valid domain name");
+			errmsg("You must fill in a valid domain name.");
 			break;
 		    }
 		    if (fidonet.available && (fidonet.zone[0] == 0)) {
-			errmsg("The network must have a main zone number");
+			errmsg("The network must have a main zone number.");
 			break;
 		    }
 		    if (fidonet.available && (strlen(fidonet.nodelist) == 0)) {
-			errmsg("You must fill in a nodelist for this network");
+			errmsg("You must fill in a nodelist for this network.");
 			break;
 		    }
 		    crc1 = 0xffffffff;
 		    crc1 = upd_crc32((char *)&fidonet, crc1, sizeof(fidonet));
 		    if (crc != crc1) {
-			if (yes_no((char *)"Record is changed, save") == 1) {
+			if (yes_no((char *)"Record is changed, save?") == 1) {
 			    working(1, 0, 0);
 			    if ((fil = fopen(mfile, "r+")) == NULL) {
 				working(2, 0, 0);
