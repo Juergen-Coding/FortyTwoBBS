@@ -259,6 +259,7 @@ void Add_Headkludges(faddr *dest, int IsReply)
 void Add_Footkludges(int Quote, char *tear, int HasTear)
 {
     char    *temp, *aka;
+    int     siglines = 0;
     FILE    *fp;
 
     temp = calloc(PATH_MAX, sizeof(char));
@@ -267,23 +268,28 @@ void Add_Footkludges(int Quote, char *tear, int HasTear)
     /*
      * If Quote (message entered at the bbs) we append a signature.
      */
+    MsgText_Add2((char *)"");
     if (Quote) {
 	snprintf(temp, PATH_MAX, "%s/%s/.signature", CFG.bbs_usersdir, exitinfo.Name);
 	if ((fp = fopen(temp, "r"))) {
-	    MsgText_Add2((char *)"");
 	    while (fgets(temp, 80, fp)) {
 		Striplf(temp);
 		MsgText_Add2(temp);
+		siglines++;
 	    }
 	    fclose(fp);
-	    MsgText_Add2((char *)"");
+	    /*
+	     *  If siglines is non-zero, add a blank line after the signature.
+	     */
+	    if (siglines) {
+	        MsgText_Add2((char *)"");
+	    }
 	}
     }
 	
     if (msgs.Quotes && Quote) {
 	snprintf(temp, 81, "... %s", Oneliner_Get());
 	MsgText_Add2(temp);
-	MsgText_Add2((char *)"");
     }
 
     if (((msgs.Type == LOCALMAIL) && (CFG.SupTearL)) || ((msgs.Type == NETMAIL) && (CFG.SupTearN))) {
