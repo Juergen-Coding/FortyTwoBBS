@@ -358,6 +358,7 @@ void b_screen(void)
     mbse_mvprintw(18,31, "27.  No tearline (Loc)");
     mbse_mvprintw(19,31, "28.  No tearline (Net)");
     mbse_mvprintw(20,31, "29.  Empty tearline");
+    mbse_mvprintw(20,58, "30.  Blank sig.");
 
     set_color(WHITE, BLACK);
     show_bool( 7,24, CFG.exclude_sysop);
@@ -390,6 +391,7 @@ void b_screen(void)
     show_bool(18,54, CFG.SupTearL);
     show_bool(19,54, CFG.SupTearN);
     show_bool(20,54, CFG.EmptyTear);
+    show_bool(20,74, CFG.iDefBlankSig);
 }
 
 
@@ -399,7 +401,7 @@ void e_bbsglob(void)
     b_screen();
 
     for (;;) {
-	switch(select_menu(29)) {
+	switch(select_menu(30)) {
 	    case 0: return;
 	    case 1: E_BOOL( 7,24, CFG.exclude_sysop,         "^Exclude^ sysop from lists."); break;
 	    case 2: E_BOOL( 8,24, CFG.iConnectString,        "Show ^connect string^ at logon"); break;
@@ -429,11 +431,12 @@ void e_bbsglob(void)
 		    snprintf(CFG.deflang, 10, "%s", lang.lc);
 		    b_screen();
 		    break;
-            case 25:E_BOOL(17,54 , CFG.SuppSecs,              "Suppress ^seconds^ in mbmon/mbsetup"); break;
+            case 25:E_BOOL(17,54, CFG.SuppSecs,              "Suppress ^seconds^ in mbmon/mbsetup"); break;
             case 26:E_INT( 17,74, CFG.StatusUpd,             "Clock/System Status update frequency"); break;
             case 27:E_BOOL(18,54, CFG.SupTearL,              "Suppress ^tearline^ in local areas"); break;
             case 28:E_BOOL(19,54, CFG.SupTearN,              "Suppress ^tearline^ in netmail areas"); break;
             case 29:E_BOOL(20,54, CFG.EmptyTear,             "Use ^empty^ tearline"); break;
+            case 30:E_BOOL(20,74, CFG.iDefBlankSig,          "Default to ^blank^ .signature"); break;
 	}
     }
 }

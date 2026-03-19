@@ -230,12 +230,14 @@ char *ChangeHomeDir(char *Name, int Mailboxes)
 	Syslog('+', "Creating users .signature file");
         if ((fp = fopen(temp, "w")) == NULL) {
 	    WriteError("$Can't create %s", temp);
-	} else {
+	} else if (!CFG.iDefBlankSig) {
 	    fprintf(fp,     "    Greetings, %s\n", exitinfo.sUserName);
 	    if ((CFG.EmailMode == E_PRMISP) && exitinfo.Email && CFG.GiveEmail)
 	        fprintf(fp, "    email: %s@%s\n", exitinfo.Name, CFG.sysdomain);
 	    fclose(fp);
-	}
+	} else {
+	    fclose(fp); /* Close the .signature as a 0-byte file */
+        }
     }
 
     /*

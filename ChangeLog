@@ -1,3 +1,12 @@
+v1.1.7.2        19-Mar-2026 - Andrew Leary
+
+                1.  The BBS now has the option to default to a blank .signature
+                    for posted messages.  To enable this option, toggle MBSETUP
+                    1.5.30 to Yes.  When this option is set to No, the BBS will
+                    create a default .signature just as it did in previous
+                    versions.  Users are still able to edit their .signature in
+                    the Setup menu if the SysOp has that option configured.
+
 v1.1.7.1	14-Mar-2026 - Andrew Leary
 
 		1.  The extra blank line after the user quote and before the 

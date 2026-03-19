@@ -1057,7 +1057,8 @@ struct	sysconfig {
 	unsigned	GiveEmail	: 1;	/* Give user email	    */
 	unsigned	AskAddress      : 1;	/* Ask Home Address	    */
 	unsigned	iOneName        : 1;	/* Allow one user name      */
-	unsigned	xAskScreenlen	: 1;
+	unsigned	xAskScreenlen	: 1;    /* Ask screen length (obs.) */
+        unsigned        iDefBlankSig    : 1;    /* Def. blank .signature    */
 	unsigned	iCrashLevel;		/* User level for crash mail*/
 	unsigned	iAttachLevel;		/* User level for fileattach*/
 
@@ -1142,6 +1143,7 @@ struct	sysconfig {
 	unsigned	ct_PlusAll	: 1;	/* Filemgr: allow +%*	    */
 	unsigned	ct_Notify	: 1;	/* Filemgr: Notify on/off   */
 	unsigned	ct_Passwd	: 1;	/* Filemgr: Passwd change   */
+
 	unsigned	ct_Message	: 1;	/* Filemgr: Msg file on/off */
 	unsigned	ct_TIC		: 1;	/* Filemgr: TIC files on/off*/
 	unsigned	ct_Pause	: 1;	/* Filemgr: Allow Pause	    */
