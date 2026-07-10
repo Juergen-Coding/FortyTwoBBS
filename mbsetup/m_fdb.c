@@ -41,6 +41,7 @@
 
 void E_F(int);
 void EditFile(void);
+void EditDescription(void);
 
 
 void FHeader(void)
@@ -57,6 +58,7 @@ void FHeader(void)
     mbse_mvprintw(12, 2, "    Upl.Date");
     mbse_mvprintw(13, 2, "    TIC area");
     mbse_mvprintw(14, 2, "    Magic");
+    mbse_mvprintw( 7,45, "7.  Description");
     mbse_mvprintw(15, 2, "1.  Uploader");
     mbse_mvprintw(16, 2, "2.  Times DL");
     mbse_mvprintw(17, 2, "3.  Password");
@@ -68,20 +70,90 @@ void FHeader(void)
 
 
 
+void EditDescription()
+{
+    int i, j;
+    int wide;
+    int line_width;
+    int right_num_x;
+    int right_text_x;
+
+    wide = (screen_columns() >= 110);
+    line_width = wide ? 48 : 32;
+    right_num_x = wide ? 58 : 42;
+    right_text_x = wide ? 62 : 46;
+
+    clr_index();
+    set_color(WHITE, BLACK);
+    mbse_mvprintw(5, 2, "14.7  EDIT FILE DESCRIPTION");
+
+    set_color(CYAN, BLACK);
+    for (i = 0; i < 13; i++) {
+        mbse_mvprintw(7 + i, 2, (char *)"%2d.", i + 1);
+
+        if ((i + 13) < 25)
+            mbse_mvprintw(7 + i, right_num_x,
+                          (char *)"%2d.", i + 14);
+    }
+
+    for (;;) {
+        set_color(WHITE, BLACK);
+
+        for (i = 0; i < 13; i++) {
+            show_str(7 + i, 6, line_width, fdb.Desc[i]);
+
+            if ((i + 13) < 25)
+                show_str(7 + i, right_text_x, line_width,
+                         fdb.Desc[i + 13]);
+        }
+
+        j = select_menu(25);
+        if (j == 0)
+            return;
+
+        mbse_locate(LINES - 4, 1);
+        clrtoeol();
+        set_color(CYAN, BLACK);
+        mbse_mvprintw(LINES - 4, 2, (char *)"Line %d:", j);
+
+        strcpy(fdb.Desc[j - 1],
+               edit_str(LINES - 4, 11, 48, fdb.Desc[j - 1],
+                        (char *)"Edit this ^description line^, maximum 48 characters"));
+
+        mbse_locate(LINES - 4, 1);
+        clrtoeol();
+    }
+}
+
+
+
 void EditFile()
 {
+    int i;
+    int desc_width;
+
     FHeader();
 
     for (;;) {
 	set_color(WHITE, BLACK);
 	show_str( 7,16,12, fdb.Name);
-	show_str( 8,16,64, fdb.LName);
+	show_str( 8,16,28, fdb.LName);
 	show_int( 9,16,    fdb.Size);
 	mbse_mvprintw(10,16, (char *)"%s %s", StrDateDMY(fdb.FileDate), StrTimeHM(fdb.FileDate));
 	mbse_mvprintw(11,16, (char *)"%s %s", StrDateDMY(fdb.LastDL), StrTimeHM(fdb.LastDL));
 	mbse_mvprintw(12,16, (char *)"%s %s", StrDateDMY(fdb.UploadDate), StrTimeHM(fdb.UploadDate));
 	show_str(13,16,20, fdb.TicArea);
 	show_str(14,16,20, fdb.Magic);
+
+	desc_width = screen_columns() - 44;
+	if (desc_width > 48)
+	    desc_width = 48;
+	if (desc_width < 1)
+	    desc_width = 1;
+
+	for (i = 0; i < 7; i++)
+	    show_str(8 + i,45,desc_width, fdb.Desc[i]);
+
 	show_str(15,16,36, fdb.Uploader);
 	show_int(16,16,    fdb.TimesDL);
 	show_str(17,16,15, fdb.Password);
@@ -90,7 +162,7 @@ void EditFile()
 	show_bool(16,75, fdb.NoKill);
 	show_bool(17,75, fdb.Announced);
 
-	switch(select_menu(6)) {
+	switch(select_menu(7)) {
 	    case 0: return;
 	    case 1: E_STR( 15,16,35, fdb.Uploader,  "The ^uploader^ of this file"); break;
 	    case 2: E_INT( 16,16,    fdb.TimesDL,   "The number of times file is sent with ^download^"); break;
@@ -98,6 +170,7 @@ void EditFile()
 	    case 4: E_BOOL(15,75,    fdb.Deleted,   "Should this this file be ^deleted^"); break;
 	    case 5: E_BOOL(16,75,    fdb.NoKill,    "File can't be ^killed^ automatic"); break;
 	    case 6: E_BOOL(17,75,    fdb.Announced, "File is ^announced^ as new file"); break;
+	    case 7: EditDescription(); FHeader(); break;
 	}
     }
 }

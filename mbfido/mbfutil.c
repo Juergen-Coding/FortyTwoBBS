@@ -117,6 +117,7 @@ void Help(void)
     printf("	c  check [area]			Check filebase\n");
     printf("	d  delete <area> \"<filemask>\"	Mark file(s) in area for deletion\n");
     printf("	im import <area>		Import files in current dir to area\n");
+    printf("	ti treeimport <path>		Import tree as one group with multiple areas\n");
     printf("	in index			Create filerequest index\n");
     printf("	k  kill				Kill/move old files\n");
     printf("	l  list	[area]			List file areas or one area\n");

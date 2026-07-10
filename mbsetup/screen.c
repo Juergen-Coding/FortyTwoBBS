@@ -36,6 +36,21 @@ extern int  init;
 int	    bbs_free;
 
 
+/*
+ * Return the real terminal width. Keep 80 columns as the
+ * compatibility fallback for old terminals and redirected output.
+ */
+int screen_columns(void)
+{
+    struct winsize ws;
+
+    if ((ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) && (ws.ws_col > 0))
+        return ws.ws_col;
+
+    return COLS;
+}
+
+
 
 /*************************************************************************
  *
@@ -45,12 +60,11 @@ int	    bbs_free;
 
 void clrtoeol()
 {
-    int	i;
-
-    fprintf(stdout, "\r");
-    for (i = 0; i < COLS; i++)
-	fputc(' ', stdout);
-    fprintf(stdout, "\r");
+    /*
+     * Clear from the beginning of the current line to the real
+     * terminal edge instead of assuming an 80 column display.
+     */
+    fprintf(stdout, "\r\033[K");
     fflush(stdout);
 }
 

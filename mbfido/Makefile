@@ -13,7 +13,7 @@ SRCS		= addbbs.c backalias.c flock.c hatch.c mbdiff.c mgrutil.c qualify.c \
 		  mbmsg.c newspost.c postemail.c scan.c toberep.c atoul.c filemgr.c \
 		  hash.c mbaff.c mbseq.c notify.c postnetmail.c scannews.c tosspkt.c \
 		  mbfkill.c mbfutil.c mbfindex.c mbfcheck.c mbfpack.c mbflist.c mbfadopt.c \
-		  mbfimport.c mbfsort.c mbftoberep.c mbfmove.c mbfdel.c bounce.c \
+		  mbfimport.c mbftree.c mbfsort.c mbftoberep.c mbfmove.c mbfdel.c bounce.c \
 		  createm.c createf.c msgflags.c dirsession.c queue.c dirlock.c msg.c orphans.c
 HDRS		= addbbs.h backalias.h flock.h hatch.h mbdiff.h mgrutil.h qualify.h \
 		  postnetmail.h scannews.h tosspkt.h addpkt.h bwrite.h forward.h \
@@ -24,7 +24,7 @@ HDRS		= addbbs.h backalias.h flock.h hatch.h mbdiff.h mgrutil.h qualify.h \
 		  grlist.h maketags.h mbmsg.h newspost.h postecho.h rollover.h tic.h mbfrearc.h \
 		  atoul.h filemgr.h hash.h mbaff.h mbseq.h notify.h postemail.h scan.h toberep.h \
 		  mbfkill.h mbfutil.h mbfindex.h mbfcheck.h mbfpack.h mbflist.h mbfadopt.h \
-		  mbfimport.h mbfsort.h mbftoberep.h mbfmove.h mbfdel.h bounce.h \
+		  mbfimport.h mbftree.h mbfsort.h mbftoberep.h mbfmove.h mbfdel.h bounce.h \
 		  createm.h createf.h msgflags.h dirsession.h queue.h dirlock.h msg.h orphans.h
 MBFIDO_OBJS	= flock.o tosspkt.o mbfido.o hatch.o maketags.o tracker.o \
 		  makestat.o scannews.o lhash.o bounce.o unpack.o tic.o ptic.o \
@@ -39,7 +39,7 @@ MBAFF_OBJS	= announce.o fflist.o filefind.o grlist.o mbaff.o msgutil.o toberep.o
 MBINDEX_OBJS	= mbindex.o
 MBDIFF_OBJS	= mbdiff.o
 MBFILE_OBJS	= mbfile.o mbfkill.o mbfutil.o mbfindex.o mbfcheck.o mbfpack.o mbflist.o mbfadopt.o \
-		  mbfimport.o mbftoberep.o mbfmove.o mbfdel.o mbfsort.o mbfrearc.o
+		  mbfimport.o mbftree.o mbftoberep.o mbfmove.o mbfdel.o mbfsort.o mbfrearc.o
 MBMSG_OBJS	= post.o mbmsg.o
 MBFIDO_LIBS	= ../lib/libmbse.a ../lib/libmsgbase.a ../lib/libdbase.a ../lib/libdiesel.a ../lib/libmbinet.a ../lib/libnodelist.a
 MBSEQ_LIBS	= ../lib/libmbse.a ../lib/libdbase.a
@@ -147,7 +147,7 @@ unpack.o: ../config.h ../lib/mbselib.h flock.h unpack.h
 aliasdb.o: ../config.h ../lib/mbselib.h aliasdb.h
 fsort.o: ../config.h ../lib/mbselib.h fsort.h
 magic.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h orphans.h tic.h utic.h magic.h
-mbfile.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfkill.h mbfadopt.h mbfindex.h mbfcheck.h mbfpack.h mbflist.h mbfimport.h mbftoberep.h mbfmove.h mbfdel.h mbfutil.h mbfsort.h mbfile.h mbfrearc.h
+mbfile.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfkill.h mbfadopt.h mbfindex.h mbfcheck.h mbfpack.h mbflist.h mbfimport.h mbftoberep.h mbfmove.h mbfdel.h mbfutil.h mbfsort.h mbfile.h mbfrearc.h mbftree.h
 mover.o: ../config.h ../lib/mbselib.h orphans.h tic.h mover.h
 post.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h ../lib/msg.h ../lib/msgtext.h post.h
 rnews.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbinet.h ../lib/mbsedb.h ../lib/msg.h ../lib/msgtext.h rfc2ftn.h mbfido.h ../paths.h rnews.h
@@ -189,6 +189,7 @@ mbfpack.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h
 mbflist.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h mbflist.h
 mbfadopt.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h mbflist.h
 mbfimport.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h mbfimport.h
+mbftree.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfimport.h mbftree.h
 mbfsort.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h mbfsort.h
 mbftoberep.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h mbftoberep.h
 mbfmove.o: ../config.h ../lib/mbselib.h ../lib/users.h ../lib/mbsedb.h mbfutil.h mbfmove.h

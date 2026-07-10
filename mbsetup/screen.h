@@ -2,6 +2,7 @@
 #define	_SCREEN_H
 
 
+int screen_columns(void);
 void clrtoeol(void);
 void hor_lin(int y, int x, int len);
 void set_color(int f, int b);

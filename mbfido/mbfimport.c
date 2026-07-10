@@ -121,7 +121,7 @@ void ImportFiles(int Area)
 {
     char		*pwd, *temp, *fod, *temp2, *tmpdir, *String, *token, *dest, *lname;
     FILE		*fbbs;
-    int			Append = FALSE, Files = 0, i, line = 0, pos, x, y, Doit;
+    int			Append = FALSE, Files = 0, i, line = 0, x, y;
     int			Imported = 0, Errors = 0, Present = FALSE;
     struct FILE_record  f_db;
     struct stat		statfile;
@@ -155,7 +155,13 @@ void ImportFiles(int Area)
 	lname  = calloc(PATH_MAX, sizeof(char));
 	fod    = calloc(PATH_MAX, sizeof(char));
 
-        getcwd(pwd, PATH_MAX);
+        if (getcwd(pwd, PATH_MAX) == NULL) {
+	    WriteError("$Can't determine current directory");
+	    if (!do_quiet)
+		printf("Can't determine current directory: %s\n",
+		       strerror(errno));
+	    die(MBERR_INIT_ERROR);
+	}
 	if (CheckFDB(Area, area.Path))
 	    die(MBERR_GENERAL);
 
@@ -220,7 +226,6 @@ void ImportFiles(int Area)
 		    Append = FALSE;
 		    Present = FALSE;
 		    line = 0;
-		    pos = 0;
 		}
 
 		/*
@@ -285,52 +290,33 @@ void ImportFiles(int Area)
 		    token = strtok(NULL, "\0");
 		    if (token) {
 			i = strlen(token);
-			line = pos = 0;
-			for (x = 0; x < i; x++) {
-			    if ((token[x] == '\n') || (token[x] == '\r'))
-				token[x] = '\0';
-			}
-			i = strlen(token);
 			y = 0;
 
 			if (token[0] == '[') {
 			    /*
-			     * Skip over download counter
+			     * Skip over download counter.
 			     */
-			    while (token[y] != ']')
+			    while ((y < i) && (token[y] != ']'))
 				y++;
-			    y += 2;
+			    if (y < i)
+				y++;
 			}
 
-			Doit = FALSE;
-			for (x = y; x < i; x++) {
-			    if (!Doit) {
-				if (!iscntrl(token[x]) && !isblank(token[x]))
-				    Doit = TRUE;
-			    }
-			    if (Doit) {
-				if (pos > 42) {
-				    if (token[x] == ' ') {
-					f_db.Desc[line][pos] = '\0';
-					line++;
-					pos = 0;
-				    } else {
-					if (pos == 48) {
-					    f_db.Desc[line][pos] = '\0';
-					    pos = 0;
-					    line++;
-					}
-					f_db.Desc[line][pos] = token[x];
-					pos++;
-				    }
-				} else {
-				    f_db.Desc[line][pos] = token[x];
-				    pos++;
-				}
-				if (line == 24)
-				    break;
-			    }
-			}
+			/*
+			 * Skip separators before the first description line,
+			 * but do not rewrap the original line.
+			 */
+			while ((y < i) &&
+			       (iscntrl((unsigned char) token[y]) ||
+				isblank((unsigned char) token[y])))
+			    y++;
+
+			if ((i - y) > 48)
+			    Syslog('+', "Description line for %s exceeds 48 characters, truncating", f_db.LName);
+
+			snprintf(f_db.Desc[0], sizeof(f_db.Desc[0]),
+				 "%.*s", 48, token + y);
+			line = 0;
 		    } else {
 			/*
 			 * No file description
@@ -350,46 +336,23 @@ void ImportFiles(int Area)
 		}
 	    } else if (Present) {
 		/*
-		 * Add multiple description lines
+		 * Add one database line for each FILES.BBS continuation line.
+		 * Desc has valid indexes 0 through 24.
 		 */
-		if (line < 25) {
-		    token = strtok(String, "\0");
+		if (line < 24) {
+		    token = String;
 		    i = strlen(token);
-		    line++;
-		    pos = 0;
-		    Doit = FALSE;
+
 		    for (x = 0; x < i; x++) {
-			if ((token[x] == '\n') || (token[x] == '\r'))
-			    token[x] = '\0';
-		    }
-		    for (x = 0; x < i; x++) {
-			if (Doit) {
-			    if (pos > 42) {
-				if (token[x] == ' ') {
-				    f_db.Desc[line][pos] = '\0';
-				    line++;
-				    pos = 0;
-				} else {
-				    if (pos == 48) {
-					f_db.Desc[line][pos] = '\0';
-					pos = 0;
-					line++;
-				    }
-				    f_db.Desc[line][pos] = token[x];
-				    pos++;
-				}
-			    } else {
-				f_db.Desc[line][pos] = token[x];
-				pos++;
-			    }
-			    if (line == 25)
-				break;
-			} else {
-			    /*
-			     * Skip until + or | is found
-			     */
-			    if ((token[x] == '+') || (token[x] == '|'))
-				Doit = TRUE;
+			if ((token[x] == '+') || (token[x] == '|')) {
+			    line++;
+
+			    if ((i - x - 1) > 48)
+				Syslog('+', "Description line for %s exceeds 48 characters, truncating", f_db.LName);
+
+			    snprintf(f_db.Desc[line], sizeof(f_db.Desc[line]),
+				     "%.*s", 48, token + x + 1);
+			    break;
 			}
 		    }
 		}

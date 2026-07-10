@@ -205,7 +205,7 @@ void WriteError(const char *format, ...)
 	    outputstr[i] = ' ';
 
     if (*outputstr == '$')
-	snprintf(outputstr+strlen(outputstr), 10240, ": %s", strerror(errno));
+	snprintf(outputstr + strlen(outputstr), 10240 - strlen(outputstr), ": %s", strerror(errno));
 
     if (strlen(outputstr) > (SS_BUFSIZE - 64)) {
 	outputstr[SS_BUFSIZE - 65] = ';';

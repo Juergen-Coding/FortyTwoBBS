@@ -141,7 +141,7 @@ void load_maincfg(void)
 		int ret = snprintf(CFG.sysdomain, sizeof(CFG.sysdomain), "%s", un.nodename);
 		if (ret < sizeof(CFG.sysdomain)) {
 			const int off = strnlen(CFG.sysdomain, sizeof(CFG.sysdomain));
-			snprintf(CFG.sysdomain + off, sizeof(CFG.sysdomain), ".%.*s", (int)(sizeof(CFG.sysdomain) - off - 2), un.domainname);
+			snprintf(CFG.sysdomain + off, sizeof(CFG.sysdomain) - off, ".%.*s", (int)(sizeof(CFG.sysdomain) - off - 2), un.domainname);
 		}
 #else /* Non-GNU Targets such as FreeBSD, OpenBSD, and NetBSD */
 		snprintf(CFG.sysdomain, sizeof(CFG.sysdomain), "%.*s", (int)(sizeof(CFG.sysdomain) - 1), un.nodename);

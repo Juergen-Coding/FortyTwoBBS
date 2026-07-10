@@ -76,7 +76,7 @@ void InitMenu()
     int	i;
 
     for (i = 0; i < 50; i++) 
-	memset(Menus[i], 0, 51);
+	memset(Menus[i], 0, sizeof(Menus[i]));
     MenuLevel = 0;
     MenuError = 0;
     snprintf(Menus[0], 15, "%s", CFG.default_menu);

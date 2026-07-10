@@ -135,14 +135,15 @@ void open_bbs(void)
  */
 void show_field(int y, int x, char *str, int length, int fill)
 {
-    int	    i;
+    int i;
 
     mbse_locate(y, x);
-    for (i = 0; i < strlen(str); i++)
-	putchar(str[i]);
-    if (strlen(str) < length)
-	for (i = strlen(str); i < length; i++)
-	    putchar(fill);
+
+    for (i = 0; (i < length) && (str[i] != '\0'); i++)
+        putchar(str[i]);
+
+    for (; i < length; i++)
+        putchar(fill);
 }
 
 

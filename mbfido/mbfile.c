@@ -38,6 +38,7 @@
 #include "mbfpack.h"
 #include "mbflist.h"
 #include "mbfimport.h"
+#include "mbftree.h"
 #include "mbftoberep.h"
 #include "mbfmove.h"
 #include "mbfdel.h"
@@ -56,6 +57,7 @@ int		do_check = FALSE;	/* Check filebase		    */
 int		do_kill  = FALSE;	/* Kill/move old files		    */
 int		do_index = FALSE;	/* Create request index		    */
 int		do_import= FALSE;	/* Import files in area		    */
+int		do_treeimport = FALSE;	/* Import directory tree	    */
 int		do_list  = FALSE;	/* List fileareas		    */
 int		do_tobe  = FALSE;	/* List toberep database	    */
 int		do_move  = FALSE;	/* Move a file			    */
@@ -73,6 +75,7 @@ int main(int argc, char **argv)
 {
     int	    i, Area = 0, ToArea = 0, UnDel = FALSE;
     char    *cmd, *FileName = NULL, *Description = NULL;
+    char    *TreeRoot = NULL;
     struct  passwd *pw;
 
     InitConfig();
@@ -102,7 +105,17 @@ int main(int argc, char **argv)
 	cmd = xstrcat(cmd, (char *)" ");
 	cmd = xstrcat(cmd, argv[i]);
 
-	if (!strncasecmp(argv[i], "a", 1)) {
+	if (!strcasecmp(argv[i], "treeimport") ||
+	    !strcasecmp(argv[i], "ti")) {
+	    if (argc <= (i + 1))
+		Help();
+
+	    do_treeimport = TRUE;
+	    i++;
+	    TreeRoot = xstrcpy(argv[i]);
+	    cmd = xstrcat(cmd, (char *)" ");
+	    cmd = xstrcat(cmd, argv[i]);
+	} else if (!strncasecmp(argv[i], "a", 1)) {
 	    i++;
 	    Area = atoi(argv[i]);
 	    cmd = xstrcat(cmd, (char *)" ");
@@ -231,8 +244,9 @@ int main(int argc, char **argv)
 	}
     }
 
-    if (!(do_pack || do_sort || do_check || do_kill || do_index || do_import || 
-		do_list || do_adopt || do_del || do_move || do_tobe || do_rearc))
+    if (!(do_pack || do_sort || do_check || do_kill || do_index ||
+		do_import || do_treeimport || do_list || do_adopt ||
+		do_del || do_move || do_tobe || do_rearc))
 	Help();
 
     ProgName();
@@ -261,6 +275,13 @@ int main(int argc, char **argv)
 
     if (do_adopt) {
 	AdoptFile(Area, FileName, Description);
+	die(MBERR_OK);
+    }
+
+    if (do_treeimport) {
+	if (!TreeImport(TreeRoot, NULL))
+	    die(MBERR_GENERAL);
+	free(TreeRoot);
 	die(MBERR_OK);
     }
 
