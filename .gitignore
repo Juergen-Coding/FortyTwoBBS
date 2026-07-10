@@ -1,0 +1,49 @@
+# Compiler and linker output
+*.o
+*.a
+*.so
+*.so.*
+core
+core.*
+
+# Configure and generated build files
+/config.h
+/config.log
+/config.status
+/Makefile.global
+/paths.h
+/stamp-h
+/INSTALL
+/FILE_ID.DIZ
+
+# Generated documentation, language and support files
+/html/*.html
+/lang/language.*
+/lib/ftscprod.c
+/script/editor
+/unix/login.defs
+
+# Built programs
+/mbcico/mbcico
+/mbcico/mbout
+/mbfido/mbfile
+/mbmon/mbmon
+/mbnntp/mbnntp
+/mbsebbs/mbnewusr
+/mbsebbs/mbsebbs
+/mbsetup/mbsetup
+/mbtask/mbtask
+/mbutils/mball
+/mbutils/mbbw
+/mbutils/mblang
+/mbutils/mbsnmp
+/mbutils/mbstat
+/mbutils/mbtoberep
+/mbutils/mbuser
+/unix/mblogin
+/unix/mbpasswd
+/unix/mbuseradd
+
+# Local backup files
+*.before-*
+*-bak
