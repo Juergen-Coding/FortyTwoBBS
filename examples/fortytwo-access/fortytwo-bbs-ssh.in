@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
+    echo "This SSH account provides terminal access to FortyTwo BBS only."
+    exit 1
+fi
+
+if [ ! -t 0 ] || [ ! -t 1 ]; then
+    echo "A terminal is required."
+    exit 1
+fi
+
+exec /usr/bin/env -i \
+    HOME="$HOME" \
+    USER="$USER" \
+    LOGNAME="$LOGNAME" \
+    TERM="${TERM:-ansi}" \
+    PATH="/usr/bin:/bin" \
+    MBSE_ROOT="@FORTYTWO_ROOT@" \
+    "@FORTYTWO_ROOT@/bin/mbsebbs"

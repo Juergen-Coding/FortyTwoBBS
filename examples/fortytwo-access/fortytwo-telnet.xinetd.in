@@ -1,0 +1,16 @@
+service fortytwo-telnet
+{
+    type            = UNLISTED
+    port            = 2323
+    bind            = 127.0.0.1
+    socket_type     = stream
+    protocol        = tcp
+    wait            = no
+    user            = root
+    instances       = 10
+    flags           = REUSE
+    log_on_failure += USERID
+    server          = /usr/sbin/telnetd
+    server_args     = -h -E @FORTYTWO_ROOT@/bin/mblogin
+    disable         = no
+}
