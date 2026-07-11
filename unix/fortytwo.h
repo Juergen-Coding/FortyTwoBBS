@@ -1,0 +1,6 @@
+#ifndef FORTYTWO_UNIX_CONFIG_H
+#define FORTYTWO_UNIX_CONFIG_H
+
+#define FORTYTWO_SERVICE_USER "fortytwo"
+
+#endif

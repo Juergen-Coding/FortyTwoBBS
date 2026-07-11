@@ -9,7 +9,7 @@ SRCS		= commonio.c putpwent.c salt.c sgetpwent.c xmalloc.c myname.c encrypt.c \
 		  mblogin.c env.c chowntty.c shell.c basename.c pwdcheck.c pwauth.c \
 		  loginprompt.c utmp.c limits.c setupenv.c sub.c log.c setugid.c
 HDRS		= commonio.h putpwent.h salt.h sgetpwent.h xmalloc.h myname.h encrypt.h \
-		  pwio.h shadowio.h mbpasswd.h mbuseradd.h rad64.h getdef.h pw_util.h \
+		  pwio.h shadowio.h mbpasswd.h mbuseradd.h rad64.h getdef.h fortytwo.h pw_util.h \
 		  mblogin.h env.h chowntty.h shell.h basename.h pwdcheck.h pwauth.h \
 		  loginprompt.h utmp.h limits.h setupenv.h sub.h log.h setugid.h
 MBUSERADD_OBJS	= mbuseradd.o xmalloc.o
@@ -98,9 +98,9 @@ shadowio.o: ../config.h commonio.h shadowio.h
 mbpasswd.o: ../config.h encrypt.h rad64.h myname.h xmalloc.h pwio.h shadowio.h pw_util.h getdef.h mbpasswd.h
 mbuseradd.o: ../config.h xmalloc.h mbuseradd.h
 rad64.o: ../config.h rad64.h
-getdef.o: ../config.h getdef.h
+getdef.o: ../config.h getdef.h fortytwo.h
 pw_util.o: ../config.h pw_util.h
-mblogin.o: ../config.h mblogin.h ../lib/users.h getdef.h env.h chowntty.h basename.h shell.h pwdcheck.h pwauth.h loginprompt.h utmp.h limits.h setupenv.h sub.h log.h setugid.h
+mblogin.o: ../config.h mblogin.h ../lib/users.h getdef.h fortytwo.h env.h chowntty.h basename.h shell.h pwdcheck.h pwauth.h loginprompt.h utmp.h limits.h setupenv.h sub.h log.h setugid.h
 env.o: ../config.h mblogin.h xmalloc.h
 chowntty.o: ../config.h mblogin.h getdef.h chowntty.h
 shell.o: ../config.h mblogin.h basename.h shell.h

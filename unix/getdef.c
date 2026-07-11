@@ -40,6 +40,7 @@
 #include <sys/param.h>
 #include <pwd.h>
 #include "getdef.h"
+#include "fortytwo.h"
 
 
 
@@ -239,8 +240,9 @@ void def_load(void)
 	/*
 	 * Get MBSE BBS root directory
 	 */
-	if ((pw = getpwnam("mbse")) == NULL) {
-		syslog(LOG_CRIT, "cannot find user `mbse' in password file");
+	if ((pw = getpwnam(FORTYTWO_SERVICE_USER)) == NULL) {
+		syslog(LOG_CRIT, "cannot find user `%s' in password file",
+		       FORTYTWO_SERVICE_USER);
 		return;
 	}
 	snprintf(def_fname, PATH_MAX, "%s/etc/login.defs", pw->pw_dir);

@@ -53,6 +53,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "getdef.h"
+#include "fortytwo.h"
 
 #ifdef SVR4_SI86_EUA
 #include <sys/proc.h>
@@ -347,6 +348,7 @@ int main(int argc, char **argv)
     char	    username[37];
     char	    tty[128] = { 0 };
     char	    userfile[PATH_MAX];
+    char	    login_program[PATH_MAX];
     FILE	    *ufp;
     int		    reason = PW_LOGIN;
     int		    delay;
@@ -481,10 +483,16 @@ int main(int argc, char **argv)
 	if ((tmp = getenv("CALLER_ID")))
 	    addenv("CALLER_ID", tmp);
 
-	/* get the mbse environment */
-	pw = getpwnam("mbse");
+	/* Get the trusted FortyTwo BBS installation root. */
+	pw = getpwnam(FORTYTWO_SERVICE_USER);
+	if (pw == NULL || pw->pw_dir == NULL || pw->pw_dir[0] != '/') {
+	    syslog(LOG_CRIT, "cannot determine home directory for `%s'",
+		   FORTYTWO_SERVICE_USER);
+	    fprintf(stderr, _("%s: FortyTwo BBS configuration error\n"), Prog);
+	    exit(1);
+	}
 	addenv("MBSE_ROOT", pw->pw_dir);
-	snprintf(userfile, PATH_MAX, "%s/etc/users.data",  pw->pw_dir);
+	snprintf(userfile, PATH_MAX, "%s/etc/users.data", pw->pw_dir);
 
 	check_nologin();
 
@@ -570,26 +578,34 @@ top:
 	    /*
 	     * Here we try usernames on unix names and Fidonet style
 	     * names that are stored in the bbs userdatabase.
-	     * The name "bbs" is for new users, don't check the bbs userfile.
-	     * If allowed from login.defs accept the name "mbse".
+	     * The configured new-user account is not stored in users.data.
+	     * If explicitly allowed, accept the FortyTwo service account.
 	     */
 	    FoundName = 0;
-	    if (strcmp(username, getdef_str("NEWUSER_ACCOUNT")) == 0) {
+	    tmp = getdef_str("NEWUSER_ACCOUNT");
+	    if (tmp != NULL && strcmp(username, tmp) == 0) {
 		FoundName = 1;
-	    } 
-	    if ((getdef_bool("ALLOW_MBSE") != 0) && (strcmp(username, "mbse") == 0)) {
+	    }
+	    if ((getdef_bool("ALLOW_MBSE") != 0) &&
+		(strcmp(username, FORTYTWO_SERVICE_USER) == 0)) {
 	        FoundName = 1;
 	    }
 	    if (! FoundName) {
 	        if ((ufp = fopen(userfile, "r"))) {
-		    fread(&usrconfighdr, sizeof(usrconfighdr), 1, ufp);
-		    while (fread(&usrconfig, usrconfighdr.recsize, 1, ufp) == 1) {
-		        if ((strcasecmp(usrconfig.sUserName, username) == 0) ||
-			    (strcasecmp(usrconfig.sHandle, username) == 0) ||
-			    (strcmp(usrconfig.Name, username) == 0)) {
-			    FoundName = 1;
-			    STRFCPY(username, usrconfig.Name);
-			    break;
+		    if (fread(&usrconfighdr, sizeof(usrconfighdr), 1, ufp) != 1 ||
+			usrconfighdr.recsize == 0 ||
+			usrconfighdr.recsize > sizeof(usrconfig)) {
+			syslog(LOG_CRIT, "invalid users database header in %s",
+			       userfile);
+		    } else {
+			while (fread(&usrconfig, usrconfighdr.recsize, 1, ufp) == 1) {
+			    if ((strcasecmp(usrconfig.sUserName, username) == 0) ||
+				(strcasecmp(usrconfig.sHandle, username) == 0) ||
+				(strcmp(usrconfig.Name, username) == 0)) {
+				FoundName = 1;
+				STRFCPY(username, usrconfig.Name);
+				break;
+			    }
 			}
 		    }
 		    fclose(ufp);
@@ -819,7 +835,21 @@ auth_ok:
 	    syslog(LOG_WARNING, REG_LOGIN, username, fromhost);
 	closelog();
 
-	shell (pwent.pw_shell, (char *) 0); /* exec the shell finally. */
+	tmp = getdef_str("NEWUSER_ACCOUNT");
+	if (tmp != NULL && strcmp(username, tmp) == 0)
+	    snprintf(login_program, sizeof(login_program), "%s/bin/mbnewusr",
+		     getenv("MBSE_ROOT"));
+	else
+	    snprintf(login_program, sizeof(login_program), "%s/bin/mbsebbs",
+		     getenv("MBSE_ROOT"));
+
+	if (access(login_program, X_OK) != 0) {
+	    fprintf(stderr, _("%s: FortyTwo BBS login program unavailable\n"),
+		    Prog);
+	    exit(1);
+	}
+
+	shell(login_program, (char *)0);
 	/*NOTREACHED*/
 	return 0;
 }
