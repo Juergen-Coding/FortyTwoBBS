@@ -79,6 +79,10 @@ The first FortyTwo BBS development work includes:
 - a file-description editor in `mbsetup`
 - better use of modern terminal widths in `mbsetup`
 - corrected field-width handling in setup screens
+- modernized `mblogin` handling for FortyTwo installations and the active user database
+- tested localhost Telnet access through `xinetd` and `telnetd`, including a custom login banner
+- separate restricted OpenSSH access for registered BBS users, with a forced BBS command and forwarding disabled
+- reusable Telnet and SSH configuration examples under `examples/fortytwo-access`
 - several reviewed buffer and memory-safety fixes
 - testing with AddressSanitizer and UndefinedBehaviorSanitizer
 - build-artifact exclusions through `.gitignore`
