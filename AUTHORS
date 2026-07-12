@@ -1,23 +1,41 @@
-			MBSE BBS AUTHORS
+FORTYTWO BBS AUTHORS AND CONTRIBUTORS
 
-The following people are members of the MBSE BBS development team:
+Current maintainer
+------------------
 
-Andrew Leary            ajleary19@gmail.com 1:320/219@fidonet
-Sean Dennis		sysop@outpostbbs.net 1:18/200@fidonet
+Juergen Ihlau (https://github.com/Juergen-Coding/FortyTwoBBS)
+Email: neo67@linuxmintusers.de
+Website: https://www.ihlau.net
 
-All of the following people have contributed to the MBSE BBS project. I'm sure
-that people are missing from this list. The list is not in any special order.
+Additional FortyTwo BBS contributors are recorded in the Git history.
 
-Michiel Broek           mbroek@mbse.eu
+
+Project heritage
+----------------
+
+FortyTwo BBS is a modified and independently maintained continuation of
+MBSE BBS. MBSE BBS was originally created by Michiel Broek and was later
+maintained by the MBSE BBS Development Team.
+
+The following individuals were listed in the inherited source tree as
+MBSE BBS developers or contributors.
+
+We, the developers of FortyTwo BBS, appreciate the work that has gone into
+MBSE BBS and will continue to develop FortyTwo BBS in the spirit of open
+source.
+
+Andrew Leary
+Sean Dennis
+Michiel Broek
 Vincent Coen
-Ken Bowley              kbowley@users.sourceforge.net, 1:114/485@fidonet
-Redy Rodriguez          redy@users.sourceforge.net
-Scott Street            sstreet98@users.sourceforge.net
-Joaquim Homrighausen	joho@abs.lu
-Andrew Milner		andrew@fido.lu
-Mats Wallin		mw@fido.lu
-Eugene G. Crosser 	crosser@average.org
-Stanislav Voronyi 	stas@uanet.kharkov.ua
+Ken Bowley
+Redy Rodriguez
+Scott Street
+Joaquim Homrighausen
+Andrew Milner
+Mats Wallin
+Eugene G. Crosser
+Stanislav Voronyi
 T. Tanaka
 Martin Junius
 Omen Technology Inc
@@ -26,35 +44,35 @@ Cristof Meerwald
 P. Saratxaga
 Dima Maloff
 Jan van de Werken
-Sean Rima		2:263/1@fidonet
+Sean Rima
 Juergen Heisel
 Jim Hansen
-Johannes Lundberg 	jojo@chaosdev.org
+Johannes Lundberg
 Vincent Danen
-Francois Thunus		francois@telematique.org
+Francois Thunus
 Johan Lindh
 William McBrine
 Harald Wuensch
-NERvOus			nervous@nervous.it
-Bobby Cabral		bobbyc@digitelone.com
-Johannes Beekhuizen	
-Lukas De Groen		2:280/1027@fidonet
-Joachim Kuwan		
-Greek			greek@voyager.nnov.ru
-Sergey Nechaev		
-Serge Terekhov		2:5000/13@fidonet
-Vadim Kurland		vadim@gu.kiev.ua
-Vadim Zaliva		lord@crocodile.kiev.ua
-Przemyslaw Kwiatkowski	
-Phil Kimble             kimerud@users.sourceforge.net
-David Gonzalez          skynetbbs@007mundo.com
-Malte Tychsen		
-Dmitry Komissaroff	rsprog@mail.ru
-skyroam			skyroam@users.sourceforge.net
-val khokhlov		
-Robert Wolfe		1:116/18@fidonet
-Alan Ianson		1:153/757@fidonet
-Simon Voortman		2:280/1049.1@fidonet
-Deon George		3:633/509@fidonet
-Robert James Clay       jame@rocasa.us
-Kevin Cody		kcody@users.sourceforge.net
+NERvOus
+Bobby Cabral
+Johannes Beekhuizen
+Lukas De Groen
+Joachim Kuwan
+Greek
+Sergey Nechaev
+Serge Terekhov
+Vadim Kurland
+Vadim Zaliva
+Przemyslaw Kwiatkowski
+Phil Kimble
+David Gonzalez
+Malte Tychsen
+Dmitry Komissaroff
+skyroam
+val khokhlov
+Robert Wolfe
+Alan Ianson
+Simon Voortman
+Deon George
+Robert James Clay
+Kevin Cody

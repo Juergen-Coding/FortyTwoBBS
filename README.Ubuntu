@@ -1,24 +1,84 @@
-Unlike most distributions, Ubuntu doesn't install programs that may be useful
-for mbsebbs by default. Before you run ./configure install the following
-packages to make mbsebbs run with most features:
+FortyTwo BBS on Ubuntu 25.10
+============================
 
-Package		Provides
---------------	--------------------------------------------------------------
-xinetd		Incoming TCP/IP networking.
-libc6-dev	To allow compiling of programs.
-libz-dev	To allow mailer zlib compression.
-libbz2-dev	To allow mailer bz2 compression.
-automake	To rebuild configure if needed.
-telnetd		Telnet sessions to the bbs.
-arj		ARJ archiver.
-rar		RAR archiver.
-lha		LHArc archiver.
-arc		Arc archiver.
-zoo		ZOO archiver.
-joe		External editor for the bbs.
+Supported development platform
+------------------------------
 
-Install these programs by using 'sudo apt-get install Package'.
-The xinetd and libc6-dev package are mandatory!
+Ubuntu 25.10 on x86_64 hardware is currently the only tested development
+platform for FortyTwo BBS.
 
-sudo bash /path/to/SETUP.sh
+No other Linux distribution, Linux version, processor architecture or BSD
+system is currently documented as supported or compatible.
 
+Additional platforms will be tested after the first public release.
+
+
+Development status
+------------------
+
+FortyTwo BBS is pre-alpha software intended exclusively for development,
+code review and isolated testing.
+
+There is currently no supported production installation or upgrade
+procedure.
+
+Do not run the inherited SETUP.sh script. It still implements the historical
+MBSE BBS installation model, creates legacy system accounts and modifies
+system configuration files.
+
+
+Build requirements
+------------------
+
+A developer build on Ubuntu 25.10 requires at least:
+
+- GCC and the standard C development toolchain
+- GNU Make
+- a POSIX-compatible shell
+- glibc development headers
+- Git and the required Autoconf build files
+
+Optional features may use:
+
+- zlib development files
+- bzip2 development files
+- iconv support
+- GeoIP development files
+- external archive programs
+- external editors
+- external virus scanners
+
+The exact package list and automated installation procedure are still being
+reviewed and will be documented only after they have been reproduced on a
+clean Ubuntu 25.10 test system.
+
+
+Network access
+--------------
+
+Telnet and SSH access have been tested locally on Ubuntu 25.10.
+
+The current examples listen only on localhost and are available under:
+
+examples/fortytwo-access
+
+SSH is restricted to registered users and starts only FortyTwo BBS through a
+forced command.
+
+New-user registration remains disabled until operating-system account
+creation has been isolated and hardened.
+
+
+Further information
+-------------------
+
+Read these files before building or testing:
+
+- README.md
+- INSTALL.in
+- README.developer
+- LESEMICH.Entwickler
+
+Project: https://www.ihlau.net
+Source:  https://github.com/Juergen-Coding/FortyTwoBBS
+Support: neo67@linuxmintusers.de

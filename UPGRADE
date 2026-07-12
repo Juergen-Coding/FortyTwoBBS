@@ -1,15 +1,38 @@
-			UPGRADE INSTRUCTIONS
+FortyTwo BBS Upgrade Status
+===========================
 
+FortyTwo BBS is currently pre-alpha software.
 
-Read the file ChangeLog from the version you are currently running
-until you reach the current version. With every version that needs 
-upgrading, you will find the instructions there. Read them carefully
-and perform all necessary steps.
+There is no supported upgrade procedure between development versions and no
+supported migration path from an existing MBSE BBS installation.
 
-Read the file ChangeLog from the version you are currently running
-until you reach the current version. With every version that needs
-upgrading, you will find the instructions there. Read them carefully
-and perform all necessary steps.
+Development versions may change:
 
-Yes, this is written twice.   Please read the update instructions
-twice before you perform the upgrade.
+- configuration files
+- directory structures
+- database and binary file formats
+- user and permission models
+- service definitions
+- internal program interfaces
+
+Do not install a newer development version over an existing installation.
+
+Use a separate, isolated test environment for each development version and
+keep independent backups of all data and configuration files.
+
+The inherited MBSE BBS ChangeLog contains historical upgrade instructions.
+Those instructions apply only to the corresponding historical MBSE BBS
+versions and must not be treated as FortyTwo BBS upgrade instructions.
+
+A documented and tested upgrade procedure will be introduced before a
+production-ready FortyTwo BBS release.
+
+Current tested development platform:
+
+- Ubuntu 25.10
+- x86_64
+- glibc-based Linux
+
+Project: https://www.ihlau.net
+Source:  https://github.com/Juergen-Coding/FortyTwoBBS
+Support: neo67@linuxmintusers.de

@@ -1,10 +1,14 @@
-MBSE BBS @VERSION@ for *NIX/Linux/BSD/OS X
-MBSE BBS is a fully self-contained BBS 
-package including a mailer, tosser, TIC file 
-processor, filefind, and other utilities. Too
-many features to list here!  Open source and
-released under the GNU Public License.
-Support available in Fidonet's MBSE echo and
-at http://sourceforge.net/projects/mbsebbs.
-(C) MBSE BBS Development Team.
-
+FortyTwo BBS @VERSION@ for x86_64 Linux
+Currently targets glibc-based Linux systems
+and is being tested on Ubuntu. Debian support
+is planned for the first container deployment.
+BSD support is planned for later platform tests.
+A complete open-source Bulletin Board System
+with Fidonet mailer, tosser, TIC processing,
+message areas, doors and file utilities.
+Users can connect through Telnet or SSH.
+File areas can be published through generated
+HTML indexes with downloads and image previews.
+Based on MBSE BBS and released under GPLv2.
+Project: https://www.ihlau.net
+Support: neo67@linuxmintusers.de
