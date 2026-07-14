@@ -7,6 +7,7 @@
 
 #include "authd_config.h"
 #include "authd_database.h"
+#include "authd_database_validation.h"
 #include "authd_identity.h"
 
 #include <assert.h>
@@ -32,7 +33,8 @@ main(void)
     assert(authd_database_open(&config, &database, &info,
                                error, sizeof(error)) == 0);
     assert(database != NULL);
-    assert(info.highest_migration == 5U);
+    assert(info.highest_migration ==
+           AUTHD_DATABASE_REQUIRED_HIGHEST_MIGRATION);
 
     assert(authd_login_name_canonicalize(
         "B3_Lookup_Test_7F4A",
@@ -61,6 +63,7 @@ main(void)
     assert(strncmp(record.password_hash, "$argon2id$", 10U) == 0);
     assert(record.account_state == AUTHD_ACCOUNT_STATE_ACTIVE);
     assert(record.auth_epoch == UINT64_C(42));
+    assert(record.authz_revision == UINT64_C(7));
     assert(!record.deleted);
     assert(!record.throttled);
     assert(record.retry_after_ms == UINT64_C(0));

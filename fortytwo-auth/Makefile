@@ -73,7 +73,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/authd_database_connection_test \
 	$(NORMAL_DIR)/authd_integration_test
 
-.PHONY: all authd test database-login-integration-test database-throttle-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
+.PHONY: all authd test database-login-integration-test database-throttle-integration-test database-session-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
 
 all: authd test
 
@@ -178,6 +178,14 @@ $(NORMAL_DIR)/authd_database_throttle_integration_test: tests/authd_database_thr
 database-throttle-integration-test: check-libpq $(NORMAL_DIR)/authd_database_throttle_integration_test
 	tests/run_authd_database_throttle_integration.sh \
 		$(NORMAL_DIR)/authd_database_throttle_integration_test
+
+$(NORMAL_DIR)/authd_database_session_integration_test: tests/authd_database_session_integration_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
+		$< $(LIBPQ_LIBS) -o $@
+
+database-session-integration-test: check-libpq $(NORMAL_DIR)/authd_database_session_integration_test
+	tests/run_authd_database_session_integration.sh \
+		$(NORMAL_DIR)/authd_database_session_integration_test
 
 $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@

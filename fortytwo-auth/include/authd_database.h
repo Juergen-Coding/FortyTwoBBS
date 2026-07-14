@@ -41,6 +41,7 @@ typedef struct authd_login_record {
     char password_hash[AUTHD_DATABASE_PASSWORD_HASH_MAX + 1U];
     authd_account_state_t account_state;
     uint64_t auth_epoch;
+    uint64_t authz_revision;
     bool deleted;
     bool throttled;
     uint64_t retry_after_ms;
@@ -60,6 +61,7 @@ typedef enum authd_database_lookup_result {
 typedef enum authd_database_write_result {
     AUTHD_DATABASE_WRITE_OK = 0,
     AUTHD_DATABASE_WRITE_NOT_FOUND,
+    AUTHD_DATABASE_WRITE_STALE_STATE,
     AUTHD_DATABASE_WRITE_INVALID_ARGUMENT,
     AUTHD_DATABASE_WRITE_INVALID_RECORD,
     AUTHD_DATABASE_WRITE_ERROR
@@ -70,6 +72,13 @@ typedef struct authd_password_failure_update {
     bool throttled;
     uint64_t retry_after_ms;
 } authd_password_failure_update_t;
+
+typedef struct authd_terminal_session_result {
+    uint8_t user_id[FTAP_UUID_SIZE];
+    uint8_t session_id[FTAP_UUID_SIZE];
+    uint64_t auth_epoch;
+    uint64_t authz_revision;
+} authd_terminal_session_result_t;
 
 typedef enum authd_login_availability {
     AUTHD_LOGIN_AVAILABLE = 0,
@@ -116,6 +125,17 @@ authd_database_write_result_t authd_database_audit_login_rejection(
     authd_login_rejection_reason_t reason,
     const char *source_ip,
     const char *protocol,
+    char *error,
+    size_t error_size);
+
+authd_database_write_result_t authd_database_create_password_session(
+    authd_database_t *database,
+    const authd_login_record_t *record,
+    const char *source_ip,
+    const char *protocol,
+    const char *tty_device,
+    const char *node_id,
+    authd_terminal_session_result_t *session,
     char *error,
     size_t error_size);
 

@@ -25,6 +25,7 @@ typedef enum fake_result_kind {
     FAKE_RESULT_IDENTITY,
     FAKE_RESULT_MIGRATIONS,
     FAKE_RESULT_LOGIN,
+    FAKE_RESULT_SESSION_CREATE,
     FAKE_RESULT_PASSWORD_FAILURE,
     FAKE_RESULT_AUDIT,
     FAKE_RESULT_HEALTH,
@@ -49,7 +50,11 @@ typedef struct fake_scenario {
     bool login_found;
     bool login_query_error;
     int login_null_column;
-    const char *login_values[12];
+    const char *login_values[13];
+    bool session_create_found;
+    bool session_create_query_error;
+    int session_create_null_column;
+    const char *session_create_values[5];
     bool failure_found;
     bool failure_query_error;
     int failure_null_column;
@@ -112,13 +117,23 @@ reset_scenario(void)
     scenario.login_values[3] = "0";
     scenario.login_values[4] = "0";
     scenario.login_values[5] = "7";
-    scenario.login_values[6] = "0";
-    scenario.login_values[7] = "Neo 67";
-    scenario.login_values[8] =
+    scenario.login_values[6] = "9";
+    scenario.login_values[7] = "0";
+    scenario.login_values[8] = "Neo 67";
+    scenario.login_values[9] =
         "$argon2id$v=19$m=262144,t=3,p=1$test$test";
-    scenario.login_values[9] = "0";
-    scenario.login_values[10] = "2";
-    scenario.login_values[11] = "1720000000000";
+    scenario.login_values[10] = "0";
+    scenario.login_values[11] = "2";
+    scenario.login_values[12] = "1720000000000";
+    scenario.session_create_found = true;
+    scenario.session_create_null_column = -1;
+    scenario.session_create_values[0] =
+        "ffeeddccbbaa99887766554433221100";
+    scenario.session_create_values[1] =
+        "00112233445566778899aabbccddeeff";
+    scenario.session_create_values[2] = "7";
+    scenario.session_create_values[3] = "9";
+    scenario.session_create_values[4] = "42";
     scenario.failure_found = true;
     scenario.failure_null_column = -1;
     scenario.failure_values[0] = "3";
@@ -256,13 +271,36 @@ __wrap_PQexecParams(PGconn *connection,
     result = calloc(1U, sizeof(*result));
     assert(result != NULL);
 
-    if (strstr(command, "FROM public.bbs_users AS u") != NULL) {
+    if (strstr(command, "FROM public.bbs_users AS u") != NULL &&
+        strstr(command, "WHERE u.login_name = $1") != NULL) {
         assert(strstr(command, "WHERE u.login_name = $1") != NULL);
         assert(strstr(command, "neo67") == NULL);
         assert(parameter_count == 1);
         assert(strcmp(parameter_values[0], "neo67") == 0);
         result->kind = scenario.login_query_error ? FAKE_RESULT_ERROR :
                                                     FAKE_RESULT_LOGIN;
+    } else if (strstr(command, "auth.login_succeeded") != NULL) {
+        assert(strstr(command, "eligible_user") != NULL);
+        assert(strstr(command, "FOR UPDATE OF u") != NULL);
+        assert(strstr(command, "credential_reset") != NULL);
+        assert(strstr(command, "session_insert") != NULL);
+        assert(strstr(command, "audit_insert") != NULL);
+        assert(strstr(command, "u.login_name = $8 COLLATE") != NULL);
+        assert(strstr(command, "c.password_hash = $9") != NULL);
+        assert(strstr(command, "neo67") == NULL);
+        assert(parameter_count == 9);
+        assert(strcmp(parameter_values[0],
+                      "00112233-4455-6677-8899-aabbccddeeff") == 0);
+        assert(strcmp(parameter_values[1], "7") == 0);
+        assert(strcmp(parameter_values[2], "9") == 0);
+        assert(strcmp(parameter_values[3], "ssh") == 0);
+        assert(strcmp(parameter_values[4], "192.0.2.42") == 0);
+        assert(strcmp(parameter_values[5], "/dev/pts/7") == 0);
+        assert(strcmp(parameter_values[6], "node-a") == 0);
+        assert(strcmp(parameter_values[7], "neo67") == 0);
+        assert(strncmp(parameter_values[8], "$argon2id$", 10U) == 0);
+        result->kind = scenario.session_create_query_error ?
+            FAKE_RESULT_ERROR : FAKE_RESULT_SESSION_CREATE;
     } else if (strstr(command, "auth.password_failed") != NULL) {
         assert(strstr(command, "credential_update") != NULL);
         assert(strstr(command, "audit_insert") != NULL);
@@ -321,6 +359,8 @@ __wrap_PQntuples(const PGresult *result)
         return (int)scenario.migration_count;
     case FAKE_RESULT_LOGIN:
         return scenario.login_found ? 1 : 0;
+    case FAKE_RESULT_SESSION_CREATE:
+        return scenario.session_create_found ? 1 : 0;
     case FAKE_RESULT_PASSWORD_FAILURE:
         return scenario.failure_found ? 1 : 0;
     case FAKE_RESULT_AUDIT:
@@ -348,7 +388,9 @@ __wrap_PQnfields(const PGresult *result)
     case FAKE_RESULT_MIGRATIONS:
         return 3;
     case FAKE_RESULT_LOGIN:
-        return 12;
+        return 13;
+    case FAKE_RESULT_SESSION_CREATE:
+        return 5;
     case FAKE_RESULT_PASSWORD_FAILURE:
         return 3;
     case FAKE_RESULT_AUDIT:
@@ -371,6 +413,10 @@ __wrap_PQgetisnull(const PGresult *result, int row, int column)
     (void)row;
     if (fake->kind == FAKE_RESULT_LOGIN &&
         column == scenario.login_null_column) {
+        return 1;
+    }
+    if (fake->kind == FAKE_RESULT_SESSION_CREATE &&
+        column == scenario.session_create_null_column) {
         return 1;
     }
     if (fake->kind == FAKE_RESULT_PASSWORD_FAILURE &&
@@ -424,8 +470,14 @@ __wrap_PQgetvalue(const PGresult *result, int row, int column)
 
     if (fake->kind == FAKE_RESULT_LOGIN) {
         assert(row == 0);
-        assert(column >= 0 && column < 12);
+        assert(column >= 0 && column < 13);
         return (char *)scenario.login_values[column];
+    }
+
+    if (fake->kind == FAKE_RESULT_SESSION_CREATE) {
+        assert(row == 0);
+        assert(column >= 0 && column < 5);
+        return (char *)scenario.session_create_values[column];
     }
 
     if (fake->kind == FAKE_RESULT_PASSWORD_FAILURE) {
@@ -541,6 +593,7 @@ test_login_lookup(void)
     assert(strcmp(record.display_name, "Neo 67") == 0);
     assert(record.account_state == AUTHD_ACCOUNT_STATE_ACTIVE);
     assert(record.auth_epoch == 7U);
+    assert(record.authz_revision == 9U);
     assert(!record.deleted);
     assert(!record.throttled);
     assert(record.retry_after_ms == 0U);
@@ -574,15 +627,15 @@ test_login_lookup(void)
 
     scenario.login_values[3] = "0";
     scenario.login_values[4] = "0";
-    scenario.login_values[9] = "1";
+    scenario.login_values[10] = "1";
     assert(authd_database_lookup_login(database, "neo67", &record,
                                        error, sizeof(error)) ==
            AUTHD_DATABASE_LOOKUP_OK);
     assert(authd_login_record_availability(&record) ==
            AUTHD_LOGIN_PASSWORD_CHANGE_REQUIRED);
 
-    scenario.login_values[9] = "0";
-    scenario.login_null_column = 8;
+    scenario.login_values[10] = "0";
+    scenario.login_null_column = 9;
     assert(authd_database_lookup_login(database, "neo67", &record,
                                        error, sizeof(error)) ==
            AUTHD_DATABASE_LOOKUP_INVALID_RECORD);
@@ -601,6 +654,97 @@ test_login_lookup(void)
            AUTHD_DATABASE_LOOKUP_ERROR);
     assert(strstr(error, "arguments") != NULL);
 
+    authd_database_close(database);
+}
+
+static void
+test_password_session_creation(void)
+{
+    authd_config_t config;
+    authd_database_t *database = NULL;
+    authd_database_info_t info;
+    authd_login_record_t record;
+    authd_terminal_session_result_t session;
+    char overlong_tty[FTAP_TTY_DEVICE_MAX + 2U];
+    char error[AUTHD_DATABASE_ERROR_MAX];
+
+    reset_scenario();
+    authd_config_defaults(&config);
+    assert(authd_database_open(&config, &database, &info,
+                               error, sizeof(error)) == 0);
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_OK);
+
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_OK);
+    assert(memcmp(session.user_id, record.user_id, FTAP_UUID_SIZE) == 0);
+    assert(session.session_id[0] == 0xffU);
+    assert(session.session_id[15] == 0x00U);
+    assert(session.auth_epoch == 7U);
+    assert(session.authz_revision == 9U);
+
+    scenario.session_create_found = false;
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_STALE_STATE);
+    scenario.session_create_found = true;
+
+    scenario.session_create_null_column = 0;
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
+    scenario.session_create_null_column = -1;
+
+    scenario.session_create_values[0] =
+        "00000000000000000000000000000000";
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
+    scenario.session_create_values[0] =
+        "ffeeddccbbaa99887766554433221100";
+
+    scenario.session_create_values[2] = "8";
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
+    scenario.session_create_values[2] = "7";
+
+    scenario.session_create_query_error = true;
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_ERROR);
+    scenario.session_create_query_error = false;
+
+    memset(overlong_tty, 'x', sizeof(overlong_tty));
+    overlong_tty[sizeof(overlong_tty) - 1U] = '\0';
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", overlong_tty, "node-a",
+        &session, error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    assert(authd_database_create_password_session(
+        database, &record, "invalid-ip", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "SSH", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "", "node-a",
+        &session, error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+
+    record.auth_epoch = 0U;
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+
+    assert(strcmp(authd_database_write_result_name(
+                      AUTHD_DATABASE_WRITE_STALE_STATE),
+                  "stale_state") == 0);
     authd_database_close(database);
 }
 
@@ -702,6 +846,7 @@ test_login_availability(void)
 
     memset(&record, 0, sizeof(record));
     record.auth_epoch = 1U;
+    record.authz_revision = 1U;
     (void)snprintf(record.login_name, sizeof(record.login_name), "%s",
                    "neo67");
     (void)snprintf(record.display_name, sizeof(record.display_name), "%s",
@@ -736,6 +881,10 @@ test_login_availability(void)
     record.auth_epoch = 0U;
     assert(authd_login_record_availability(&record) ==
            AUTHD_LOGIN_INVALID_RECORD);
+    record.auth_epoch = 1U;
+    record.authz_revision = 0U;
+    assert(authd_login_record_availability(&record) ==
+           AUTHD_LOGIN_INVALID_RECORD);
 }
 
 static void
@@ -767,6 +916,7 @@ main(void)
 {
     test_success_and_health();
     test_login_lookup();
+    test_password_session_creation();
     test_password_failure_and_audit();
     test_login_availability();
     test_rejections();

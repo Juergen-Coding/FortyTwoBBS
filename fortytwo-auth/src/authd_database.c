@@ -642,6 +642,7 @@ authd_database_lookup_login(authd_database_t *database,
         "u.throttled_until - CURRENT_TIMESTAMP) * 1000.0)"
         "::pg_catalog.int8)::pg_catalog.text ELSE '0' END, "
         "u.auth_epoch::pg_catalog.text, "
+        "u.authz_revision::pg_catalog.text, "
         "CASE WHEN u.deleted_at IS NULL THEN '0' ELSE '1' END, "
         "p.display_name, c.password_hash, "
         "CASE WHEN c.must_change THEN '1' ELSE '0' END, "
@@ -658,6 +659,7 @@ authd_database_lookup_login(authd_database_t *database,
     PGresult *result;
     int rows;
     uint64_t auth_epoch;
+    uint64_t authz_revision;
     uint64_t retry_after_ms;
     uint32_t failed_count;
     bool deleted;
@@ -698,7 +700,7 @@ authd_database_lookup_login(authd_database_t *database,
         return AUTHD_DATABASE_LOOKUP_ERROR;
     }
     if (PQresultStatus(result) != PGRES_TUPLES_OK ||
-        PQnfields(result) != 12) {
+        PQnfields(result) != 13) {
         const char *message = PQresultErrorMessage(result);
         if (message != NULL && message[0] != '\0') {
             size_t length = strlen(message);
@@ -739,7 +741,8 @@ authd_database_lookup_login(authd_database_t *database,
         PQgetisnull(result, 0, 7) ||
         PQgetisnull(result, 0, 8) ||
         PQgetisnull(result, 0, 9) ||
-        PQgetisnull(result, 0, 10)) {
+        PQgetisnull(result, 0, 10) ||
+        PQgetisnull(result, 0, 11)) {
         set_error(error, error_size,
                   "login record is missing a required field");
         PQclear(result);
@@ -759,17 +762,19 @@ authd_database_lookup_login(authd_database_t *database,
         !parse_u64_strict(PQgetvalue(result, 0, 4), &retry_after_ms) ||
         !parse_u64_strict(PQgetvalue(result, 0, 5), &auth_epoch) ||
         auth_epoch == 0U ||
-        !parse_boolean_digit(PQgetvalue(result, 0, 6), &deleted) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 6), &authz_revision) ||
+        authz_revision == 0U ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 7), &deleted) ||
         !copy_bounded_text(record->display_name,
                            sizeof(record->display_name),
-                           PQgetvalue(result, 0, 7),
+                           PQgetvalue(result, 0, 8),
                            FTAP_DISPLAY_NAME_MAX) ||
         !copy_bounded_text(record->password_hash,
                            sizeof(record->password_hash),
-                           PQgetvalue(result, 0, 8),
+                           PQgetvalue(result, 0, 9),
                            AUTHD_DATABASE_PASSWORD_HASH_MAX) ||
-        !parse_boolean_digit(PQgetvalue(result, 0, 9), &must_change) ||
-        !parse_u32_strict(PQgetvalue(result, 0, 10), &failed_count) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 10), &must_change) ||
+        !parse_u32_strict(PQgetvalue(result, 0, 11), &failed_count) ||
         (throttled && retry_after_ms == 0U) ||
         (!throttled && retry_after_ms != 0U)) {
         memset(record, 0, sizeof(*record));
@@ -780,16 +785,17 @@ authd_database_lookup_login(authd_database_t *database,
     }
 
     record->auth_epoch = auth_epoch;
+    record->authz_revision = authz_revision;
     record->deleted = deleted;
     record->throttled = throttled;
     record->retry_after_ms = retry_after_ms;
     record->must_change = must_change;
     record->failed_count = failed_count;
 
-    if (PQgetisnull(result, 0, 11)) {
+    if (PQgetisnull(result, 0, 12)) {
         record->last_failed_at_set = false;
         record->last_failed_at_epoch_ms = 0;
-    } else if (!parse_i64_strict(PQgetvalue(result, 0, 11),
+    } else if (!parse_i64_strict(PQgetvalue(result, 0, 12),
                                  &record->last_failed_at_epoch_ms)) {
         memset(record, 0, sizeof(*record));
         set_error(error, error_size,
@@ -804,9 +810,9 @@ authd_database_lookup_login(authd_database_t *database,
     return AUTHD_DATABASE_LOOKUP_OK;
 }
 
-/* Reject the all-zero UUID, which is never a valid FortyTwo identity. */
+/* Reject the all-zero UUID for identities and generated sessions alike. */
 static bool
-user_id_is_valid(const uint8_t user_id[FTAP_UUID_SIZE])
+uuid_is_valid(const uint8_t user_id[FTAP_UUID_SIZE])
 {
     size_t index;
 
@@ -940,7 +946,7 @@ authd_database_record_password_failure(
     }
 
     if (database == NULL || database->connection == NULL ||
-        !user_id_is_valid(user_id) ||
+        !uuid_is_valid(user_id) ||
         !authd_throttle_policy_is_valid(policy) ||
         !authd_source_ip_is_valid(source_ip) ||
         !authd_login_protocol_is_valid(protocol) || update == NULL) {
@@ -1056,7 +1062,7 @@ authd_database_audit_login_rejection(
         reason == AUTHD_LOGIN_REJECTION_WRONG_PASSWORD ||
         !authd_source_ip_is_valid(source_ip) ||
         !authd_login_protocol_is_valid(protocol) ||
-        (user_id != NULL && !user_id_is_valid(user_id)) ||
+        (user_id != NULL && !uuid_is_valid(user_id)) ||
         (reason == AUTHD_LOGIN_REJECTION_UNKNOWN_USER && user_id != NULL)) {
         set_error(error, error_size,
                   "invalid login rejection audit arguments");
@@ -1101,10 +1107,202 @@ authd_database_audit_login_rejection(
     return AUTHD_DATABASE_WRITE_OK;
 }
 
+/* Validate optional terminal metadata before it is passed to PostgreSQL. */
+static bool
+optional_session_text_is_valid(const char *text, size_t maximum_length)
+{
+    size_t length;
+
+    if (text == NULL) {
+        return true;
+    }
+
+    length = strlen(text);
+    return length > 0U && length <= maximum_length;
+}
+
+/*
+ * Commit a successful password login as one data-modifying statement. The
+ * locking user selection rechecks the current security state after the
+ * expensive Argon2id work. Credential reset, session insertion, and success
+ * audit are then chained through RETURNING rows, so any failure rolls back the
+ * complete statement and no partial authenticated state can remain.
+ */
+authd_database_write_result_t
+authd_database_create_password_session(
+    authd_database_t *database,
+    const authd_login_record_t *record,
+    const char *source_ip,
+    const char *protocol,
+    const char *tty_device,
+    const char *node_id,
+    authd_terminal_session_result_t *session,
+    char *error,
+    size_t error_size)
+{
+    static const char sql[] =
+        "WITH eligible_user AS MATERIALIZED ("
+        "SELECT u.user_id, u.auth_epoch, u.authz_revision "
+        "FROM public.bbs_users AS u "
+        "WHERE u.user_id = $1::pg_catalog.uuid "
+        "AND u.auth_epoch = $2::pg_catalog.int8 "
+        "AND u.authz_revision = $3::pg_catalog.int8 "
+        "AND u.login_name = $8 COLLATE \"C\" "
+        "AND u.account_state = 'active' "
+        "AND u.deleted_at IS NULL "
+        "AND (u.throttled_until IS NULL "
+        "OR u.throttled_until <= CURRENT_TIMESTAMP) "
+        "FOR UPDATE OF u), "
+        "credential_reset AS ("
+        "UPDATE public.bbs_password_credentials AS c "
+        "SET failed_count = 0, last_failed_at = NULL "
+        "FROM eligible_user AS u "
+        "WHERE c.user_id = u.user_id AND c.must_change = FALSE "
+        "AND c.password_hash = $9::pg_catalog.text "
+        "RETURNING c.user_id, u.auth_epoch, u.authz_revision), "
+        "session_insert AS ("
+        "INSERT INTO public.bbs_terminal_sessions "
+        "(user_id, protocol, auth_method, source_ip, tty_device, node_id, "
+        "auth_epoch) "
+        "SELECT c.user_id, $4::pg_catalog.text, 'password', "
+        "$5::pg_catalog.inet, $6::pg_catalog.text, $7::pg_catalog.text, "
+        "c.auth_epoch FROM credential_reset AS c "
+        "RETURNING session_id, user_id, auth_epoch), "
+        "audit_insert AS ("
+        "INSERT INTO public.bbs_audit_events "
+        "(actor_user_id, subject_user_id, session_id, event_type, "
+        "source_ip, detail) "
+        "SELECT s.user_id, s.user_id, s.session_id, "
+        "'auth.login_succeeded', $5::pg_catalog.inet, "
+        "pg_catalog.jsonb_build_object("
+        "'login_name', $8::pg_catalog.text, "
+        "'protocol', $4::pg_catalog.text, "
+        "'auth_method', 'password', "
+        "'auth_epoch', s.auth_epoch, "
+        "'authz_revision', c.authz_revision, "
+        "'tty_device', $6::pg_catalog.text, "
+        "'node_id', $7::pg_catalog.text) "
+        "FROM session_insert AS s "
+        "JOIN credential_reset AS c USING (user_id) "
+        "RETURNING event_id, session_id) "
+        "SELECT "
+        "pg_catalog.encode(pg_catalog.uuid_send(s.session_id), 'hex'), "
+        "pg_catalog.encode(pg_catalog.uuid_send(s.user_id), 'hex'), "
+        "s.auth_epoch::pg_catalog.text, "
+        "c.authz_revision::pg_catalog.text, "
+        "a.event_id::pg_catalog.text "
+        "FROM session_insert AS s "
+        "JOIN credential_reset AS c USING (user_id) "
+        "JOIN audit_insert AS a USING (session_id)";
+    const char *parameter_values[9];
+    char user_id_text[37];
+    char auth_epoch_text[32];
+    char authz_revision_text[32];
+    PGresult *result;
+    uint64_t auth_epoch;
+    uint64_t authz_revision;
+    uint64_t event_id;
+    int rows;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (session != NULL) {
+        memset(session, 0, sizeof(*session));
+    }
+
+    /* Reject stale or malformed snapshots before acquiring a database lock. */
+    if (database == NULL || database->connection == NULL || record == NULL ||
+        session == NULL || !uuid_is_valid(record->user_id) ||
+        !authd_login_name_is_canonical(record->login_name) ||
+        authd_login_record_availability(record) != AUTHD_LOGIN_AVAILABLE ||
+        !authd_source_ip_is_valid(source_ip) ||
+        !authd_login_protocol_is_valid(protocol) ||
+        !optional_session_text_is_valid(tty_device, FTAP_TTY_DEVICE_MAX) ||
+        !optional_session_text_is_valid(node_id, FTAP_NODE_ID_MAX)) {
+        set_error(error, error_size,
+                  "invalid password session creation arguments");
+        return AUTHD_DATABASE_WRITE_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    /* All externally supplied values remain libpq parameters, never SQL text. */
+    format_uuid_text(record->user_id, user_id_text);
+    (void)snprintf(auth_epoch_text, sizeof(auth_epoch_text), "%llu",
+                   (unsigned long long)record->auth_epoch);
+    (void)snprintf(authz_revision_text, sizeof(authz_revision_text), "%llu",
+                   (unsigned long long)record->authz_revision);
+
+    parameter_values[0] = user_id_text;
+    parameter_values[1] = auth_epoch_text;
+    parameter_values[2] = authz_revision_text;
+    parameter_values[3] = protocol;
+    parameter_values[4] = source_ip;
+    parameter_values[5] = tty_device;
+    parameter_values[6] = node_id;
+    parameter_values[7] = record->login_name;
+    parameter_values[8] = record->password_hash;
+
+    result = PQexecParams(database->connection, sql, 9, NULL,
+                          parameter_values, NULL, NULL, 0);
+    if (result == NULL) {
+        copy_libpq_error(error, error_size,
+                         "password session creation failed",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+    if (PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 5) {
+        copy_result_error(error, error_size,
+                          "password session creation failed", result);
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    /* No row means the account changed after its password was verified. */
+    rows = PQntuples(result);
+    if (rows == 0) {
+        set_error(error, error_size,
+                  "password session state changed during authentication");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_STALE_STATE;
+    }
+    if (rows != 1 || PQgetisnull(result, 0, 0) ||
+        PQgetisnull(result, 0, 1) || PQgetisnull(result, 0, 2) ||
+        PQgetisnull(result, 0, 3) || PQgetisnull(result, 0, 4) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 0), session->session_id) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 1), session->user_id) ||
+        !uuid_is_valid(session->session_id) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 2), &auth_epoch) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 3), &authz_revision) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 4), &event_id) ||
+        auth_epoch == 0U || authz_revision == 0U || event_id == 0U ||
+        memcmp(session->user_id, record->user_id, FTAP_UUID_SIZE) != 0 ||
+        auth_epoch != record->auth_epoch ||
+        authz_revision != record->authz_revision) {
+        memset(session, 0, sizeof(*session));
+        set_error(error, error_size,
+                  "password session creation returned an invalid record");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_INVALID_RECORD;
+    }
+
+    session->auth_epoch = auth_epoch;
+    session->authz_revision = authz_revision;
+    PQclear(result);
+    return AUTHD_DATABASE_WRITE_OK;
+}
+
 authd_login_availability_t
 authd_login_record_availability(const authd_login_record_t *record)
 {
     if (record == NULL || record->auth_epoch == 0U ||
+        record->authz_revision == 0U ||
         record->login_name[0] == '\0' || record->display_name[0] == '\0' ||
         record->password_hash[0] == '\0' ||
         (record->throttled && record->retry_after_ms == 0U) ||
@@ -1208,6 +1406,8 @@ authd_database_write_result_name(authd_database_write_result_t result)
         return "ok";
     case AUTHD_DATABASE_WRITE_NOT_FOUND:
         return "not_found";
+    case AUTHD_DATABASE_WRITE_STALE_STATE:
+        return "stale_state";
     case AUTHD_DATABASE_WRITE_INVALID_ARGUMENT:
         return "invalid_argument";
     case AUTHD_DATABASE_WRITE_INVALID_RECORD:

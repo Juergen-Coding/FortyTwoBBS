@@ -6,6 +6,7 @@
 
 #include "authd_config.h"
 #include "authd_database.h"
+#include "authd_database_validation.h"
 #include "authd_throttle.h"
 
 #include <assert.h>
@@ -47,7 +48,8 @@ main(void)
     assert(authd_database_open(&config, &database, &info,
                                error, sizeof(error)) == 0);
     assert(database != NULL);
-    assert(info.highest_migration == 5U);
+    assert(info.highest_migration ==
+           AUTHD_DATABASE_REQUIRED_HIGHEST_MIGRATION);
 
     /*
      * The fixture starts with four failures older than the 15-minute window.

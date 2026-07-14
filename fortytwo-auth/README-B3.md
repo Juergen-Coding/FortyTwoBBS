@@ -206,3 +206,53 @@ unknown-user audit with no subject UUID, and complete cleanup:
 ```sh
 make database-throttle-integration-test
 ```
+
+## B3.6 atomic successful login and terminal session
+
+The sixth B3 step persists the successful side of password authentication while
+leaving FTAP socket-state binding for B3.7:
+
+- migration `0006_authorization_revision.sql`
+- `authd_database_create_password_session()`
+- `authd_terminal_session_result_t`
+- `tests/authd_database_session_integration_test.c`
+
+Migration 0006 adds `bbs_users.authz_revision`, a positive monotonic revision
+for the user's effective roles and capabilities. The value is returned with the
+session context and will later let the daemon push authorization changes to
+already connected clients without confusing them with `auth_epoch`, which is
+reserved for security-state revocation.
+
+After Argon2id succeeds, one data-modifying PostgreSQL statement locks and
+rechecks the user snapshot. The current row must still have the same `user_id`,
+canonical login name, `auth_epoch`, and `authz_revision`; remain active and
+undeleted; have no active `throttled_until`; and retain the same password hash
+without `must_change`.
+
+Only then does the statement chain three writes through `RETURNING` rows:
+
+1. reset `failed_count` and `last_failed_at`
+2. insert the open `bbs_terminal_sessions` row
+3. append the `auth.login_succeeded` audit event
+
+PostgreSQL statement atomicity makes the operation all-or-nothing. A failure in
+session creation or audit cannot leave cleared counters or a partial session.
+A zero-row result is reported as `stale_state`, so an account lock, password
+change, authorization revision, or throttle that occurs during Argon2id never
+produces an authenticated session from an obsolete snapshot.
+
+The returned result contains the binary `USER_ID`, generated `SESSION_ID`,
+`AUTH_EPOCH`, and `AUTHZ_REVISION` needed for `AUTH_PASSWORD_RESULT`. Source IP,
+protocol, TTY, node ID, and canonical login name remain libpq parameters and are
+also captured in the success audit without exposing a password.
+
+### Real PostgreSQL session integration test
+
+The separate integration target starts with four stored failures, creates one
+SSH/password session through the peer-authenticated runtime role, verifies the
+counter reset, open session, and matching audit, then retries with a deliberately
+stale epoch and confirms that no second session is created:
+
+```sh
+make database-session-integration-test
+```

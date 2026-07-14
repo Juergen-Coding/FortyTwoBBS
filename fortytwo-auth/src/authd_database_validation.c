@@ -33,6 +33,11 @@ static const authd_migration_record_t required_migrations[] = {
         UINT32_C(5),
         "0005_login_name_policy.sql",
         "8a272139d18764ad7ec75a91e1aab841047059610886bfd3429b0f6198551002"
+    },
+    {
+        UINT32_C(6),
+        "0006_authorization_revision.sql",
+        "0492f1763633aa87737cbea1b0456c9521e35adce9257af86534ef84896b1d1c"
     }
 };
 

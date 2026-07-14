@@ -22,13 +22,15 @@ INSERT INTO public.bbs_users (
     login_name,
     account_state,
     throttled_until,
-    auth_epoch
+    auth_epoch,
+    authz_revision
 ) VALUES (
     '7f4a42b3-0005-4a11-8b32-42b3f00d0001'::uuid,
     'b3_lookup_test_7f4a',
     'active',
     NULL,
-    42
+    42,
+    7
 );
 
 INSERT INTO public.bbs_user_profiles (
