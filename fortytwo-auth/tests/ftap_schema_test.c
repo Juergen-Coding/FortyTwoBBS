@@ -405,7 +405,7 @@ test_push_and_payload_length(void)
     CHECK_STATUS(ftap_tlv_writer_put_text(
                      &writer, FTAP_FIELD_REVOKE_REASON, 0,
                      (const uint8_t *)"account_locked", 14,
-                     FTAP_MAX_PAYLOAD_SIZE),
+                     FTAP_REVOKE_REASON_MAX),
                  FTAP_STATUS_OK);
 
     header = make_header(FTAP_MSG_SESSION_REVOKED,
@@ -428,6 +428,135 @@ test_push_and_payload_length(void)
                  FTAP_STATUS_ERR_LENGTH);
 }
 
+
+static void
+test_bounded_resource_fields(void)
+{
+    uint8_t payload[512];
+    uint8_t too_long_resource_type[FTAP_RESOURCE_TYPE_MAX + 1U];
+    uint8_t maximum_resource_id[FTAP_RESOURCE_ID_MAX];
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+
+    memset(too_long_resource_type, (int)'r',
+           sizeof(too_long_resource_type));
+    memset(maximum_resource_id, (int)'i', sizeof(maximum_resource_id));
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_CAPABILITY, 0,
+                     (const uint8_t *)"message.read", 12,
+                     FTAP_CAPABILITY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_RESOURCE_TYPE, 0,
+                     (const uint8_t *)"message_area", 12,
+                     FTAP_RESOURCE_TYPE_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_RESOURCE_ID, 0,
+                     maximum_resource_id, sizeof(maximum_resource_id),
+                     FTAP_RESOURCE_ID_MAX),
+                 FTAP_STATUS_OK);
+
+    header = make_header(FTAP_MSG_AUTHZ_CHECK_REQUEST, 0,
+                         (uint32_t)writer.length, 8);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_SESSION_BOUND, &header,
+                                       payload, writer.length, NULL),
+                 FTAP_STATUS_OK);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_CAPABILITY, 0,
+                     (const uint8_t *)"message.read", 12,
+                     FTAP_CAPABILITY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put(
+                     &writer, FTAP_FIELD_RESOURCE_TYPE, 0,
+                     too_long_resource_type,
+                     sizeof(too_long_resource_type)),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_SESSION_BOUND, &header,
+                                       payload, writer.length, NULL),
+                 FTAP_STATUS_ERR_LENGTH);
+}
+
+static void
+test_reason_limits_and_syntax(void)
+{
+    uint8_t payload[256];
+    uint8_t too_long_reason[FTAP_REVOKE_REASON_MAX + 1U];
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+
+    memset(too_long_reason, (int)'a', sizeof(too_long_reason));
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_ENDED_REASON, 0,
+                     (const uint8_t *)"normal_logout",
+                     strlen("normal_logout"), FTAP_ENDED_REASON_MAX),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_SESSION_CLOSE, 0,
+                         (uint32_t)writer.length, 9);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_SESSION_BOUND, &header,
+                                       payload, writer.length, NULL),
+                 FTAP_STATUS_OK);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put(
+                     &writer, FTAP_FIELD_REVOKE_REASON, 0,
+                     too_long_reason, sizeof(too_long_reason)),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_SESSION_REVOKED,
+                         FTAP_FRAME_FLAG_SERVER_PUSH,
+                         (uint32_t)writer.length,
+                         FTAP_SERVER_PUSH_REQUEST_ID);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_SESSION_BOUND, &header,
+                                       payload, writer.length, NULL),
+                 FTAP_STATUS_ERR_LENGTH);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REVOKE_REASON, 0,
+                     (const uint8_t *)"Account locked",
+                     strlen("Account locked"), FTAP_REVOKE_REASON_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_SESSION_BOUND, &header,
+                                       payload, writer.length, NULL),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+}
+
+static void
+test_account_state_is_reserved(void)
+{
+    uint8_t payload[64];
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_validation_error_t error;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_ACCOUNT_STATE, 0,
+                     (const uint8_t *)"active", 6,
+                     FTAP_ACCOUNT_STATE_MAX),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_SESSION_HEARTBEAT, 0,
+                         (uint32_t)writer.length, 10);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_SESSION_BOUND, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_FORBIDDEN_FIELD);
+    CHECK(error.field_type == FTAP_FIELD_ACCOUNT_STATE);
+}
+
 int
 main(void)
 {
@@ -439,6 +568,9 @@ main(void)
     test_flags_state_and_service_name();
     test_canonical_ip();
     test_push_and_payload_length();
+    test_bounded_resource_fields();
+    test_reason_limits_and_syntax();
+    test_account_state_is_reserved();
 
     if (failures != 0U) {
         fprintf(stderr, "%u FTAP schema test(s) failed\n", failures);

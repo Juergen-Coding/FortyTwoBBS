@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * FortyTwo Authentication Protocol (FTAP)
- * Wire constants for FTAP 1.1 (document revision 1.2).
+ * Wire constants for FTAP 1.1 (document revision 1.3).
  *
  * Source of truth:
  *   fortytwo-auth/protocol/FTAP-1.md
@@ -52,7 +52,8 @@
 /* Text and byte-string limits from FTAP 1.1. */
 #define FTAP_LOGIN_NAME_MAX               UINT32_C(32)
 #define FTAP_DISPLAY_NAME_MAX             UINT32_C(64)
-#define FTAP_CAPABILITY_NAME_MAX          UINT32_C(96)
+#define FTAP_ACCOUNT_STATE_MAX             UINT32_C(16)
+#define FTAP_CAPABILITY_NAME_MAX           UINT32_C(96)
 #define FTAP_PROTOCOL_NAME_MAX            UINT32_C(16)
 #define FTAP_AUTH_METHOD_MAX              UINT32_C(32)
 #define FTAP_TTY_DEVICE_MAX               UINT32_C(128)
@@ -61,6 +62,10 @@
 #define FTAP_CLIENT_NAME_MAX              UINT32_C(64)
 #define FTAP_CLIENT_VERSION_MAX           UINT32_C(32)
 #define FTAP_SERVICE_NAME_MAX             UINT32_C(64)
+#define FTAP_RESOURCE_TYPE_MAX            UINT32_C(64)
+#define FTAP_RESOURCE_ID_MAX              UINT32_C(128)
+#define FTAP_ENDED_REASON_MAX             UINT32_C(64)
+#define FTAP_REVOKE_REASON_MAX            UINT32_C(64)
 #define FTAP_ERROR_TEXT_MAX               UINT32_C(256)
 #define FTAP_PASSWORD_MAX                 UINT32_C(1024)
 #define FTAP_ACCESS_TOKEN_MAX             UINT32_C(512)

@@ -37,6 +37,16 @@ _Static_assert(FTAP_FRAME_FLAG_KNOWN_MASK == UINT16_C(0x0007),
                "Unexpected frame flag mask");
 _Static_assert(FTAP_FIELD_FLAG_KNOWN_MASK == UINT16_C(0x0001),
                "Unexpected field flag mask");
+_Static_assert(FTAP_ACCOUNT_STATE_MAX == 16,
+               "Unexpected account-state limit");
+_Static_assert(FTAP_RESOURCE_TYPE_MAX == 64,
+               "Unexpected resource-type limit");
+_Static_assert(FTAP_RESOURCE_ID_MAX == 128,
+               "Unexpected resource-id limit");
+_Static_assert(FTAP_ENDED_REASON_MAX == 64,
+               "Unexpected ended-reason limit");
+_Static_assert(FTAP_REVOKE_REASON_MAX == 64,
+               "Unexpected revoke-reason limit");
 _Static_assert(FTAP_MSG_SERVICE_BIND_REQUEST == 4,
                "Unexpected service-bind message value");
 _Static_assert(FTAP_MSG_AUTH_PASSWORD_REQUEST == 100,

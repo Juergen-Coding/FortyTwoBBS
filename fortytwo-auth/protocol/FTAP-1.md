@@ -1,12 +1,12 @@
 # FortyTwo Authentication Protocol – FTAP/1
 
 Status: Interne Protokollspezifikation
-Dokumentrevision: 1.2
+Dokumentrevision: 1.3
 Wire-Version: FTAP 1.1
 Transport: lokaler Unix-Domain-Socket
 Standardpfad: `/run/fortytwo/auth.sock`
 
-Dokumentrevision 1.2 konsolidiert vor Beginn der Implementierung:
+Dokumentrevision 1.3 konsolidiert vor Beginn der Implementierung:
 
 - einen eigenen Service-Modus für `fortytwo-api`,
 - parallele, über Request-IDs gemultiplexte Anfragen,
@@ -226,6 +226,7 @@ Nicht zulässig sind:
 |------------------------------|--------:|
 | Loginname                    | 32 Byte |
 | Anzeigename                  | 64 Byte |
+| Kontostatus                  | 16 Byte |
 | Capability-Name              | 96 Byte |
 | Protokollname                | 16 Byte |
 | Authentifizierungsmethode    | 32 Byte |
@@ -235,11 +236,30 @@ Nicht zulässig sind:
 | Clientname                   | 64 Byte |
 | Clientversion                | 32 Byte |
 | Dienstname                   | 64 Byte |
+| Ressourcentyp                | 64 Byte |
+| Ressourcenkennung            | 128 Byte |
+| Sitzungsende-Grund           | 64 Byte |
+| Widerrufsgrund               | 64 Byte |
 | Fehlertext                   | 256 Byte |
 | Passwort                     | 1024 Byte |
-| Opakes Access-Token           | 512 Byte |
+| Opakes Access-Token          | 512 Byte |
 
 Der Empfänger prüft alle Längen vor einer Speicherreservierung oder Kopie.
+
+`ENDED_REASON` und `REVOKE_REASON` sind maschinenlesbare Kennungen. Zulässig
+sind 1 bis 64 ASCII-Byte. Das erste Zeichen muss ein Kleinbuchstabe sein; die
+folgenden Zeichen dürfen Kleinbuchstaben, Ziffern, Punkt, Bindestrich oder
+Unterstrich sein. Beispiele:
+
+```text
+normal_logout
+account_locked
+password_changed
+authd_shutdown
+protocol_error
+```
+
+Freitext oder eine lokalisierte Erklärung gehört nicht in diese beiden Felder.
 
 ## 8. Verbindungszustände
 
@@ -344,7 +364,7 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 20   | USER_ID                 | UUID           |
 | 21   | SESSION_ID              | UUID           |
 | 22   | DISPLAY_NAME            | Text           |
-| 23   | ACCOUNT_STATE           | Text           |
+| 23   | ACCOUNT_STATE           | Text, reserviert |
 | 24   | AUTH_EPOCH              | uint64         |
 | 25   | AUTHZ_REVISION          | uint64         |
 | 26   | CAPABILITY              | Text           |
@@ -358,6 +378,19 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 52   | RETRY_AFTER_MS          | uint32         |
 | 60   | ACCESS_TOKEN            | Bytes/Text     |
 | 61   | API_SESSION_ID          | UUID           |
+
+`ACCOUNT_STATE` ist in FTAP 1.1 reserviert und in keiner Nachricht zulässig.
+Ein Auftreten wird als `FTAP_STATUS_ERR_FORBIDDEN_FIELD` behandelt. Der
+Kontostatus wird ausschließlich von `fortytwo-authd` interpretiert; laufende
+Clients erhalten bei einer sicherheitsrelevanten Änderung gegebenenfalls
+`SESSION_REVOKED`, statt selbst einen möglicherweise veralteten Status zu
+bewerten.
+
+Die numerische Feld-ID ist nicht an die interne Kardinalitätsverwaltung einer
+Implementierung gekoppelt. Implementierungen müssen deshalb auch Feld-IDs über
+63 verarbeiten können. Erlaubte, erforderliche und wiederholbare Felder werden
+über Regeln nach Feld-ID bestimmt, nicht durch Verschieben der Feld-ID in eine
+64-Bit-Bitmaske.
 
 ## 11. HELLO
 
