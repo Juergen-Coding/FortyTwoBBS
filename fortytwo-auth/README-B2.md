@@ -29,6 +29,10 @@ on the migration history.
 The migration must be applied and registered before the production daemon can
 start successfully.
 
+The later Phase B3.1 migration `0005_login_name_policy.sql` adds the canonical
+ASCII login-name constraint. Current binaries therefore require migrations
+0001 through 0005 with their exact registered SHA-256 checksums.
+
 ## Connection policy
 
 The daemon accepts only an absolute PostgreSQL Unix-socket directory. TCP host

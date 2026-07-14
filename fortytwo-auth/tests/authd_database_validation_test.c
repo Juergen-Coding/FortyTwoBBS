@@ -50,6 +50,12 @@ test_migrations(void)
     required = authd_database_required_migrations(&count);
     assert(required != NULL);
     assert(count == AUTHD_DATABASE_REQUIRED_MIGRATION_COUNT);
+    assert(required[count - 1U].version ==
+           AUTHD_DATABASE_REQUIRED_HIGHEST_MIGRATION);
+    assert(strcmp(required[count - 1U].name,
+                  "0005_login_name_policy.sql") == 0);
+    assert(strcmp(required[count - 1U].checksum,
+                  "8a272139d18764ad7ec75a91e1aab841047059610886bfd3429b0f6198551002") == 0);
     for (index = 0U; index < count; ++index) {
         records[index] = required[index];
     }
@@ -73,7 +79,7 @@ test_migrations(void)
     assert(strstr(error, "name mismatch") != NULL);
     records[2] = required[2];
 
-    records[3].checksum =
+    records[count - 1U].checksum =
         "0000000000000000000000000000000000000000000000000000000000000000";
     assert(!authd_database_validate_migrations(records, count,
                                                error, sizeof(error)));

@@ -368,7 +368,8 @@ test_success_and_health(void)
     assert(database != NULL);
     assert(info.server_version_num == 170010);
     assert(info.migration_count == AUTHD_DATABASE_REQUIRED_MIGRATION_COUNT);
-    assert(info.highest_migration == 4U);
+    assert(info.highest_migration ==
+           AUTHD_DATABASE_REQUIRED_HIGHEST_MIGRATION);
     assert(authd_database_health_check(database,
                                        error, sizeof(error)) == 0);
 

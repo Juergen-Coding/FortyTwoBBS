@@ -5,6 +5,7 @@
  */
 
 #include "authd_database.h"
+#include "authd_database_validation.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -73,8 +74,9 @@ authd_database_open(const authd_config_t *config,
 
     if (info != NULL) {
         info->server_version_num = 170010;
-        info->migration_count = 4U;
-        info->highest_migration = 4U;
+        info->migration_count = AUTHD_DATABASE_REQUIRED_MIGRATION_COUNT;
+        info->highest_migration =
+            AUTHD_DATABASE_REQUIRED_HIGHEST_MIGRATION;
     }
     *database = created;
     return 0;

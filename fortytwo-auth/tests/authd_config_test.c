@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -126,6 +127,44 @@ test_invalid_values(void)
 }
 
 static void
+test_printed_configuration(void)
+{
+    authd_config_t config;
+    char *usage = NULL;
+    char *effective = NULL;
+    size_t usage_size = 0U;
+    size_t effective_size = 0U;
+    FILE *usage_stream;
+    FILE *effective_stream;
+
+    authd_config_defaults(&config);
+    config.check_database = true;
+
+    usage_stream = open_memstream(&usage, &usage_size);
+    assert(usage_stream != NULL);
+    authd_config_print_usage(usage_stream, "fortytwo-authd");
+    assert(fclose(usage_stream) == 0);
+    assert(usage != NULL);
+    assert(usage_size > 0U);
+    assert(strstr(usage, "--db-host") != NULL);
+    assert(strstr(usage, "--check-database") != NULL);
+
+    effective_stream = open_memstream(&effective, &effective_size);
+    assert(effective_stream != NULL);
+    authd_config_print_effective(effective_stream, &config);
+    assert(fclose(effective_stream) == 0);
+    assert(effective != NULL);
+    assert(effective_size > 0U);
+    assert(strstr(effective, "db_host=/var/run/postgresql") != NULL);
+    assert(strstr(effective, "db_port=5432") != NULL);
+    assert(strstr(effective, "db_name=fortytwo") != NULL);
+    assert(strstr(effective, "check_database=yes") != NULL);
+
+    free(effective);
+    free(usage);
+}
+
+static void
 test_help_and_version(void)
 {
     authd_config_t config;
@@ -143,6 +182,7 @@ main(void)
     test_defaults();
     test_complete_configuration();
     test_invalid_values();
+    test_printed_configuration();
     test_help_and_version();
     (void)puts("authd config tests: OK");
     return 0;

@@ -510,7 +510,15 @@ authd_config_print_usage(FILE *stream, const char *program_name)
         "      --max-clients N        Concurrent clients (1..256)\n"
         "      --backlog N            Listen backlog (1..4096)\n"
         "      --hello-timeout-ms N   HELLO deadline (100..300000)\n"
+        "      --db-host PATH         PostgreSQL Unix-socket directory\n"
+        "      --db-port N            PostgreSQL port (1..65535)\n"
+        "      --db-name NAME         PostgreSQL database name\n"
+        "      --db-connect-timeout-seconds N\n"
+        "                             Database connect timeout (1..60)\n"
+        "      --db-health-interval-ms N\n"
+        "                             Database health interval (100..300000)\n"
         "      --check-config         Validate and print configuration\n"
+        "      --check-database       Validate database and schema\n"
         "      --verbose              Log accepted/rejected peers\n"
         "      --version              Print version and exit\n"
         "  -h, --help                 Show this help\n",
@@ -550,6 +558,15 @@ authd_config_print_effective(FILE *stream, const authd_config_t *config)
     (void)fprintf(stream, "backlog=%d\n", config->backlog);
     (void)fprintf(stream, "hello_timeout_ms=%" PRIu32 "\n",
                   config->hello_timeout_ms);
+    (void)fprintf(stream, "db_host=%s\n", config->db_host);
+    (void)fprintf(stream, "db_port=%" PRIu16 "\n", config->db_port);
+    (void)fprintf(stream, "db_name=%s\n", config->db_name);
+    (void)fprintf(stream, "db_connect_timeout_seconds=%" PRIu32 "\n",
+                  config->db_connect_timeout_seconds);
+    (void)fprintf(stream, "db_health_interval_ms=%" PRIu32 "\n",
+                  config->db_health_interval_ms);
+    (void)fprintf(stream, "check_database=%s\n",
+                  config->check_database ? "yes" : "no");
     (void)fprintf(stream, "verbose=%s\n", config->verbose ? "yes" : "no");
     for (index = 0U; index < config->allowed_uid_count; ++index) {
         (void)fprintf(stream, "allow_uid=%ju\n",

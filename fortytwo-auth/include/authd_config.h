@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-#define AUTHD_VERSION "0.2.0"
+#define AUTHD_VERSION "0.2.1"
 #define AUTHD_MAX_ALLOWED_UIDS 32U
 #define AUTHD_MIN_CLIENTS 1U
 #define AUTHD_MAX_CLIENTS 256U

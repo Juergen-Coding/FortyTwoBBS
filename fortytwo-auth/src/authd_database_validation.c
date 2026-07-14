@@ -28,6 +28,11 @@ static const authd_migration_record_t required_migrations[] = {
         UINT32_C(4),
         "0004_authd_schema_history_read.sql",
         "5e6bd5fe7bf2ebaaffa49674185d6d3b3b613f7047a47041806ec3b16a9c2f9c"
+    },
+    {
+        UINT32_C(5),
+        "0005_login_name_policy.sql",
+        "8a272139d18764ad7ec75a91e1aab841047059610886bfd3429b0f6198551002"
     }
 };
 
