@@ -41,10 +41,24 @@ int		nodes_mgp = -1;		/* Nodes message group position	    */
 unsigned int	nodes_crc = -1;		/* Noderecord crc value		    */
 
 
+static int valid_node_header(void)
+{
+    long record_size;
+
+    if ((nodeshdr.hdrsize < (int)sizeof(nodeshdr)) ||
+        (nodeshdr.recsize <= 0) ||
+        (nodeshdr.recsize > (int)sizeof(nodes)) ||
+        (nodeshdr.filegrp < 0) || (nodeshdr.mailgrp < 0))
+        return FALSE;
+    record_size = (long)nodeshdr.recsize + nodeshdr.filegrp + nodeshdr.mailgrp;
+    return (record_size > 0) && (record_size <= INT_MAX);
+}
+
 
 int InitNode(void)
 {
 	FILE	*fil;
+	long	end, record_size;
 
 	memset(&nodes, 0, sizeof(nodes));
 	LoadConfig();
@@ -53,9 +67,14 @@ int InitNode(void)
 	if ((fil = fopen(nodes_fil, "r")) == NULL)
 		return FALSE;
 
-	fread(&nodeshdr, sizeof(nodeshdr), 1, fil);
-	fseek(fil, 0, SEEK_END);
-	nodes_cnt = (ftell(fil) - nodeshdr.hdrsize) / (nodeshdr.recsize + nodeshdr.filegrp + nodeshdr.mailgrp);
+	if ((fread(&nodeshdr, sizeof(nodeshdr), 1, fil) != 1) ||
+	    !valid_node_header() || (fseek(fil, 0, SEEK_END) != 0) ||
+	    ((end = ftell(fil)) < nodeshdr.hdrsize)) {
+		fclose(fil);
+		return FALSE;
+	}
+	record_size = (long)nodeshdr.recsize + nodeshdr.filegrp + nodeshdr.mailgrp;
+	nodes_cnt = (end - nodeshdr.hdrsize) / record_size;
 	fclose(fil);
 
 	return TRUE;
@@ -82,6 +101,8 @@ int SearchNodeFaddr(faddr *n)
 {
     fidoaddr	Sys;
 
+    if (n == NULL)
+	return FALSE;
     memset(&Sys, 0, sizeof(Sys));
     Sys.zone  = n->zone;
     Sys.net   = n->net;
@@ -105,8 +126,13 @@ int SearchNode(fidoaddr aka)
 	if ((fil = fopen(nodes_fil, "r")) == NULL)
 		return FALSE;
 
-	fread(&nodeshdr, sizeof(nodeshdr), 1, fil);
-	while (fread(&nodes, nodeshdr.recsize, 1, fil) == 1) {
+	if ((fread(&nodeshdr, sizeof(nodeshdr), 1, fil) != 1) ||
+	    !valid_node_header() ||
+	    (fseek(fil, nodeshdr.hdrsize, SEEK_SET) != 0)) {
+		fclose(fil);
+		return FALSE;
+	}
+	while (fread(&nodes, (size_t)nodeshdr.recsize, 1, fil) == 1) {
 		fseek(fil, nodeshdr.filegrp + nodeshdr.mailgrp, SEEK_CUR);
 		if (TestNode(aka)) {
 			nodes_pos = ftell(fil) - (nodeshdr.recsize + nodeshdr.filegrp + nodeshdr.mailgrp);

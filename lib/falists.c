@@ -75,18 +75,15 @@ void fill_list(fa_list **fap, char *str, fa_list **omit)
 	fa_list			*tmp;
 	faddr			*ta;
 	static unsigned int	oldzone, oldnet;
-	char			*buf, *p, *q, *r;
+	char			*buf, *p;
 	int			allowskip = 1;
 
 	if ((str == NULL) || (*str == '\0'))
 		return;
 
 	buf = xstrcpy(str);
-	r = buf + strlen(buf);
 
-	for (p = strtok(buf," \t\n"), q = p + strlen(p) + 1;
-	     p;
-	     p = (q < r) ? strtok(q, " \t\n"):NULL, q = p ? p + strlen(p) + 1:r)
+	for (p = strtok(buf, " \t\n"); p != NULL; p = strtok(NULL, " \t\n"))
 	if ((ta = parsefnode(p))) {
 		if (ta->zone == 0)
 			ta->zone = oldzone;
@@ -103,7 +100,7 @@ void fill_list(fa_list **fap, char *str, fa_list **omit)
 			tidy_falist(&tmp);
 		} else {
 			allowskip = 0;
-			tmp = (fa_list *)malloc(sizeof(fa_list));
+			tmp = (fa_list *)xmalloc(sizeof(fa_list));
 			tmp->next = *fap;
 			tmp->addr = ta;
 			*fap = tmp;
@@ -121,23 +118,20 @@ void fill_path(fa_list **fap, char *str)
 	fa_list			**tmp;
 	faddr			*ta;
 	static unsigned int	oldnet;
-	char			*buf, *p, *q, *r;
+	char			*buf, *p;
 
 	if ((str == NULL) || (*str == '\0')) 
 		return;
 	buf = xstrcpy(str);
-	for (tmp = fap; *tmp; tmp = &((*tmp)->next)); /*nothing*/ 
-	r = buf + strlen(buf);
+	for (tmp = fap; *tmp; tmp = &((*tmp)->next)); /*nothing*/
 
-	for (p = strtok(buf, " \t\n"), q = p + strlen(p) + 1;
-	     p;
-	     p = (q < r) ? strtok(q, " \t\n") : NULL, q = p ? p + strlen(p) + 1 : r)
+	for (p = strtok(buf, " \t\n"); p != NULL; p = strtok(NULL, " \t\n"))
 	if ((ta = parsefnode(p))) {
 		if (ta->net == 0) 
 			ta->net=oldnet;
 		else 
 			oldnet=ta->net;
-		*tmp = (fa_list *)malloc(sizeof(fa_list));
+		*tmp = (fa_list *)xmalloc(sizeof(fa_list));
 		(*tmp)->next = NULL;
 		(*tmp)->addr = ta;
 		tmp = &((*tmp)->next);
@@ -181,7 +175,7 @@ void sort_list(fa_list **fap)
 
 	for (ta = *fap; ta; ta = ta->next) 
 		n++;
-	vector = (fa_list **)malloc(n * sizeof(fa_list *));
+	vector = (fa_list **)xmalloc(n * sizeof(fa_list *));
 	i = 0;
 
 	for (ta = *fap; ta; ta = ta->next) {

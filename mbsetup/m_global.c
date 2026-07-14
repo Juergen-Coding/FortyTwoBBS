@@ -720,7 +720,7 @@ void e_ticconf(void)
 	set_color(WHITE, BLACK);
 
 	show_int( 7,18, CFG.tic_days);
-	show_str( 8,18,20, (char *)"********************");
+	show_secret( 8,18,20, CFG.hatchpasswd);
 	show_int( 9,18, CFG.tic_systems);
 	show_int(10,18, CFG.tic_groups);
 	show_int(11,18, CFG.tic_dupes);
@@ -738,7 +738,7 @@ void e_ticconf(void)
 	    case 0:	return;
 
 	    case 1: E_INT(  7,18,    CFG.tic_days,     "Number of days to ^keep^ files on hold."); break;
-	    case 2: E_STR(  8,18,20, CFG.hatchpasswd,  "Enter the internal ^hatch^ password."); break;
+	    case 2: E_SECRET(  8,18,20, CFG.hatchpasswd,  "Enter the internal ^hatch^ password."); break;
 	    case 3: temp = CFG.tic_systems;
 		    temp = edit_int( 9,18, temp, (char *)"Enter the maximum number of ^connected systems^ in the database.");
 		    if (temp < CountNoderec()) {
@@ -947,7 +947,8 @@ void s_intmailcfg(void)
 			show_int(12,16,    CFG.nntpport);
 			show_bool(13,16,   CFG.modereader);
 			show_str(14,16,31, CFG.nntpuser);
-			show_str(15,16,31, (char *)"*******************************");
+			show_str(15,16,31, strlen(CFG.nntppass) ?
+			    (char *)"<configured>" : (char *)"<not set>");
 			show_bool(16,16,   CFG.nntpforceauth);
 			break;
 	case FEEDRNEWS:	show_str(10,16,64, CFG.rnewspath);
@@ -1045,10 +1046,9 @@ void e_intmailcfg(void)
             case 8: if (CFG.newsfeed == FEEDINN)
 			strcpy(CFG.nntpuser, edit_str( 14,16,31, CFG.nntpuser, (char *)"The ^Username^ for the NNTP server if needed."));
 		    break;
-            case 9: if (CFG.newsfeed == FEEDINN) {
-			strcpy(CFG.nntppass, edit_str(15,16,31, CFG.nntppass, (char *)"The ^Password^ for the NNTP server if needed."));
-			s_intmailcfg();
-		    }
+            case 9:
+		    if (CFG.newsfeed == FEEDINN)
+			errmsg((char *)"NNTP password editing is disabled until secure secret storage is available");
 		    break;
 	    case 10:if (CFG.newsfeed == FEEDINN)
 			CFG.nntpforceauth = edit_bool(16,16, CFG.nntpforceauth, (char *)"Force ^authentication^ on connect to the news server");
@@ -2126,7 +2126,7 @@ int global_doc(FILE *fp, FILE *toc, int page)
     fprintf(wp, "<COL width='30%%'><COL width='70%%'>\n");
     fprintf(wp, "<TBODY>\n");
     add_webdigit(wp, (char *)"Keep days on hold", CFG.tic_days);
-    add_webtable(wp, (char *)"Hatch password", CFG.hatchpasswd);
+    add_webtable(wp, (char *)"Hatch password", getboolean(strlen(CFG.hatchpasswd)));
     add_webdigit(wp, (char *)"Maximum connected systems", CFG.tic_systems);
     add_webdigit(wp, (char *)"Max files groups", CFG.tic_groups);
     add_webdigit(wp, (char *)"Max dupes in database", CFG.tic_dupes);
@@ -2144,7 +2144,7 @@ int global_doc(FILE *fp, FILE *toc, int page)
     fprintf(wp, "<HR>\n");    
     addtoc(fp, toc, 1, 10, page, (char *)"Fileecho processing");
     fprintf(fp, "      Keep days on hold  %d\n", CFG.tic_days);
-    fprintf(fp, "      Hatch password     %s\n", CFG.hatchpasswd);
+    fprintf(fp, "      Hatch password     %s\n", getboolean(strlen(CFG.hatchpasswd)));
     fprintf(fp, "      Max. systems       %d\n", CFG.tic_systems);
     fprintf(fp, "      Max. groups        %d\n", CFG.tic_groups);
     fprintf(fp, "      Max. dupes         %d\n", CFG.tic_dupes);
@@ -2235,7 +2235,7 @@ int global_doc(FILE *fp, FILE *toc, int page)
 			add_webdigit(wp, (char *)"NNTP port", CFG.nntpport);
 			add_webtable(wp, (char *)"NNTP mode reader", getboolean(CFG.modereader));
 			add_webtable(wp, (char *)"NNTP username", CFG.nntpuser);
-			add_webtable(wp, (char *)"NNTP password", CFG.nntppass);
+			add_webtable(wp, (char *)"NNTP password", getboolean(strlen(CFG.nntppass)));
 			add_webtable(wp, (char *)"NNTP force auth", getboolean(CFG.nntpforceauth));
 			break;
 	case FEEDRNEWS:	fprintf(fp, "      Path to rnews      %s\n", CFG.rnewspath);

@@ -184,8 +184,13 @@ static int sendzfile(char *ln, char *rn)
 	fl.l_whence = 0;
 	fl.l_start  = 0L;
 	fl.l_len    = 0L;
-	if (txbuf == NULL) 
+	if (txbuf == NULL) {
 		txbuf = malloc(MAXBLOCK);
+		if (txbuf == NULL) {
+			WriteError("Zmodem: out of memory allocating transmit buffer");
+			return 1;
+		}
+	}
 
 	skipsize = 0L;
 	if ((in = fopen(ln, "r")) == NULL) {
@@ -215,10 +220,22 @@ static int sendzfile(char *ln, char *rn)
 	Syslog('+', "Zmodem: size %lu bytes, dated %s", (unsigned int)st.st_size, date(st.st_mtime));
 	gettimeofday(&starttime, &tz);
 
-	snprintf(txbuf,MAXBLOCK, "%s %u %o %o 0 0 0", rn,
-		(unsigned int)st.st_size, (int)st.st_mtime+((int)st.st_mtime%2), st.st_mode);
+	if (snprintf(txbuf, MAXBLOCK, "%s %u %o %o 0 0 0", rn,
+		(unsigned int)st.st_size, (int)st.st_mtime+((int)st.st_mtime%2), st.st_mode) >= MAXBLOCK) {
+		WriteError("Zmodem: transmit filename or metadata is too long");
+		fclose(in);
+		return 1;
+	}
 	bufl = strlen(txbuf);
-	*(strchr(txbuf,' ')) = '\0'; /*hope no blanks in filename*/
+	{
+		char *separator = strchr(txbuf, ' ');
+		if (separator == NULL) {
+			WriteError("Zmodem: malformed transmit header");
+			fclose(in);
+			return 1;
+		}
+		*separator = '\0';
+	}
 
 	Eofseen = 0;
 	rc = zsendfile(txbuf,bufl);

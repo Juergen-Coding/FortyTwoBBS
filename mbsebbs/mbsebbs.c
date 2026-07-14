@@ -102,9 +102,9 @@ int main(int argc, char **argv)
      */
     sUnixName[0] = '\0';
     if (getenv("LOGNAME") != NULL) {
-        strncpy(sUnixName, getenv("LOGNAME"), 8);
+        snprintf(sUnixName, sizeof(sUnixName), "%s", getenv("LOGNAME"));
     } else if (getenv("USER") != NULL) {
-	strcpy(sUnixName, getenv("USER"));
+        snprintf(sUnixName, sizeof(sUnixName), "%s", getenv("USER"));
     } else {
         fprintf(stderr, "No username in environment\n");
         Quick_Bye(MBERR_OK);

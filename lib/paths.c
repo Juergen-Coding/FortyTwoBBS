@@ -31,6 +31,9 @@ char *join_paths(const char *path_left, size_t left_len, const char *path_right,
   }
 
   result = (char *)calloc(result_bytes_max, sizeof(char));
+  if (result == NULL) {
+    return NULL;
+  }
 
   char *nullch = memccpy(result, path_left, '\0', left_len);
   size_t offset;

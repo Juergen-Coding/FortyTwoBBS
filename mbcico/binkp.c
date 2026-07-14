@@ -918,7 +918,7 @@ SM_STATE(PwdAck)
 	    bp.Secure = TRUE;
     } else {
 	free(pw);
-	Syslog('?', "Binkp: password error: expected \"%s\", got \"%s\"", nodes.Spasswd, bp.rxbuf +1);
+	Syslog('?', "Binkp: password mismatch");
 	binkp_send_command(MM_ERR, "Bad password");
 	SM_ERROR;
     }
@@ -2523,15 +2523,33 @@ int binkp_process_messages(void)
 
     lname = calloc(512, sizeof(char));
     ropts = calloc(512, sizeof(char));
+    if ((lname == NULL) || (ropts == NULL)) {
+	WriteError("Binkp: out of memory processing message queue");
+	free(lname);
+	free(ropts);
+	return -1;
+    }
 
     for (tmpq = tql; tmpq; tmpq = tmpq->next) {
 	Syslog('+', "Binkp: %s \"%s\"", bstate[tmpq->cmd], printable(tmpq->data, 0));
 	if (tmpq->cmd == MM_GET) {
-	    snprintf(lname, 512, "%s", strtok(tmpq->data, " \n\r"));
-	    lsize = atoi(strtok(NULL, " \n\r"));
-	    ltime = atoi(strtok(NULL, " \n\r"));
-	    loffs = atoi(strtok(NULL, " \n\r"));
-	    snprintf(ropts, 512, "%s", printable(strtok(NULL, " \n\r\0"), 0));
+	    char *name_arg, *size_arg, *time_arg, *offs_arg, *opts_arg;
+
+	    name_arg = strtok(tmpq->data, " \n\r");
+	    size_arg = strtok(NULL, " \n\r");
+	    time_arg = strtok(NULL, " \n\r");
+	    offs_arg = strtok(NULL, " \n\r");
+	    opts_arg = strtok(NULL, " \n\r\0");
+	    if ((name_arg == NULL) || (size_arg == NULL) ||
+		(time_arg == NULL) || (offs_arg == NULL)) {
+		Syslog('!', "Binkp: malformed M_GET command ignored");
+		continue;
+	    }
+	    snprintf(lname, 512, "%s", name_arg);
+	    lsize = atoi(size_arg);
+	    ltime = atoi(time_arg);
+	    loffs = atoi(offs_arg);
+	    snprintf(ropts, 512, "%s", printable(opts_arg, 0));
 	    Syslog('b', "Binkp: m_file options \"%s\"", ropts);
 	    if (strcmp((char *)"NZ", ropts) == 0) {
 #ifdef	HAVE_ZLIB_H
@@ -2573,18 +2591,17 @@ int binkp_process_messages(void)
 			    }
 
 			    cursend->state = Got; // 12-03-2004 changed from IsSent, bug from LdG with FT.
-			    cursend = NULL;
 			    bp.TxState = TxGNF;
 
 			    for (tsl = tosend; tsl; tsl = tsl->next) { // Added 12-03
 				if (tsl->remote == NULL) {
 				    execute_disposition(tsl);
-				} else {
-				    if (strcmp(cursend->local, tsl->local) == 0) {
-					execute_disposition(tsl);
-				    }
+				} else if ((cursend->local != NULL) && (tsl->local != NULL) &&
+					   (strcmp(cursend->local, tsl->local) == 0)) {
+				    execute_disposition(tsl);
 				}
 			    }
+			    cursend = NULL;
 			} else {
 			    Syslog('+', "Binkp: requested offset = filesize, but is not the current file");
 			    if (tmp->state == IsSent) { // Added 12-03
@@ -2693,6 +2710,7 @@ int binkp_process_messages(void)
     }
     tql = NULL;
     free(lname);
+    free(ropts);
     bp.msgs_on_queue = 0;
 
     return 0;

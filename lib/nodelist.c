@@ -390,7 +390,8 @@ int initnl(void)
 
     filexnm = xstrcpy(CFG.nodelists);
     filexnm = xstrcat(filexnm,(char *)"/node.files");
-    nlpath = calloc(PATH_MAX, sizeof(char));
+    nlpath = xmalloc(PATH_MAX);
+    memset(nlpath, 0, PATH_MAX);
 
     /*
      * Check if all installed nodelists are present.
@@ -611,7 +612,8 @@ node *getnlent(faddr *addr)
     /*
      * Search domainname for the requested aka, should not fail.
      */
-    path = calloc(PATH_MAX, sizeof(char));
+    path = xmalloc(PATH_MAX);
+    memset(path, 0, PATH_MAX);
     snprintf(path, PATH_MAX -1, "%s/etc/fidonet.data", getenv("MBSE_ROOT"));
     if ((fp = fopen(path, "r"))) {
 	fread(&fidonethdr, sizeof(fidonethdr), 1, fp);
@@ -1200,6 +1202,9 @@ node_list *searchSysop( char *SysopName )
        node_list *result;
        node *nlEntry;
 
+       if (SysopName == NULL)
+               return NULL;
+
        Syslog('n', "searchSysop: Arg(%s) started", SysopName );
        
        result = NULL;
@@ -1214,7 +1219,7 @@ node_list *searchSysop( char *SysopName )
         */
        memset( fixedSysopName, 0, 36 );
        int i;
-       for ( i=0; i<strlen( SysopName ); i++ ){
+       for (i = 0; (i < (int)sizeof(fixedSysopName) - 1) && (SysopName[i] != '\0'); i++) {
                if ( SysopName[i] == ' ' ){
                        fixedSysopName[i] = '_';
                } else {
@@ -1244,24 +1249,27 @@ node_list *searchSysop( char *SysopName )
 
                        node_list *thisresult = result;
                        if (thisresult == NULL) {
-                               result = malloc( sizeof(node_list));
-                               result->next = NULL;
+                               result = (node_list *)xmalloc(sizeof(node_list));
+                               memset(result, 0, sizeof(node_list));
                                thisresult = result;
                        } else {
                                while ( thisresult->next != NULL ){
                                        thisresult = thisresult->next;
                                }
-                               thisresult->next = malloc( sizeof(node_list));
+                               thisresult->next = (node_list *)xmalloc(sizeof(node_list));
                                thisresult = thisresult->next;
-                               thisresult->next = NULL;
+                               memset(thisresult, 0, sizeof(node_list));
                        }
                        thisresult->addr.zone = nlEntry->addr.zone;
                        thisresult->addr.net = nlEntry->addr.net;
                        thisresult->addr.node = nlEntry->addr.node;
                        thisresult->addr.point = nlEntry->addr.point;
-                       strcpy( thisresult->Sysop, nlEntry->sysop );
-                       strcpy( thisresult->Location, nlEntry->location);
-                       strcpy( thisresult->Name, nlEntry->name );
+                       snprintf(thisresult->Sysop, sizeof(thisresult->Sysop), "%s",
+                                nlEntry->sysop != NULL ? nlEntry->sysop : "");
+                       snprintf(thisresult->Location, sizeof(thisresult->Location), "%s",
+                                nlEntry->location != NULL ? nlEntry->location : "");
+                       snprintf(thisresult->Name, sizeof(thisresult->Name), "%s",
+                                nlEntry->name != NULL ? nlEntry->name : "");
 
                }
                if ( nluEntry.user[0] > fixedSysopName[0] ) { // Since list is sorted, abort once we get names that start after this one

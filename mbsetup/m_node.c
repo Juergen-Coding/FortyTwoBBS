@@ -414,22 +414,22 @@ void E_UplMgr(void)
     for (;;) {
 	set_color(WHITE, BLACK);
         show_str(  7,35, 8, nodes.UplAmgrPgm);
-	show_str(  8,35,15, (char *)"***************");
+	show_secret(  8,35,15, nodes.UplAmgrPass);
 	show_bool( 9,35,    nodes.UplAmgrBbbs);
         show_str( 10,35, 8, nodes.UplFmgrPgm);
-	show_str( 11,35,15, (char *)"***************");
+	show_secret( 11,35,15, nodes.UplFmgrPass);
 	show_bool(12,35,    nodes.UplFmgrBbbs);
-	show_str( 13,35,15, (char *)"***************");
+	show_secret( 13,35,15, nodes.Apasswd);
 
 	switch(select_menu(7)) {
 	    case 0: return;
 	    case 1: E_STR(  7,35, 8, nodes.UplAmgrPgm,   "Name of the uplink ^areamanager program^"); break;
-	    case 2: E_STR(  8,35,15, nodes.UplAmgrPass,  "Uplink ^areamanager password^ for this node"); break;
+	    case 2: E_SECRET(  8,35,15, nodes.UplAmgrPass,  "Uplink ^areamanager password^ for this node"); break;
 	    case 3: E_BOOL( 9,35,    nodes.UplAmgrBbbs,  "Uplink ^areamanager^ is ^BBBS^ software"); break;
             case 4: E_STR( 10,35,8,  nodes.UplFmgrPgm,   "Name of the uplink ^filemanager^ program"); break;
-	    case 5: E_STR( 11,35,15, nodes.UplFmgrPass,  "Uplink ^filemanager password^ for this node"); break;
+	    case 5: E_SECRET( 11,35,15, nodes.UplFmgrPass,  "Uplink ^filemanager password^ for this node"); break;
 	    case 6: E_BOOL(12,35,    nodes.UplFmgrBbbs,  "Uplink ^filemanager^ is ^BBBS^ software"); break;
-	    case 7: E_STR( 13,35,15, nodes.Apasswd,      "The area and filemanager ^password^ for this node"); break;
+	    case 7: E_SECRET( 13,35,15, nodes.Apasswd,      "The area and filemanager ^password^ for this node"); break;
 	}
     }
 }
@@ -458,7 +458,7 @@ void E_Mail(void)
 	}
 
 	set_color(WHITE, BLACK);
-	show_str(  7,25,15, (char *)"***************");
+	show_secret(  7,25,15, nodes.Epasswd);
 	show_bool( 8,25,    nodes.MailPwdCheck);
 	show_bool( 9,25,    nodes.MailFwd);
 	show_bool(10,25,    nodes.ARCmailCompat);
@@ -467,7 +467,7 @@ void E_Mail(void)
 
 	switch(select_menu(6)) {
 	    case 0: return;
-	    case 1: E_STR(  7,25,15, nodes.Epasswd,       "The ^Mail (.pkt)^ password^ for this node"); break;
+	    case 1: E_SECRET(  7,25,15, nodes.Epasswd,       "The ^Mail (.pkt)^ password^ for this node"); break;
 	    case 2: E_BOOL( 8,25,    nodes.MailPwdCheck,  "Check the ^mail PKT^ password"); break;
 	    case 3: E_BOOL( 9,25,    nodes.MailFwd,       "^Forward^ echomail for this node"); break;
 	    case 4: E_BOOL(10,25,    nodes.ARCmailCompat, "Use ^ARCmail 0.60^ file naming convention for out of zone mail"); break;
@@ -501,7 +501,7 @@ void E_Files(void)
 
     for (;;) {
 	set_color(WHITE, BLACK);
-	show_str(  7,26,15, (char *)"***************");
+	show_secret(  7,26,15, nodes.Fpasswd);
 	show_bool( 8,26,    nodes.Message);
 	show_bool( 9,26,    nodes.Tic);
 	show_bool(10,26,    nodes.AdvTic);
@@ -512,7 +512,7 @@ void E_Files(void)
 
 	switch(select_menu(8)) {
 	    case 0: return;
-	    case 1: E_STR(  7,26,15,nodes.Fpasswd,    "The ^TIC^ files ^password^ for this node"); break;
+	    case 1: E_SECRET(  7,26,15,nodes.Fpasswd,    "The ^TIC^ files ^password^ for this node"); break;
 	    case 2: E_BOOL( 8,26,   nodes.Message,    "Send ^messages^ with files send to this node"); break;
 	    case 3: E_BOOL( 9,26,   nodes.Tic,        "Send ^TIC^ files to this node"); break;
 	    case 4: E_BOOL(10,26,   nodes.AdvTic,     "Send ^advanced^ TIC files to this node"); break;
@@ -843,7 +843,7 @@ void SessionEdit(void)
 
     for (;;) {
 	set_color(WHITE, BLACK);
-	show_str(  7,26,15, (char *)"***************");
+	show_secret(  7,26,15, nodes.Spasswd);
 	show_str(  8,26,40, nodes.dial);
 	show_str(  9,26,20, nodes.phone[0]);
 	show_str( 10,26,20, nodes.phone[1]);
@@ -869,7 +869,7 @@ void SessionEdit(void)
 
 	switch(select_menu(23)) {
 	case 0: return;
-	case 1: E_STR(  7,26,15, nodes.Spasswd,     "The ^Session password^ for this node"); break;
+	case 1: E_SECRET(  7,26,15, nodes.Spasswd,     "The ^Session password^ for this node"); break;
 	case 2: E_STR(  8,26,40, nodes.dial,        "If needed, give a special modem ^dial command^ for this node"); break;
 	case 3: E_STR(  9,26,20, nodes.phone[0],    "Enter ^phone number^ to override the nodelist"); break;
 	case 4: E_STR( 10,26,20, nodes.phone[1],    "Enter ^phone number^ to override the nodelist"); break;
@@ -1530,8 +1530,8 @@ int node_doc(FILE *fp, FILE *toc, int page)
 		fprintf(fp, "     Route via        %s\n", aka2str(nodes.RouteVia));
 		add_webtable(wp, (char *)"Route via", aka2str(nodes.RouteVia));
 	    }
-	    fprintf(fp, "     Session pwd      %s\n", nodes.Spasswd);
-	    add_webtable(wp, (char *)"Session password", nodes.Spasswd);
+	    fprintf(fp, "     Session pwd      %s\n", getboolean(strlen(nodes.Spasswd)));
+	    add_webtable(wp, (char *)"Session password", getboolean(strlen(nodes.Spasswd)));
 	    if (strlen(nodes.dial)) {
 		fprintf(fp, "     Dial command     %s\n", nodes.dial);
 		add_webtable(wp, (char *)"Dial command", nodes.dial);
@@ -1549,12 +1549,12 @@ int node_doc(FILE *fp, FILE *toc, int page)
 	        fprintf(fp, "     Hostname         %s\n", nodes.Nl_hostname);
 		add_webtable(wp, (char *)"Hostname", nodes.Nl_hostname);
 	    }
-	    fprintf(fp, "     PKT password     %s\n", nodes.Epasswd);
-	    add_webtable(wp, (char *)"PKT password", nodes.Epasswd);
-	    fprintf(fp, "     Files passwd     %s\n", nodes.Fpasswd);
-	    add_webtable(wp, (char *)"Files passwd", nodes.Fpasswd);
-	    fprintf(fp, "     Areamgr pwd      %s\n\n", nodes.Apasswd);
-	    add_webtable(wp, (char *)"Areamgr pwd", nodes.Apasswd);
+	    fprintf(fp, "     PKT password     %s\n", getboolean(strlen(nodes.Epasswd)));
+	    add_webtable(wp, (char *)"PKT password", getboolean(strlen(nodes.Epasswd)));
+	    fprintf(fp, "     Files passwd     %s\n", getboolean(strlen(nodes.Fpasswd)));
+	    add_webtable(wp, (char *)"Files passwd", getboolean(strlen(nodes.Fpasswd)));
+	    fprintf(fp, "     Areamgr pwd      %s\n\n", getboolean(strlen(nodes.Apasswd)));
+	    add_webtable(wp, (char *)"Areamgr pwd", getboolean(strlen(nodes.Apasswd)));
 	    fprintf(wp, "<TR><TD colspan='2'>&nbsp;</TD></TR>\n");
 
 	    fprintf(fp, "     Mail direct      %s", getboolean(nodes.Direct));
@@ -1674,14 +1674,14 @@ int node_doc(FILE *fp, FILE *toc, int page)
 	    fprintf(wp, "<COL width='30%%'><COL width='30%%'><COL width='40%%'>\n");
 	    fprintf(wp, "<TBODY>\n");
 	    fprintf(wp, "<TR><TH align='left'>Uplink mgrs</TH><TH align='left'>Program</TH><TH align='left'>Password</TH><TH>BBBS</TH></TR>\n");
-	    fprintf(wp, "<TR><TH align='left'>Files</TH><TD>%s</TD><TD>%s</TD><TD>%s</TD></TR>\n", nodes.UplFmgrPgm, nodes.UplFmgrPass, getboolean(nodes.UplFmgrBbbs));
-	    fprintf(wp, "<TR><TH align='left'>Mail</TH><TD>%s</TD><TD>%s</TD><TD>%s</TD></TR>\n", nodes.UplAmgrPgm, nodes.UplAmgrPass, getboolean(nodes.UplAmgrBbbs));
+	    fprintf(wp, "<TR><TH align='left'>Files</TH><TD>%s</TD><TD>%s</TD><TD>%s</TD></TR>\n", nodes.UplFmgrPgm, getboolean(strlen(nodes.UplFmgrPass)), getboolean(nodes.UplFmgrBbbs));
+	    fprintf(wp, "<TR><TH align='left'>Mail</TH><TD>%s</TD><TD>%s</TD><TD>%s</TD></TR>\n", nodes.UplAmgrPgm, getboolean(strlen(nodes.UplAmgrPass)), getboolean(nodes.UplAmgrBbbs));
 	    fprintf(wp, "</TBODY>\n");
 	    fprintf(wp, "</TABLE>\n");
 	    fprintf(fp, "     Uplink mgrs    Program  Password        BBBS\n");
 	    fprintf(fp, "     ------------   -------- --------------- ----\n");
-	    fprintf(fp, "     Files          %-8s %-15s %s\n", nodes.UplFmgrPgm, nodes.UplFmgrPass, getboolean(nodes.UplFmgrBbbs));
-	    fprintf(fp, "     Mail           %-8s %-15s %s\n\n", nodes.UplAmgrPgm, nodes.UplAmgrPass, getboolean(nodes.UplAmgrBbbs));
+	    fprintf(fp, "     Files          %-8s %-15s %s\n", nodes.UplFmgrPgm, getboolean(strlen(nodes.UplFmgrPass)), getboolean(nodes.UplFmgrBbbs));
+	    fprintf(fp, "     Mail           %-8s %-15s %s\n\n", nodes.UplAmgrPgm, getboolean(strlen(nodes.UplAmgrPass)), getboolean(nodes.UplAmgrBbbs));
 
 	    fprintf(wp, "<HR>\n");
 	    fprintf(wp, "<H3>Node Statistics</H3>\n");

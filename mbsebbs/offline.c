@@ -1190,6 +1190,12 @@ void OLR_DownBW()
 
     Work = calloc(PATH_MAX, sizeof(char));
     Temp = calloc(PATH_MAX, sizeof(char));
+    if ((Work == NULL) || (Temp == NULL)) {
+	WriteError("Offline packet: out of memory");
+	free(Work);
+	free(Temp);
+	return;
+    }
 
     Now = time(NULL);
     tp = localtime(&Now);
@@ -1980,6 +1986,12 @@ void OLR_DownQWK(void)
 
     Work = calloc(PATH_MAX, sizeof(char));
     Temp = calloc(PATH_MAX, sizeof(char));
+    if ((Work == NULL) || (Temp == NULL)) {
+	WriteError("Offline packet: out of memory");
+	free(Work);
+	free(Temp);
+	return;
+    }
 
     Now = time(NULL);
     tp = localtime(&Now);
@@ -1994,7 +2006,6 @@ void OLR_DownQWK(void)
     snprintf(Temp, PATH_MAX, "%s/etc/mareas.data", getenv("MBSE_ROOT"));
     if ((mf = fopen(Temp, "r")) == NULL) {
 	WriteError("$Can't open %s", Temp);
-	fclose(fp);
 	free(Temp);
 	free(Work);
 	return;
@@ -2004,7 +2015,6 @@ void OLR_DownQWK(void)
     snprintf(Temp, PATH_MAX, "%s/%s/.olrtags", CFG.bbs_usersdir, exitinfo.Name);
     if ((tf = fopen(Temp, "r")) == NULL) {
 	WriteError("$Can't open %s", Temp);
-	fclose(fp);
 	fclose(mf);
 	free(Temp);
 	free(Work);
@@ -2514,6 +2524,12 @@ unsigned int QWK_PackArea(unsigned int ulLast, int Area)
 
     Temp = calloc(PATH_MAX, sizeof(char));
     Work = calloc(PATH_MAX, sizeof(char));
+    if ((Work == NULL) || (Temp == NULL)) {
+	WriteError("Offline packet area: out of memory");
+	free(Work);
+	free(Temp);
+	return ulLast;
+    }
     snprintf(Work, PATH_MAX, "%s/%s/tmp", CFG.bbs_usersdir, exitinfo.Name);
 
     snprintf(Temp, PATH_MAX, "%s/%03d.NDX", Work, Area);
@@ -2677,7 +2693,7 @@ void OLR_DownASCII(void)
 {
     char            Pktname[32], *Work, *Temp, *cwd = NULL, Atag[60], Kinds[12], *p;
     int		    Area = 0, i, rc = 0;
-    FILE            *fp = NULL, *tf, *mf, *af, *inf;
+    FILE            *tf, *mf, *af, *inf;
     unsigned int    Start, High, mycrc;
     msg_high        *tmp, *mhl = NULL;
 
@@ -2698,6 +2714,12 @@ void OLR_DownASCII(void)
 
     Work = calloc(PATH_MAX, sizeof(char));
     Temp = calloc(PATH_MAX, sizeof(char));
+    if ((Work == NULL) || (Temp == NULL)) {
+	WriteError("Offline packet: out of memory");
+	free(Work);
+	free(Temp);
+	return;
+    }
 	
     Syslog('+', "Preparing ASCII packet");
 
@@ -2708,7 +2730,8 @@ void OLR_DownASCII(void)
     snprintf(Temp, PATH_MAX, "%s/etc/mareas.data", getenv("MBSE_ROOT"));
     if ((mf = fopen(Temp, "r")) == NULL) {
 	WriteError("$Can't open %s", Temp);
-	fclose(fp);
+	free(Temp);
+	free(Work);
 	return;
     }
     fread(&msgshdr, sizeof(msgshdr), 1, mf);
@@ -2716,8 +2739,9 @@ void OLR_DownASCII(void)
     snprintf(Temp, PATH_MAX, "%s/%s/.olrtags", CFG.bbs_usersdir, exitinfo.Name);
     if ((tf = fopen(Temp, "r")) == NULL) {
 	WriteError("$Can't open %s", Temp);
-	fclose(fp);
 	fclose(mf);
+	free(Temp);
+	free(Work);
 	return;
     }
 
@@ -2727,8 +2751,9 @@ void OLR_DownASCII(void)
     if ((inf = fopen(Temp, "a+")) == NULL) {
 	WriteError("$Can't create %s", Temp);
 	fclose(tf);
-	fclose(fp);
 	fclose(mf);
+	free(Temp);
+	free(Work);
 	return;
     }
 
@@ -2904,6 +2929,12 @@ unsigned int ASCII_PackArea(unsigned int ulLast, int Area, char *Atag)
 
     Temp = calloc(PATH_MAX, sizeof(char));
     Work = calloc(PATH_MAX, sizeof(char));
+    if ((Work == NULL) || (Temp == NULL)) {
+	WriteError("Offline packet area: out of memory");
+	free(Work);
+	free(Temp);
+	return ulLast;
+    }
     snprintf(Work, PATH_MAX, "%s/%s/tmp", CFG.bbs_usersdir, exitinfo.Name);
 
     snprintf(Temp, PATH_MAX, "%s/%s.text", Work, Atag);

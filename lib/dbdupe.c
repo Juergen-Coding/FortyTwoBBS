@@ -90,6 +90,11 @@ int CheckDupe(unsigned int crc, int idx, int max)
 	    }
 	    fclose(fil);
 	    fil = fopen(dfile, "r+");
+	    if (fil == NULL) {
+		WriteError("$PANIC: dbdupe.c, can't reopen %s", dfile);
+		free(dfile);
+		exit(MBERR_INIT_ERROR);
+	    }
 	} else {
 	    fseek(fil, 0L, SEEK_END);
 	    size = ftell(fil) / sizeof(unsigned int);
@@ -103,8 +108,13 @@ int CheckDupe(unsigned int crc, int idx, int max)
 	    dupes[idx].peak = size + 5000;
 	else
 	    dupes[idx].peak = max + 5000;
-	dupes[idx].crcs = (unsigned int *)malloc(dupes[idx].peak * sizeof(unsigned int));
-	memset(dupes[idx].crcs, 0, dupes[idx].peak * sizeof(unsigned int));
+	dupes[idx].crcs = (unsigned int *)calloc(dupes[idx].peak, sizeof(unsigned int));
+	if (dupes[idx].crcs == NULL) {
+	    WriteError("PANIC: dbdupe.c, out of memory");
+	    fclose(fil);
+	    free(dfile);
+	    exit(MBERR_INIT_ERROR);
+	}
 
 	/*
 	 *  Load dupe records

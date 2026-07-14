@@ -20,7 +20,7 @@ MBLOGIN_OBJS	= getdef.o env.o chowntty.o shell.o basename.o pwdcheck.o pwauth.o 
 		  mblogin.o
 MBLOGIN_LIBS = ../lib/libdbase.a
 OTHER		= Makefile login.defs.in
-TARGET		= mbuseradd mbpasswd mblogin
+TARGET		= mblogin
 
 #############################################################################################################
 
@@ -30,7 +30,7 @@ TARGET		= mbuseradd mbpasswd mblogin
 all:		${TARGET}
 
 clean: 
-		rm -f ${TARGET} *.o *.h~ *.c~ core filelist Makefile.bak
+		rm -f ${TARGET} mbuseradd mbpasswd *.o *.h~ *.c~ core filelist Makefile.bak
 		rm -f login.defs
 
 mbuseradd:	${MBUSERADD_OBJS}
@@ -46,8 +46,6 @@ install:	all
 		@if [ "`id -un`" != "root" ] ; then \
 			echo; echo " Must be root to install!"; echo; exit 3; \
 		fi
-		${INSTALL} -c -s -o ${ROWNER} -g ${RGROUP} -m 6511 mbuseradd  ${DESTDIR}${BINDIR}
-		${INSTALL} -c -s -o ${ROWNER} -g ${RGROUP} -m 6511 mbpasswd   ${DESTDIR}${BINDIR}
 		${INSTALL} -c -s -o ${ROWNER} -g ${RGROUP} -m 0555 mblogin    ${DESTDIR}${BINDIR}
 		@if [ ! -f ${DESTDIR}${ETCDIR}/login.defs ] ; then \
 			${INSTALL} -c    -o ${OWNER} -g ${GROUP}  -m 0644 login.defs ${DESTDIR}${ETCDIR} ; \

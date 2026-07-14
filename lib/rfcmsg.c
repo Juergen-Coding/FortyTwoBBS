@@ -50,7 +50,10 @@ rfcmsg *parsrfc(FILE *fp)
     char    buffer[BUFSIZ], *p;
 
     while (bgets(buffer, BUFSIZ-1, fp) && strcmp(buffer,"\n")) {
-	newcont = (buffer[strlen(buffer)-1] != '\n');
+	size_t len = strlen(buffer);
+	if (len == 0)
+	    continue;
+	newcont = (buffer[len-1] != '\n');
 	if (linecont) {
 	    cur->val=xstrcat(cur->val,buffer);
 	} else {
@@ -59,7 +62,7 @@ rfcmsg *parsrfc(FILE *fp)
 		    break;
 		}
 		if (!cur) {
-		    cur = (rfcmsg *)malloc(sizeof(rfcmsg));
+		    cur = (rfcmsg *)xmalloc(sizeof(rfcmsg));
 		    start = cur;
 		    cur->next = NULL;
 		    cur->key = xstrcpy((char *)"X-Body-Start");
@@ -70,11 +73,11 @@ rfcmsg *parsrfc(FILE *fp)
 	    } else {
 		if (cur) {
 		    firstline=FALSE;
-		    (cur->next) = (rfcmsg *)malloc(sizeof(rfcmsg));
+		    (cur->next) = (rfcmsg *)xmalloc(sizeof(rfcmsg));
 		    cur = cur->next;
 		} else {
 		    firstline = TRUE;
-		    cur = (rfcmsg *)malloc(sizeof(rfcmsg));
+		    cur = (rfcmsg *)xmalloc(sizeof(rfcmsg));
 		    start = cur;
 		}
 		cur->next = NULL;

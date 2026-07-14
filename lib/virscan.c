@@ -196,91 +196,143 @@ int clam_stream_check(char *servname, char *servport, char *filename)
  */
 int fp_stream_check(char *server, char *port, char *filename)
 {
-    struct addrinfo	hints, *res;
-    int			filesize = 0, buf_len = 0, s, err;
-    char		*cmd, buf[1024], *str1, *str2;
-    FILE		*fp;
+    struct addrinfo hints, *res = NULL, *cur;
+    int             filesize, buf_len, s = -1, err;
+    char            cmd[PATH_MAX], buf[1024], *endptr, *detail;
+    FILE            *fp;
+    size_t          offset, remaining;
+    ssize_t         written;
+    long            result_code;
+
+    if ((server == NULL) || (port == NULL) || (filename == NULL)) {
+        WriteError("fp_stream_check: invalid argument");
+        return 2;
+    }
 
     Syslog('f', "fp_stream_check(%s, %s, %s)", server, port, filename);
     filesize = file_size(filename);
+    if (filesize < 0) {
+        WriteError("$can't stat %s", filename);
+        return 2;
+    }
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = PF_INET;
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((err = getaddrinfo(server, port, &hints, &res)) != 0) {
-	WriteError("getaddrinfo(%s:%s): %s\n", server, port, gai_strerror(err));
-	return 2;
+    err = getaddrinfo(server, port, &hints, &res);
+    if (err != 0) {
+        WriteError("getaddrinfo(%s:%s): %s", server, port, gai_strerror(err));
+        return 2;
     }
 
-    while (res) {
-	s = socket(PF_INET, SOCK_STREAM, 0);
-	if (s == -1) {
-	    WriteError("$socket()");
-	    return 2;
-	}
-
-	if (connect(s, res->ai_addr, sizeof(struct sockaddr)) == -1) {
-	    struct sockaddr_in *sa = (struct sockaddr_in *)res->ai_addr;
-	    WriteError("$connect(%s:%d)", inet_ntoa(sa->sin_addr), (int)ntohs(sa->sin_port));
-	    res = res->ai_next;
-	    close(s);
-	} else {
-	    break;
-	}
+    for (cur = res; cur != NULL; cur = cur->ai_next) {
+        s = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
+        if (s == -1)
+            continue;
+        if (connect(s, cur->ai_addr, cur->ai_addrlen) == 0)
+            break;
+        close(s);
+        s = -1;
+    }
+    freeaddrinfo(res);
+    if (s == -1) {
+        WriteError("unable to connect to %s:%s", server, port);
+        return 2;
     }
 
-    if (res == NULL) {
-	WriteError("unable to connect to %s", server);
-	return 2;
+    if (snprintf(cmd, sizeof(cmd), "SCAN STREAM %s SIZE %d\n",
+                 filename, filesize) >= (int)sizeof(cmd)) {
+        WriteError("fp_stream_check: command is too long");
+        close(s);
+        return 2;
     }
-
-    cmd = calloc(PATH_MAX, sizeof(char));
-    snprintf(cmd, PATH_MAX-1, "SCAN STREAM %s SIZE %d\n", filename, filesize);
     Syslog('f', "snd: %s", printable(cmd, 0));
-    if (write(s, cmd, strlen(cmd)) == -1) {
-	WriteError("$write()");
-	return 2;
+    remaining = strlen(cmd);
+    offset = 0;
+    while (remaining > 0) {
+        written = write(s, cmd + offset, remaining);
+        if (written < 0) {
+            if (errno == EINTR)
+                continue;
+            WriteError("$write()");
+            close(s);
+            return 2;
+        }
+        if (written == 0) {
+            WriteError("fp_stream_check: short command write");
+            close(s);
+            return 2;
+        }
+        offset += (size_t)written;
+        remaining -= (size_t)written;
     }
-    free(cmd);
 
-    /*
-     * Stream the data
-     */
-    if ((fp = fopen(filename, "r")) == NULL) {
-	WriteError("$can't open %s", filename);
-	return 2;
+    fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        WriteError("$can't open %s", filename);
+        close(s);
+        return 2;
     }
 
-    while ((buf_len = fread(buf, 1, sizeof(buf), fp)) > 0) {
-	if (write(s, buf, buf_len) == -1) {
-	    if (errno == EPIPE)
-		break;
-	    WriteError("$write2()");
-	    fclose(fp);
-	    return 2;
-	}
+    while ((buf_len = (int)fread(buf, 1, sizeof(buf), fp)) > 0) {
+        offset = 0;
+        remaining = (size_t)buf_len;
+        while (remaining > 0) {
+            written = write(s, buf + offset, remaining);
+            if (written < 0) {
+                if (errno == EINTR)
+                    continue;
+                WriteError("$write2()");
+                fclose(fp);
+                close(s);
+                return 2;
+            }
+            if (written == 0) {
+                WriteError("fp_stream_check: short data write");
+                fclose(fp);
+                close(s);
+                return 2;
+            }
+            offset += (size_t)written;
+            remaining -= (size_t)written;
+        }
+    }
+    if (ferror(fp)) {
+        WriteError("$read %s", filename);
+        fclose(fp);
+        close(s);
+        return 2;
     }
     fclose(fp);
 
-    if ((buf_len = read(s, buf, sizeof(buf)-1)) == -1) {
-	WriteError("$read()");
-	return 2;
+    do {
+        buf_len = (int)read(s, buf, sizeof(buf) - 1);
+    } while ((buf_len < 0) && (errno == EINTR));
+    if (buf_len <= 0) {
+        WriteError(buf_len == 0 ? "fp_stream_check: empty response" : "$read()");
+        close(s);
+        return 2;
     }
     buf[buf_len] = '\0';
+    close(s);
     Syslog('f', "got: %s", printable(buf, 0));
-    cmd = xstrcpy(buf);
-    str1 = strtok(cmd, "<");
-    str1[strlen(str1)-1] = '\0';
-    str2 = strtok(NULL, ">");
-    err = atoi(str1);
-    if (err) {
-	// Message looks like: 'contains infected objects: EICAR_Test_File'
-	WriteError("F-Prot stream check %s, rc=%d", str2, err);
-	return 1;
+
+    errno = 0;
+    result_code = strtol(buf, &endptr, 10);
+    if ((errno != 0) || (endptr == buf) || (result_code < 0) ||
+        (result_code > INT_MAX)) {
+        WriteError("fp_stream_check: malformed scanner response");
+        return 2;
+    }
+    detail = strchr(endptr, '<');
+    if (detail == NULL)
+        detail = endptr;
+    if (result_code != 0) {
+        WriteError("F-Prot stream check %s, rc=%ld", printable(detail, 0), result_code);
+        return 1;
     }
 
-    close(s);
     Syslog('f', "fp_stream_check(): no virus found");
     return 0;
 }

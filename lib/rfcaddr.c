@@ -80,6 +80,7 @@ parsedaddr parserfcaddr(char *s)
 {
 	parsedaddr	result;
 	char		*inbrackets = NULL, *outbrackets = NULL, *cleanbuf = NULL, *combuf = NULL;
+	size_t		buflen;
 	char		*t, *r, *c, *p, *q, **x;
 	int		quotes, brackets, escaped, anglecomplete;
 	char		*firstat, *lastat, *percent, *colon, *comma, *exclam;
@@ -95,8 +96,11 @@ parsedaddr parserfcaddr(char *s)
 	/*
 	 *  First check if there is an "angled" portion 
 	 */
-	inbrackets  = calloc(strlen(s)+1, sizeof(char));
-	outbrackets = calloc(strlen(s)+1, sizeof(char));
+	buflen = strlen(s) + 1;
+	inbrackets = xmalloc(buflen);
+	outbrackets = xmalloc(buflen);
+	memset(inbrackets, 0, buflen);
+	memset(outbrackets, 0, buflen);
 	brackets = quotes = escaped = anglecomplete = 0;
 	for (p = s,q = inbrackets, r = outbrackets, x = &r; *p; p++) {
 		if (escaped) 
@@ -136,8 +140,10 @@ parsedaddr parserfcaddr(char *s)
 	if (addrerror) 
 		goto leave1;
 
-	cleanbuf = calloc(strlen(s)+1, sizeof(char));
-	combuf = calloc(strlen(s)+1, sizeof(char));
+	cleanbuf = xmalloc(buflen);
+	combuf = xmalloc(buflen);
+	memset(cleanbuf, 0, buflen);
+	memset(combuf, 0, buflen);
 	if (*inbrackets) { /* there actually is an angled portion */
 		strcpy(combuf, outbrackets);
 		c = combuf + strlen(combuf);

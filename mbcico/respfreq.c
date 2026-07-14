@@ -220,7 +220,9 @@ file_list *respfreq(char *nm, char *pw, char *dt)
 	} else free(tnm);
     }
 
-    Syslog('+', "File request : %s (update (%s), password \"%s\")",MBSE_SS(nm),MBSE_SS(dt),MBSE_SS(pw));
+    Syslog('+', "File request: %s (update (%s), password supplied: %s)",
+	   MBSE_SS(nm), MBSE_SS(dt),
+	   (pw != NULL && *pw != '\0') ? "yes" : "no");
     add_report((char *)"RQ: Regular file \"%s\"",nm);
     strcpy(mask, re_mask(nm, TRUE));
     re_comp(mask);
@@ -377,8 +379,9 @@ file_list *resplist(char *listfn, char *pw, char *dt)
 	char		buf[256], *p;
 	file_list	*fl = NULL, **pfl;
 
-	Syslog('+', "Magic request: %s (update (%s), password \"%s\")", 
-		strrchr(xstrcpy(listfn), '/')+1, MBSE_SS(dt), MBSE_SS(pw));
+	Syslog('+', "Magic request: %s (update (%s), password supplied: %s)",
+		strrchr(listfn, '/') != NULL ? strrchr(listfn, '/') + 1 : listfn,
+		MBSE_SS(dt), (pw != NULL && *pw != '\0') ? "yes" : "no");
 
 	if (++recurse > MAXRECURSE) {
 		WriteError("Excessive recursion in file lists for \"%s\"", MBSE_SS(listfn));

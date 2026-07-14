@@ -51,26 +51,68 @@ extern int			logtrans;	/* Log transactions	*/
  *  Logging procedures.
  */
 
+static int valid_log_token(const char *token)
+{
+    const unsigned char *p;
+
+    if ((token == NULL) || (*token == '\0') ||
+	!isalnum((unsigned char)token[0]) || (strstr(token, "..") != NULL))
+	return FALSE;
+    for (p = (const unsigned char *)token; *p != '\0'; p++) {
+	if (!isalnum(*p) && (*p != '.') && (*p != '_') && (*p != '-'))
+	    return FALSE;
+    }
+    return TRUE;
+}
+
+
 int userlog(char *);
 int userlog(char *param)
 {
-    char	*prname, *prpid, *grade, *msg;
-    static char	lfn[PATH_MAX], token[15];
-    int		rc;
+    char        *ignored, *file_token, *prname, *prpid, *grade, *encoded;
+    char        lfn[PATH_MAX], token[15], *msg;
+    const char  *root;
+    int         rc;
 
-    lfn[0] = '\0';
-    strncpy(token, strtok(param, ","), sizeof(token) - 1);
-    strncpy(token, strtok(NULL, ","), sizeof(token) - 1);
-    snprintf(lfn, PATH_MAX, "%s/log/%s", getenv("MBSE_ROOT"), token);
-    prname = strtok(NULL, ",");
-    prpid  = strtok(NULL, ",");
-    grade  = strtok(NULL, ",");
-    msg    = xstrcpy(cldecode(strtok(NULL, ";")));
+    if (param == NULL) {
+	oserr = EINVAL;
+	return -1;
+    }
+
+    ignored    = strtok(param, ",");
+    file_token = strtok(NULL, ",");
+    prname     = strtok(NULL, ",");
+    prpid      = strtok(NULL, ",");
+    grade      = strtok(NULL, ",");
+    encoded    = strtok(NULL, ";");
+    if ((ignored == NULL) || (file_token == NULL) || (prname == NULL) ||
+	(prpid == NULL) || (grade == NULL) || (encoded == NULL) ||
+	(strlen(file_token) >= sizeof(token)) || !valid_log_token(file_token)) {
+	oserr = EINVAL;
+	Syslog('!', "Rejected malformed user-log request");
+	return -1;
+    }
+
+    root = getenv("MBSE_ROOT");
+    if ((root == NULL) || (*root == '\0')) {
+	oserr = EINVAL;
+	return -1;
+    }
+    snprintf(token, sizeof(token), "%s", file_token);
+    if (snprintf(lfn, sizeof(lfn), "%s/log/%s", root, token) >= (int)sizeof(lfn)) {
+	oserr = ENAMETOOLONG;
+	return -1;
+    }
+
+    msg = xstrcpy(cldecode(encoded));
+    if (msg == NULL) {
+	oserr = ENOMEM;
+	return -1;
+    }
     rc = ulog(lfn, grade, prname, prpid, msg);
     free(msg);
     return rc;
 }
-
 
 
 /*

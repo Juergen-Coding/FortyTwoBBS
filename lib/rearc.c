@@ -85,10 +85,20 @@ int rearc(char *filename, char *arctype, int do_quiet)
     uncmd = xstrcpy(archiver.funarc);
 
     newname = calloc(PATH_MAX, sizeof(char));
-    strcpy(newname, filename);
+    if (newname == NULL) {
+	WriteError("rearc: out of memory");
+	free(uncmd);
+	return -1;
+    }
+    snprintf(newname, PATH_MAX, "%s", filename);
     p = strrchr(newname, '.');
-    p++;
-    *p = '\0';
+    if (p == NULL) {
+	WriteError("rearc: archive filename has no extension: %s", filename);
+	free(uncmd);
+	free(newname);
+	return -1;
+    }
+    p[1] = '\0';
 
     if (!getarchiver(arctype)) {
 	if (!do_quiet) {

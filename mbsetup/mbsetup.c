@@ -31,6 +31,7 @@
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
 #include "../lib/mbsedb.h"
+#include "../unix/fortytwo.h"
 #include "screen.h"
 #include "mutil.h"
 #include "ledit.h"
@@ -400,9 +401,11 @@ int main(int argc, char *argv[])
      * Find out who is on the keyboard or automated the keyboard.
      */
     pw = getpwuid(geteuid());
-    if (strcmp(pw->pw_name, (char *)"mbse")) {
-	printf("ERROR: only user \"mbse\" may use this program!\n");
-        exit(MBERR_INIT_ERROR);
+    if ((pw == NULL) ||
+	(strcmp(pw->pw_name, FORTYTWO_SERVICE_USER) != 0)) {
+	fprintf(stderr, "ERROR: only user \"%s\" may use this program!\n",
+		FORTYTWO_SERVICE_USER);
+	exit(MBERR_INIT_ERROR);
     }
 
     /*

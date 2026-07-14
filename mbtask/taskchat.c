@@ -195,6 +195,10 @@ int join(pid_t pid, char *channel, int sysop)
     char	buf[81];
     int		i, j;
 
+    if ((channel == NULL) || (*channel == '\0') || (strlen(channel) > 20)) {
+	Syslog('!', "IBC: rejected invalid chat channel");
+	return FALSE;
+    }
     Syslog('c', "Join pid %d to channel %s", pid, channel);
 
     for (i = 0; i < MAXIBC_CHN; i++) {
@@ -202,7 +206,7 @@ int join(pid_t pid, char *channel, int sysop)
 	    for (j = 0; j < MAXIBC_USR; j++) {
 		if (usr_list[j].pid == pid) {
 
-		    strncpy(usr_list[j].channel, channel, 20);
+		    snprintf(usr_list[j].channel, sizeof(usr_list[j].channel), "%s", channel);
 		    chn_list[i].users++;
 		    Syslog('+', "IBC: user %s has joined channel %s", usr_list[j].nick, channel);
 		    usrchg = TRUE;
@@ -240,7 +244,7 @@ int join(pid_t pid, char *channel, int sysop)
 	if (usr_list[j].pid == pid) {
 	    if (add_channel(channel, usr_list[j].nick, CFG.myfqdn) == 0) {
 
-		strncpy(usr_list[j].channel, channel, 20);
+		snprintf(usr_list[j].channel, sizeof(usr_list[j].channel), "%s", channel);
 		Syslog('+', "IBC: user %s created and joined channel %s", usr_list[j].nick, channel);
 		usrchg = TRUE;
 		chnchg = TRUE;

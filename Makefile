@@ -5,7 +5,9 @@ include Makefile.global
 
 OTHER		= AUTHORS ChangeLog COPYING DEBUG CRON.sh FILE_ID.DIZ.in \
 		  INSTALL.in Makefile Makefile.global.in NEWS cpuflags \
-                  README SETUP.sh TODO UPGRADE aclocal.m4 checkbasic \
+                  README README.md LIESMICH.md SETUP.sh TODO \
+                  SECURITY_ARCHITECTURE.md SICHERHEITS_ARCHITEKTUR.md \
+                  aclocal.m4 checkbasic \
 	          config.h.in configure configure.ac paths.h.in README.Gentoo \
 	      README.Ubuntu docs/mbse-1.odt docs/mbse-1.pdf \
 	      docs/changelogs/ChangeLog_1998 docs/changelogs/ChangeLog_1999 \

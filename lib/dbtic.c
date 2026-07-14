@@ -43,10 +43,31 @@ unsigned int	tgrp_crc = -1;		/* CRC value of group record	   */
 static int	sysstart, sysrecord;
 
 
+static int valid_tic_header(void)
+{
+    long record_size;
+
+    if ((tichdr.hdrsize < (int)sizeof(tichdr)) ||
+        (tichdr.recsize <= 0) ||
+        (tichdr.recsize > (int)sizeof(tic)) ||
+        (tichdr.syssize < 0))
+        return FALSE;
+    record_size = (long)tichdr.recsize + tichdr.syssize;
+    return (record_size > 0) && (record_size <= INT_MAX);
+}
+
+static int valid_fgroup_header(void)
+{
+    return (fgrouphdr.hdrsize >= (int)sizeof(fgrouphdr)) &&
+           (fgrouphdr.recsize > 0) &&
+           (fgrouphdr.recsize <= (int)sizeof(fgroup));
+}
+
 
 int InitTic(void)
 {
 	FILE	*fil;
+	long	end, record_size;
 
 	memset(&tic, 0, sizeof(tic));
 	memset(&fgroup, 0, sizeof(fgroup));
@@ -57,9 +78,14 @@ int InitTic(void)
 	if ((fil = fopen(tic_fil, "r")) == NULL)
 		return FALSE;
 
-	fread(&tichdr, sizeof(tichdr), 1, fil);
-	fseek(fil, 0, SEEK_END);
-	tic_cnt = (ftell(fil) - tichdr.hdrsize) / (tichdr.recsize + tichdr.syssize);
+	if ((fread(&tichdr, sizeof(tichdr), 1, fil) != 1) ||
+	    !valid_tic_header() || (fseek(fil, 0, SEEK_END) != 0) ||
+	    ((end = ftell(fil)) < tichdr.hdrsize)) {
+		fclose(fil);
+		return FALSE;
+	}
+	record_size = (long)tichdr.recsize + tichdr.syssize;
+	tic_cnt = (end - tichdr.hdrsize) / record_size;
 	fclose(fil);
 
 	snprintf(tgrp_fil, PATH_MAX -1, "%s/etc/fgroups.data", getenv("MBSE_ROOT"));
@@ -76,9 +102,14 @@ int SearchTic(char *Area)
 		return FALSE;
 	}
 
-	fread(&tichdr, sizeof(tichdr), 1, fil);
+	if ((fread(&tichdr, sizeof(tichdr), 1, fil) != 1) ||
+	    !valid_tic_header() ||
+	    (fseek(fil, tichdr.hdrsize, SEEK_SET) != 0)) {
+		fclose(fil);
+		return FALSE;
+	}
 
-	while (fread(&tic, tichdr.recsize, 1, fil) == 1) {
+	while (fread(&tic, (size_t)tichdr.recsize, 1, fil) == 1) {
 		/*
 		 * Mark the start of the connected systems records
 		 * for later use and skip the system records.
@@ -96,8 +127,13 @@ int SearchTic(char *Area)
 
 			if (strlen(tic.Group)) {
 				if ((fil = fopen(tgrp_fil, "r")) != NULL) {
-					fread(&fgrouphdr, sizeof(fgrouphdr), 1, fil);
-					while ((fread(&fgroup, fgrouphdr.recsize, 1, fil)) == 1) {
+					if ((fread(&fgrouphdr, sizeof(fgrouphdr), 1, fil) != 1) ||
+					    !valid_fgroup_header() ||
+					    (fseek(fil, fgrouphdr.hdrsize, SEEK_SET) != 0)) {
+						fclose(fil);
+						return FALSE;
+					}
+					while ((fread(&fgroup, (size_t)fgrouphdr.recsize, 1, fil)) == 1) {
 						if (!strcmp(tic.Group, fgroup.Name)) {
 							tgrp_pos = ftell(fil) - fgrouphdr.recsize;
 							tgrp_crc = 0xffffffff;

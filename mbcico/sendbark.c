@@ -92,7 +92,8 @@ int sendbark(void)
 		if (*nm == ';') 
 			continue;
 
-		Syslog('+', "Sending bark request for \"%s\", password \"%s\", update \"%s\"",MBSE_SS(nm),MBSE_SS(pw),MBSE_SS(dt));
+		Syslog('+', "Sending bark request for \"%s\", password supplied: %s, update \"%s\"",
+		       MBSE_SS(nm), (pw != NULL && *pw != '\0') ? "yes" : "no", MBSE_SS(dt));
 		if ((rc = send_bark())) 
 			break;
 	}

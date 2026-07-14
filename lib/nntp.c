@@ -39,7 +39,7 @@ int nntp_connect(void)
 {
     char                *q, *ipver = NULL, ipstr[INET6_ADDRSTRLEN], servport[10];
     struct addrinfo     hints, *res = NULL, *p;
-    int                 rc;
+    int                 rc, connected = FALSE;
 
     if (nntpsock != -1)
 	return nntpsock;
@@ -77,22 +77,25 @@ int nntp_connect(void)
 
         if ((nntpsock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             WriteError("$socket()");
-            return -1;
-        } else {
-            if (connect(nntpsock, p->ai_addr, p->ai_addrlen) == -1) {
-                WriteError("$connect %s port %s", ipstr, servport);
-                close(nntpsock);
-            } else {
-                break;
-            }
+            continue;
         }
+        if (connect(nntpsock, p->ai_addr, p->ai_addrlen) == -1) {
+            WriteError("$connect %s port %s", ipstr, servport);
+            close(nntpsock);
+            nntpsock = -1;
+            continue;
+        }
+        connected = TRUE;
+        break;
     }
-    if (p == NULL) {
+    freeaddrinfo(res);
+    if (!connected) {
+        nntpsock = -1;
         return -1;      /* Not connected */
     }
 
     q = nntp_receive();
-    if (strlen(q) == 0) {
+    if ((q == NULL) || (strlen(q) == 0)) {
 	WriteError("NNTP: no response");
 	nntp_close();
 	return -1;
@@ -119,6 +122,11 @@ int nntp_connect(void)
 	Syslog('+', "NNTP: setting mode reader");
 	nntp_send((char *)"MODE READER\r\n");
 	q = nntp_receive();
+	if (q == NULL) {
+	    WriteError("NNTP: no response to MODE READER");
+	    nntp_close();
+	    return -1;
+	}
 	Syslog('+', "NNTP: %s", q);
 	if (strncmp(q, "480", 3) == 0) {
 	    /*
@@ -143,13 +151,26 @@ int nntp_connect(void)
 
 int nntp_send(char *buf)
 {
-    if (nntpsock == -1)
+    size_t  sent = 0, length;
+    ssize_t rc;
+
+    if ((nntpsock == -1) || (buf == NULL))
 	return -1;
 
-    if (send(nntpsock, buf, strlen(buf), 0) != strlen(buf)) {
+    length = strlen(buf);
+    while (sent < length) {
+	rc = send(nntpsock, buf + sent, length - sent, 0);
+	if (rc > 0) {
+	    sent += (size_t)rc;
+	    continue;
+	}
+	if ((rc == -1) && (errno == EINTR))
+	    continue;
+
 	WriteError("$NNTP: socket send failed");
-	if (errno == ENOTCONN || errno == EPIPE) {
+	if ((rc == 0) || (errno == ENOTCONN) || (errno == EPIPE)) {
 	    WriteError("NNTP: closing local side");
+	    close(nntpsock);
 	    nntpsock = -1;
 	}
 	return -1;
@@ -158,65 +179,77 @@ int nntp_send(char *buf)
 }
 
 
-
 /*
  *  Return empty buffer if something went wrong, else the complete
  *  dataline is returned
  */
 char *nntp_receive(void)
 {
-    static char	buf[SS_BUFSIZE];
-    int		i = 0, j;
+    static char buf[SS_BUFSIZE];
+    size_t      i = 0;
+    ssize_t     rc;
 
     if (nntpsock == -1)
 	return NULL;
 
-    memset((char *)&buf, 0, SS_BUFSIZE);
-    while (TRUE) {
-	j = recv(nntpsock, &buf[i], 1, 0);
-	if (j == -1) {
-	    WriteError("$NNTP: error reading socket");
-	    memset((char *)&buf, 0, SS_BUFSIZE);
-	    if (errno == ENOTCONN || errno == EPIPE) {
-		WriteError("NNTP: closing local side");
-		nntpsock = -1;
-	    }
-	    return buf;
+    memset(buf, 0, sizeof(buf));
+    while (i < (sizeof(buf) - 1)) {
+	rc = recv(nntpsock, &buf[i], 1, 0);
+	if (rc == 1) {
+	    if (buf[i++] == '\n')
+		break;
+	    continue;
 	}
-	if (buf[i] == '\n')
-	    break;
-	i += j;
+	if ((rc == -1) && (errno == EINTR))
+	    continue;
+
+	if (rc == 0)
+	    WriteError("NNTP: remote closed the connection");
+	else
+	    WriteError("$NNTP: error reading socket");
+	close(nntpsock);
+	nntpsock = -1;
+	return NULL;
     }
 
-    for (i = 0; i < strlen(buf); i++) {
-	if (buf[i] == '\n')
-	    buf[i] = '\0';
-	if (buf[i] == '\r')
-	    buf[i] = '\0';
+    if ((i == (sizeof(buf) - 1)) && (buf[i - 1] != '\n')) {
+	WriteError("NNTP: response line exceeds receive buffer");
+	close(nntpsock);
+	nntpsock = -1;
+	return NULL;
     }
+
+    while ((i > 0) && ((buf[i - 1] == '\n') || (buf[i - 1] == '\r')))
+	buf[--i] = '\0';
 
     return buf;
 }
 
 
-
 int nntp_close(void)
 {
+	int sock, rc = 0;
+
 	if (nntpsock == -1)
 		return 0;
 
-	nntp_cmd((char *)"QUIT\r\n", 205);
-
-	if (shutdown(nntpsock, 1) == -1) {
-		WriteError("$NNTP: can't close socket");
+	(void)nntp_cmd((char *)"QUIT\r\n", 205);
+	if (nntpsock == -1)
 		return -1;
-	}
 
+	sock = nntpsock;
 	nntpsock = -1;
+	if ((shutdown(sock, SHUT_RDWR) == -1) && (errno != ENOTCONN)) {
+		WriteError("$NNTP: can't shut down socket");
+		rc = -1;
+	}
+	if (close(sock) == -1) {
+		WriteError("$NNTP: can't close socket");
+		rc = -1;
+	}
 	Syslog('+', "NNTP: closed");
-	return 0;
+	return rc;
 }
-
 
 
 /*
@@ -232,6 +265,8 @@ int nntp_cmd(char *cmd, int resp)
 
 	snprintf(rsp, 6, "%d", resp);
 	p = nntp_receive();
+	if (p == NULL)
+		return -1;
 
         if (strncmp(p, "480", 3) == 0) {
                 /*
@@ -249,6 +284,8 @@ int nntp_cmd(char *cmd, int resp)
 		if (nntp_send(cmd) == -1)
 			return -1;
 		p = nntp_receive();
+		if (p == NULL)
+			return -1;
 	}
 
 	if (strncmp(p, rsp, strlen(rsp))) {
@@ -272,20 +309,36 @@ int nntp_auth(void)
 		return FALSE;
 	}
 	cmd = calloc(128, sizeof(char));
-
-	snprintf(cmd, 128, "AUTHINFO USER %s\r\n", CFG.nntpuser);
-	if (nntp_cmd(cmd, 381))
+	if (cmd == NULL) {
+		WriteError("NNTP: out of memory building authentication command");
 		return FALSE;
+	}
 
-	snprintf(cmd, 128, "AUTHINFO PASS %s\r\n", CFG.nntppass);
-	if (nntp_cmd(cmd, 281) == 0) {
-		free(cmd);
-		Syslog('+', "NNTP: logged in");
-		return TRUE;
-	} else {
+	if (snprintf(cmd, 128, "AUTHINFO USER %s\r\n", CFG.nntpuser) >= 128) {
+		WriteError("NNTP: username is too long");
 		free(cmd);
 		return FALSE;
 	}
+	if (nntp_cmd(cmd, 381)) {
+		free(cmd);
+		return FALSE;
+	}
+
+	if (snprintf(cmd, 128, "AUTHINFO PASS %s\r\n", CFG.nntppass) >= 128) {
+		WriteError("NNTP: password is too long");
+		memset(cmd, 0, 128);
+		free(cmd);
+		return FALSE;
+	}
+	if (nntp_cmd(cmd, 281) == 0) {
+		memset(cmd, 0, 128);
+		free(cmd);
+		Syslog('+', "NNTP: logged in");
+		return TRUE;
+	}
+	memset(cmd, 0, 128);
+	free(cmd);
+	return FALSE;
 }
 
 

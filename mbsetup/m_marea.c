@@ -2042,7 +2042,7 @@ int mail_area_doc(FILE *fp, FILE *toc, int page)
 		web_secflags(wp, (char *)"Sysop security", msgs.SYSec);
 		add_webtable(wp, (char *)"Link security", getflag(msgs.LinkSec.flags, msgs.LinkSec.notflags));
 		add_webdigit(wp, (char *)"Minimum age", msgs.Age);
-		add_webtable(wp, (char *)"Password", msgs.Password);
+		add_webtable(wp, (char *)"Password", getboolean(strlen(msgs.Password)));
 		add_webtable(wp, (char *)"Group", msgs.Group);
 		add_webtable(wp, (char *)"Fido address", aka2str(msgs.Aka));
 		add_webdigit(wp, (char *)"Netmail board", msgs.NetReply);
@@ -2083,7 +2083,7 @@ int mail_area_doc(FILE *fp, FILE *toc, int page)
 	    fprintf(fp, "    Sysop security   %s\n", get_secstr(msgs.SYSec));
 	    fprintf(fp, "    Link security          %s\n", getflag(msgs.LinkSec.flags, msgs.LinkSec.notflags));
 	    fprintf(fp, "    Minimum age      %d\n", msgs.Age);
-	    fprintf(fp, "    Password         %s\n", msgs.Password);
+	    fprintf(fp, "    Password         %s\n", getboolean(strlen(msgs.Password)));
 	    fprintf(fp, "    Group            %s\n", msgs.Group);
 	    fprintf(fp, "    Fido address     %s\n", aka2str(msgs.Aka));
 	    fprintf(fp, "    Netmail board    %d\n", msgs.NetReply);

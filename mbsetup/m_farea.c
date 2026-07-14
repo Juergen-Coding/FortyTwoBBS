@@ -313,7 +313,7 @@ int EditFileRec(int Area)
 	show_str(14,44,12, area.BbsGroup);
 	show_str(15,44,12, area.NewGroup);
 	show_int(16,44, area.Age);
-	show_str(17,44,20, (char *)"********************");
+	show_secret(17,44,20, area.Password);
 
 	show_int(12,73, area.DLdays);
 	show_int(13,73, area.FDdays);
@@ -475,7 +475,7 @@ int EditFileRec(int Area)
 		    FileScreen();
 		    break;
 	    case 17:E_INT( 16,44,    area.Age,       "The ^minimum age^ to access this area"); break;
-	    case 18:E_STR( 17,44,20, area.Password,  "The ^password^ to access this area"); break;
+	    case 18:E_SECRET( 17,44,20, area.Password,  "The ^password^ to access this area"); break;
 	    case 19:E_INT( 12,73,    area.DLdays,    "The not ^downloaded days^ to move/kill files"); break;
 	    case 20:E_INT( 13,73,    area.FDdays,    "The ^file age^ in days to move/kill files"); break;
 	    case 21:E_INT( 14,73,    area.MoveArea,  "The ^area to move^ files to, 0 is kill"); break;
@@ -850,7 +850,7 @@ int bbs_file_doc(FILE *fp, FILE *toc, int page)
 		fprintf(wp, "<TR><TH align='left'>Newfiles announce group</TH><TD><A HREF=\"newgroup.html\">%s</A></TD></TH>\n",
 			area.NewGroup);
 		add_webdigit(wp, (char *)"Minimum age for access", area.Age);
-		add_webtable(wp, (char *)"Area password", area.Password);
+		add_webtable(wp, (char *)"Area password", getboolean(strlen(area.Password)));
 		add_webdigit(wp, (char *)"Kill Download days", area.DLdays);
 		add_webdigit(wp, (char *)"Kill FileDate days", area.FDdays);
 		add_webdigit(wp, (char *)"Move to area", area.MoveArea);
@@ -908,7 +908,7 @@ int bbs_file_doc(FILE *fp, FILE *toc, int page)
 	    fprintf(fp, "    BBS group         %s\n", area.BbsGroup);
 	    fprintf(fp, "    Newfiles group    %s\n", area.NewGroup);
 	    fprintf(fp, "    Minimum age       %d\n", area.Age);
-	    fprintf(fp, "    Area password     %s\n", area.Password);
+	    fprintf(fp, "    Area password     %s\n", getboolean(strlen(area.Password)));
 	    fprintf(fp, "    Kill DL days      %d\n", area.DLdays);
 	    fprintf(fp, "    Kill FD days      %d\n", area.FDdays);
 	    fprintf(fp, "    Move to area      %d\n", area.MoveArea);

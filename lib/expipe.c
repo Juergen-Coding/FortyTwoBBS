@@ -45,14 +45,18 @@ static struct _fppid {
 
 FILE *expipe(char *cmd, char *from, char *to)
 {
-    char    buf[256], *buflimit, *vector[16], *p, *q, *f=from, *t=to;
+    char    buf[256], *vector[16], *p, *q, *replacement, *token;
     FILE    *fp;
-    int	    i, rc, pid, slot, pipedes[2];
+    size_t  remaining, length;
+    int     i, pid, slot, pipedes[2], status;
 
-    buflimit = buf + sizeof(buf) -1 - (f&&t&&(strlen(f)>strlen(t))?strlen(f):t?strlen(t):0);
+    if (cmd == NULL) {
+	WriteError("Expipe: missing command");
+	return NULL;
+    }
 
     for (slot = 0; slot <= maxfppid; slot++) {
-	if (fppid[slot].fp == NULL) 
+	if (fppid[slot].fp == NULL)
 	    break;
     }
     if (slot > maxfppid) {
@@ -60,43 +64,70 @@ FILE *expipe(char *cmd, char *from, char *to)
 	return NULL;
     }
 
-    for (p = cmd, q = buf; (*p); p++) {
-	if (q > buflimit) {
-	    WriteError("Attempt to pipe too long command");
-	    return NULL;
+    q = buf;
+    remaining = sizeof(buf);
+    for (p = cmd; *p != '\0'; p++) {
+	int placeholder = FALSE;
+
+	replacement = NULL;
+	if ((*p == '$') && (p[1] != '\0')) {
+	    p++;
+	    if ((*p == 'f') || (*p == 'F')) {
+		replacement = from;
+		placeholder = TRUE;
+	    } else if ((*p == 't') || (*p == 'T')) {
+		replacement = to;
+		placeholder = TRUE;
+	    } else {
+		if (remaining <= 2) {
+		    WriteError("Attempt to pipe too long command");
+		    return NULL;
+		}
+		*q++ = '$';
+		*q++ = *p;
+		remaining -= 2;
+		continue;
+	    }
+	} else if ((*p == '\\') && (p[1] != '\0')) {
+	    p++;
 	}
-	switch (*p) {
-	    case '$':	switch (*(++p)) {
-			    case 'f':
-			    case 'F':	if ((f)) 
-					    while (*f) 
-						*(q++) = *(f++);
-					f=from; 
-					break;
-			    case 't':
-			    case 'T': 	if ((t)) 
-					    while (*t) 
-						*(q++) = *(t++);
-					t=to; 
-					break;
-			    default: 	*(q++)='$'; 
-					*(q++)=*p; 
-					break;
-			}
-			break;
-	    case '\\':	*(q++) = *(++p); 
-			break;
-	    default: 	*(q++) = *p; 
-			break;
+
+	if (placeholder) {
+	    if (replacement == NULL)
+		continue;
+	    length = strlen(replacement);
+	    if (length >= remaining) {
+		WriteError("Attempt to pipe too long command");
+		return NULL;
+	    }
+	    memcpy(q, replacement, length);
+	    q += length;
+	    remaining -= length;
+	} else {
+	    if (remaining <= 1) {
+		WriteError("Attempt to pipe too long command");
+		return NULL;
+	    }
+	    *q++ = *p;
+	    remaining--;
 	}
     }
-
     *q = '\0';
-    Syslog('+', "Expipe: %s",buf);
+
+    memset(vector, 0, sizeof(vector));
     i = 0;
-    vector[i++] = strtok(buf," \t\n");
-    while ((vector[i++] = strtok(NULL," \t\n")) && (i<16));
-    vector[15] = NULL;
+    token = strtok(buf, " \t\n");
+    while ((token != NULL) && (i < 15)) {
+	vector[i++] = token;
+	token = strtok(NULL, " \t\n");
+    }
+    if ((i == 0) || (token != NULL)) {
+	WriteError("Expipe: invalid or overlong argument list");
+	return NULL;
+    }
+    vector[i] = NULL;
+    Syslog('+', "Expipe program: %s", vector[0]);
+
     fflush(stdout);
     fflush(stderr);
     if (pipe(pipedes) != 0) {
@@ -105,22 +136,36 @@ FILE *expipe(char *cmd, char *from, char *to)
     }
 
     Syslog('e', "pipe() returned read=%d, write=%d", pipedes[0], pipedes[1]);
-    if ((pid = fork()) == 0) {
+    pid = fork();
+    if (pid == -1) {
+	WriteError("$Fork failed for command \"%s\"", MBSE_SS(vector[0]));
+	close(pipedes[0]);
 	close(pipedes[1]);
-	close(0);
-	if (dup(pipedes[0]) != 0) {
+	return NULL;
+    }
+    if (pid == 0) {
+	close(pipedes[1]);
+	if (dup2(pipedes[0], STDIN_FILENO) == -1) {
 	    WriteError("$Reopen of stdin for command %s failed", MBSE_SS(vector[0]));
-	    exit(MBERR_EXEC_FAILED);
+	    close(pipedes[0]);
+	    _exit(MBERR_EXEC_FAILED);
 	}
-	rc = execv(vector[0],vector);
-	WriteError("$Exec \"%s\" returned %d", MBSE_SS(vector[0]), rc);
-	exit(MBERR_EXEC_FAILED);
+	if (pipedes[0] != STDIN_FILENO)
+	    close(pipedes[0]);
+	execv(vector[0], vector);
+	WriteError("$Exec \"%s\" failed", MBSE_SS(vector[0]));
+	_exit(MBERR_EXEC_FAILED);
     }
 
     close(pipedes[0]);
-
-    if ((fp = fdopen(pipedes[1],"w")) == NULL) {
+    fp = fdopen(pipedes[1], "w");
+    if (fp == NULL) {
 	WriteError("$fdopen failed for pipe to command \"%s\"", MBSE_SS(vector[0]));
+	close(pipedes[1]);
+	do {
+	    i = waitpid(pid, &status, 0);
+	} while ((i == -1) && (errno == EINTR));
+	return NULL;
     }
 
     fppid[slot].fp = fp;
@@ -129,10 +174,9 @@ FILE *expipe(char *cmd, char *from, char *to)
 }
 
 
-
 int exclose(FILE *fp)
 {
-    int	status, rc, pid, slot, sverr;
+    int	status = 0, rc, pid, slot;
 
     for (slot = 0; slot <= maxfppid; slot++) {
 	if (fppid[slot].fp == fp) 
@@ -154,11 +198,10 @@ int exclose(FILE *fp)
     }
     Syslog('e', "Waiting for process %d to finish",pid);
     do {
-	rc = wait(&status);
-	sverr = errno;
-	if (status)
-	    Syslog('e', "$Wait returned %d, status %d,%d", rc, status >> 8, status & 0xff);
-    } while (((rc > 0) && (rc != pid)) || ((rc == -1) && (sverr == EINTR)));
+	rc = waitpid(pid, &status, 0);
+    } while ((rc == -1) && (errno == EINTR));
+    if ((rc > 0) && status)
+	Syslog('e', "Wait returned %d, status %d,%d", rc, status >> 8, status & 0xff);
 
     switch (rc) {
 	case -1:WriteError("$Wait returned %d, status %d,%d", rc, status >> 8, status & 0xff);

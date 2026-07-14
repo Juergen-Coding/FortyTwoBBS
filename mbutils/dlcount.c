@@ -45,14 +45,19 @@ extern int  do_quiet;
 
 void dlcount(void)
 {
-    char	*temp, *p, *q = NULL, *date, *file, *base, month[20];
+    char	temp[PATH_MAX], *p, *q = NULL, date[81], file[PATH_MAX],
+		base[PATH_MAX], month[20];
     FILE	*fp;
     int		i, date_ok, file_ok, result, filesize;
     time_t	filedate = (time_t)0, lastcheck;
     struct tm	tm;
     
-    temp = calloc(PATH_MAX, sizeof(char));
-    
+    if ((getenv("MBSE_ROOT") == NULL) || (*getenv("MBSE_ROOT") == '\0')) {
+	WriteError("dlcount: MBSE_ROOT is not set");
+	return;
+    }
+    memset(temp, 0, sizeof(temp));
+
     /*
      * Check if we have a mark when we did this the last time.
      * If not, create one and don't do anything. Run the next time.
@@ -63,7 +68,6 @@ void dlcount(void)
 	if ((fp = fopen(temp, "a"))) {
 	    fclose(fp);
 	}
-	free(temp);
 	return;
     }
     
@@ -74,10 +78,6 @@ void dlcount(void)
     if ((fp = fopen(temp, "a"))) {
 	fclose(fp);
     }
-
-    date = calloc(81, sizeof(char));
-    file = calloc(PATH_MAX, sizeof(char));
-    base = calloc(PATH_MAX, sizeof(char));
 
     if (strlen(CFG.www_logfile) && (fp = fopen(CFG.www_logfile, "r"))) {
 
@@ -90,9 +90,9 @@ void dlcount(void)
 
 	while (fgets(temp, PATH_MAX-1, fp)) {
 	    date_ok = file_ok = FALSE;
-	    memset(date, 0, 80);
-	    memset(file, 0, PATH_MAX);
-	    memset(base, 0, PATH_MAX);
+	    memset(date, 0, sizeof(date));
+	    memset(file, 0, sizeof(file));
+	    memset(base, 0, sizeof(base));
 	    Striplf(temp);
 
 	    /*
@@ -104,26 +104,37 @@ void dlcount(void)
 	    if (p) {
 		q = strchr(p, ']');
 		if (q && ((q-p) < 40)) {
-		    strncpy(date, p+1, q - p - 1);
-		    tm.tm_mday = atoi(strtok(date, "/\0"));
-		    snprintf(month, 20, "%s", strtok(NULL, "/\0"));
+		    size_t field_len = (size_t)(q - p - 1);
+		    if (field_len >= sizeof(date))
+			continue;
+		    memcpy(date, p + 1, field_len);
+		    date[field_len] = '\0';
+		    memset(&tm, 0, sizeof(tm));
+		    if (sscanf(date, "%d/%19[^/]/%d:%d:%d:%d", &tm.tm_mday,
+			       month, &tm.tm_year, &tm.tm_hour, &tm.tm_min,
+			       &tm.tm_sec) != 6)
+			continue;
 		    for (i = 0; i < 12; i++)
 			if (strncasecmp(months[i], month, 3) == 0)
 			    break;
+		    if (i == 12)
+			continue;
 		    tm.tm_mon = i;
-		    tm.tm_year = atoi(strtok(NULL, ":\0")) - 1900;
-		    tm.tm_hour = atoi(strtok(NULL, ":\0"));
-		    tm.tm_min  = atoi(strtok(NULL, ":\0"));
-		    tm.tm_sec  = atoi(strtok(NULL, ":\0"));
+		    tm.tm_year -= 1900;
+		    tm.tm_isdst = -1;
 		    filedate = mktime(&tm);
-		    if (filedate > lastcheck)
+		    if ((filedate != (time_t)-1) && (filedate > lastcheck))
 			date_ok = TRUE;
 		}
 	    }
 	    if (date_ok && (p = strchr(temp, '"'))) {
 		q = strchr(p+1, '"');
 		if (q && ((q-p) < 128)) {
-		    strncpy(file, p+1, q - p - 1);
+		    size_t field_len = (size_t)(q - p - 1);
+		    if (field_len >= sizeof(file))
+			continue;
+		    memcpy(file, p + 1, field_len);
+		    file[field_len] = '\0';
 		    if (strncmp(file, "GET ", 4) == 0) {
 			if ((p = strstr(file, CFG.www_link2ftp))) {
 			    snprintf(base, PATH_MAX, "%s%s", CFG.ftp_base, p + strlen(CFG.www_link2ftp));
@@ -139,9 +150,8 @@ void dlcount(void)
 		}
 	    }
 	    if (file_ok) {
-		p = strtok(q, (char *)" \0");
-		result = atoi(strtok(NULL, (char *)" \0"));
-		filesize = atoi(strtok(NULL, (char *)" \0"));
+		if ((q == NULL) || (sscanf(q + 1, "%d %d", &result, &filesize) != 2))
+		    continue;
 		if (result == 200) {
 		    /*
 		     * So far it seems that the file is possible downloaded from the bbs.
@@ -166,37 +176,45 @@ void dlcount(void)
 
 	while (fgets(temp, PATH_MAX-1, fp)) {
 	    date_ok = file_ok = FALSE;
-	    memset(date, 0, 80);
-	    memset(file, 0, PATH_MAX);
-	    memset(base, 0, PATH_MAX);
+	    memset(date, 0, sizeof(date));
+	    memset(file, 0, sizeof(file));
+	    memset(base, 0, sizeof(base));
 	    Striplf(temp);
 
 	    /*
 	     * Parse logline.
 	     */
 //	    Syslog('f', "%s", printable(temp, 100));
-	    p = strtok(temp, " \0");	    /* Day of week	*/
-	    p = strtok(NULL, " \0");	    /* Month		*/
-	    for (i = 0; i < 12; i++)
-		if (strncasecmp(months[i], p, 3) == 0)
-		    break;
-	    tm.tm_mon = i;
-	    tm.tm_mday = atoi(strtok(NULL, " \0"));	    /* Day in month	*/
-	    tm.tm_hour = atoi(strtok(NULL, ":\0"));	    /* Hour		*/
-	    tm.tm_min  = atoi(strtok(NULL, ":\0"));	    /* Minute		*/
-	    tm.tm_sec  = atoi(strtok(NULL, " \0"));	    /* Seconds		*/
-	    tm.tm_year = atoi(strtok(NULL, " \0")) - 1900;  /* Year		*/
-	    filedate = mktime(&tm);
-	    if (filedate > lastcheck)
-		date_ok = TRUE;
-	    p = strtok(NULL, " \0");			    /* 0		*/
-	    p = strtok(NULL, " \0");			    /* Remote host	*/
-	    filesize = atoi(strtok(NULL, " \0"));	    /* Filesize		*/
-	    p = strtok(NULL, " \0");			    /* Filename		*/
-	    if (p == NULL)
-		break;
+	    {
+		char *saveptr = NULL, *tokens[9];
+		int token_count = 0;
 
-	    snprintf(base, PATH_MAX, "%s", p);
+		for (p = strtok_r(temp, " ", &saveptr);
+		     (p != NULL) && (token_count < 9);
+		     p = strtok_r(NULL, " ", &saveptr))
+		    tokens[token_count++] = p;
+		if (token_count < 9)
+		    continue;
+		for (i = 0; i < 12; i++)
+		    if (strncasecmp(months[i], tokens[1], 3) == 0)
+			break;
+		if (i == 12)
+		    continue;
+		memset(&tm, 0, sizeof(tm));
+		tm.tm_mon = i;
+		if ((sscanf(tokens[2], "%d", &tm.tm_mday) != 1) ||
+		    (sscanf(tokens[3], "%d:%d:%d", &tm.tm_hour, &tm.tm_min,
+			    &tm.tm_sec) != 3) ||
+		    (sscanf(tokens[4], "%d", &tm.tm_year) != 1) ||
+		    (sscanf(tokens[7], "%d", &filesize) != 1))
+		    continue;
+		tm.tm_year -= 1900;
+		tm.tm_isdst = -1;
+		filedate = mktime(&tm);
+		if ((filedate != (time_t)-1) && (filedate > lastcheck))
+		    date_ok = TRUE;
+		snprintf(base, sizeof(base), "%s", tokens[8]);
+	    }
 	    if (date_ok) {
                 /*
 		 * So far it seems that the file is possible downloaded from the bbs.
@@ -208,10 +226,6 @@ void dlcount(void)
 	}
     }
 
-    free(base);
-    free(file);
-    free(date);
-    free(temp);
 }
 
 
@@ -221,13 +235,16 @@ void dlcount(void)
  */
 void count_download(char *filename, time_t filedate, off_t filesize, char *dltype)
 {
-    char		*temp;
+    char		temp[PATH_MAX];
     FILE		*dfp;
     int			i, j;
     struct _fdbarea     *fdb_area = NULL;
     struct FILE_record  frec;
 
-    temp = calloc(PATH_MAX, sizeof(char));
+    if ((filename == NULL) || (dltype == NULL) ||
+	(getenv("MBSE_ROOT") == NULL) || (*getenv("MBSE_ROOT") == '\0'))
+	return;
+    memset(temp, 0, sizeof(temp));
     snprintf(temp, PATH_MAX, "%s/etc/fareas.data", getenv("MBSE_ROOT"));
 
     if ((dfp = fopen(temp, "r"))) {
@@ -269,6 +286,5 @@ void count_download(char *filename, time_t filedate, off_t filesize, char *dltyp
 	fclose(dfp);
     }
 
-    free(temp);
 }
 

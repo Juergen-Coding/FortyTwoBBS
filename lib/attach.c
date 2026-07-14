@@ -134,6 +134,10 @@ int is_my_tic(char *filename, char *ticfile)
     int	    Found = FALSE;
 
     buf = calloc(81, sizeof(char));
+    if (buf == NULL) {
+	WriteError("is_my_tic: out of memory");
+	return FALSE;
+    }
 
     if ((fp = fopen(ticfile, "r"))) {
 	while (fgets(buf, 80, fp)) {

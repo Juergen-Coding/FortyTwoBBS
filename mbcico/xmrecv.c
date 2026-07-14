@@ -138,7 +138,7 @@ SM_EDECL
 	int		next_blk=1L;
 	int		last_blk=0L;
 	off_t		resofs;
-	char		tmpfname[16];
+	char		tmpfname[17];
 	off_t		wsize;
 	time_t		remtime=0L;
 	off_t		remsize=0;
@@ -432,10 +432,11 @@ SM_STATE(checktelink)
 	Syslog('x', "checktelink got \"%s\"",printable((char *)xmblk.data,45));
 	if (tmpfname[0] == '\0') {
 		memcpy(tmpfname, xmblk.data+8, 16);
+		tmpfname[16] = '\0';
 		/*
 		 *  Some systems fill the rest of the filename with spaces, sigh.
 		 */
-		for (i = 16; i; i--) {
+		for (i = 15; i >= 0; i--) {
 			if ((tmpfname[i] == ' ') || (tmpfname[i] == '\0'))
 				tmpfname[i] = '\0';
 			else

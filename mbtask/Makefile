@@ -33,7 +33,7 @@ install:	all
 		@if [ "`id -un`" != "root" ] ; then \
 			echo; echo " Must be root to install!"; echo; exit 3; \
 		fi
-		${INSTALL} -c -s -o ${ROWNER} -g ${RGROUP} -m 6511 mbtask   ${DESTDIR}${BINDIR}
+		${INSTALL} -c -s -o ${ROWNER} -g ${RGROUP} -m 0500 mbtask   ${DESTDIR}${BINDIR}
 		@if [ ! -f ${DESTDIR}${ETCDIR}/issue ]; then \
 			${INSTALL} -c -o ${OWNER} -g ${GROUP} -m 0644 issue  ${DESTDIR}${ETCDIR} ; \
 			echo "${INSTALL} -c -o ${OWNER} -g ${GROUP} -m 0644 issue  ${DESTDIR}${ETCDIR}"; \

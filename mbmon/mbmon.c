@@ -514,23 +514,32 @@ void DispMsg(char *msg)
 {
     int	    i;
 
+    if (msg == NULL)
+	return;
+
     /*
      * Beep on minor system messages
      */
     if ((msg[0] == '*') && (msg[1] != '*'))
 	putchar('\007');
 
-    strncpy(rbuf[rpointer], msg, 81);
+    if (rpointer < 0)
+	rpointer = 0;
+    if (rpointer > rsize)
+	rpointer = rsize;
+
+    snprintf(rbuf[rpointer], sizeof(rbuf[rpointer]), "%s", msg);
     Showline(4+rpointer, 1, rbuf[rpointer]);
     if (rpointer == rsize) {
 	/*
-	 * Scroll buffer
+	 * Scroll buffer.  memmove is required because the rows overlap.
 	 */
+	if (rsize > 0)
+	    memmove(rbuf[0], rbuf[1], (size_t)rsize * sizeof(rbuf[0]));
+	rbuf[rsize][0] = '\0';
 	for (i = 0; i <= rsize; i++) {
 	    mbse_locate(i+4,1);
 	    clrtoeol();
-	    strncpy(rbuf[i], rbuf[i+1], 81);
-//	    snprintf(rbuf[i], 81, "%s", rbuf[i+1]);
 	    Showline(i+4, 1, rbuf[i]);
 	}
     } else {
@@ -540,6 +549,37 @@ void DispMsg(char *msg)
     fflush(stdout);
 }
 
+
+
+/*
+ * Parse a chat server response: 100:2,<status>,<message>;
+ */
+static int ParseChatResponse(char *buffer, int *status, char *message, size_t message_size)
+{
+    char *saveptr = NULL, *token, *decoded;
+
+    if ((buffer == NULL) || (status == NULL) || (message == NULL) ||
+	(message_size == 0))
+	return FALSE;
+    message[0] = '\0';
+
+    token = strtok_r(buffer, ":", &saveptr);
+    if ((token == NULL) || (strcmp(token, "100") != 0))
+	return FALSE;
+    token = strtok_r(NULL, ",", &saveptr);
+    if ((token == NULL) || (strcmp(token, "2") != 0))
+	return FALSE;
+    token = strtok_r(NULL, ",", &saveptr);
+    if (token == NULL)
+	return FALSE;
+    *status = atoi(token);
+    token = strtok_r(NULL, ";", &saveptr);
+    if (token == NULL)
+	return FALSE;
+    decoded = cldecode(token);
+    snprintf(message, message_size, "%s", decoded != NULL ? decoded : "");
+    return TRUE;
+}
 
 
 /*
@@ -554,17 +594,27 @@ void Chat(int sysop)
 
     clr_index();
     rsize = rows - 7;
+    if (rsize > 48)
+	rsize = 48;
+    if (rsize < 1)
+	rsize = 1;
     rpointer = 0;
+    memset(rbuf, 0, sizeof(rbuf));
 
     sysop_name = xstrcpy(clencode(CFG.sysop_name));
     name = xstrcpy(clencode(CFG.sysop));
-    width = cols - (strlen(name) + 3);
+    width = cols - ((int)strlen(name) + 3);
+    if (width < 1)
+	width = 1;
+    if (width > (int)sizeof(sbuf) - 1)
+	width = sizeof(sbuf) - 1;
     snprintf(buf, 200, "CCON,4,%d,%s,%s,%s;", mypid, sysop_name, name, sysop ? "1":"0");
     free(sysop_name);
     free(name);
 
     if (socket_send(buf) == 0) {
-	strcpy(buf, socket_receive());
+	const char *reply = socket_receive();
+	snprintf(buf, sizeof(buf), "%s", reply != NULL ? reply : "");
 	if (strncmp(buf, "200:1,", 6) == 0) {
 	    set_color(LIGHTRED, BLACK);
 	    mbse_mvprintw(4, 1, (char *)"Add \"fido  60179/udp  # Chatserver\" to /etc/services");
@@ -594,7 +644,8 @@ void Chat(int sysop)
 	 */
 	snprintf(buf, 200, "CPUT:2,%d,/JOIN #sysop;", mypid);
 	if (socket_send(buf) == 0) {
-	    strcpy(buf, socket_receive());
+	    const char *reply = socket_receive();
+	    snprintf(buf, sizeof(buf), "%s", reply != NULL ? reply : "");
 	}
     }
 
@@ -607,15 +658,9 @@ void Chat(int sysop)
 	while (data) {
 	    snprintf(buf, 200, "CGET:1,%d;", mypid);
 	    if (socket_send(buf) == 0) {
-		memset(&buf, 0, sizeof(buf));
-		strncpy(buf, socket_receive(), sizeof(buf)-1);
-		if (strncmp(buf, "100:2,", 6) == 0) {
-		    strncpy(resp, strtok(buf, ":"), 10);    /* Should be 100	    */
-		    strncpy(resp, strtok(NULL, ","), 5);    /* Should be 2	    */
-		    strncpy(resp, strtok(NULL, ","), 5);    /* 1= fatal error	    */
-		    rc = atoi(resp);
-		    memset(&resp, 0, sizeof(resp));
-		    strncpy(resp, cldecode(strtok(NULL, ";")), 81);  /* The message	    */
+		const char *reply = socket_receive();
+		snprintf(buf, sizeof(buf), "%s", reply != NULL ? reply : "");
+		if (ParseChatResponse(buf, &rc, resp, sizeof(resp))) {
 		    DispMsg(resp);
 		    if (rc == 1) {
 			Syslog('+', "Chat server message: %s", resp);
@@ -625,6 +670,8 @@ void Chat(int sysop)
 		} else {
 		    data = FALSE;
 		}
+	    } else {
+		data = FALSE;
 	    }
 	}
 
@@ -666,16 +713,12 @@ void Chat(int sysop)
 	    p = xstrcat(p, (char *)",");
 	    p = xstrcat(p, clencode(sbuf));
 	    p = xstrcat(p, (char *)";");
-		memccpy(buf, p, '\0', sizeof(buf));
+	    snprintf(buf, sizeof(buf), "%s", p);
 	    free(p);
 	    if (socket_send(buf) == 0) {
-		snprintf(buf, sizeof(buf), "%.*s", (int)(sizeof(buf) - 1), socket_receive());
-		if (strncmp(buf, "100:2,", 6) == 0) {
-		    strncpy(resp, strtok(buf, ":"), 10);    /* Should be 100            */
-		    strncpy(resp, strtok(NULL, ","), 5);    /* Should be 2              */
-		    strncpy(resp, strtok(NULL, ","), 5);    /* 1= fatal error, end chat	*/
-		    rc = atoi(resp);
-		    strncpy(resp, cldecode(strtok(NULL, ";")), 81);  /* The message              */
+		const char *reply = socket_receive();
+		snprintf(buf, sizeof(buf), "%s", reply != NULL ? reply : "");
+		if (ParseChatResponse(buf, &rc, resp, sizeof(resp))) {
 		    DispMsg(resp);
 		    if (rc == 1) {
 			Syslog('+', "Chat server error: %s", resp);
@@ -700,14 +743,9 @@ void Chat(int sysop)
     while (data) {
 	snprintf(buf, 200, "CGET:1,%d;", mypid);
 	if (socket_send(buf) == 0) {
-	    strncpy(buf, socket_receive(), sizeof(buf)-1);
-	    if (strncmp(buf, "100:2,", 6) == 0) {
-		strncpy(resp, strtok(buf, ":"), 10);    /* Should be 100        */
-		strncpy(resp, strtok(NULL, ","), 5);    /* Should be 2          */
-		strncpy(resp, strtok(NULL, ","), 5);	/* 1= fatal error	*/
-		rc = atoi(resp);
-		memset(&resp, 0, sizeof(resp));
-		strncpy(resp, cldecode(strtok(NULL, ";")), 80);  /* The message          */
+	    const char *reply = socket_receive();
+	    snprintf(buf, sizeof(buf), "%s", reply != NULL ? reply : "");
+	    if (ParseChatResponse(buf, &rc, resp, sizeof(resp))) {
 		DispMsg(resp);
 		if (rc == 1) {
 		    Syslog('+', "Chat server error: %s", resp);
@@ -716,6 +754,8 @@ void Chat(int sysop)
 	    } else {
 		data = FALSE;
 	    }
+	} else {
+	    data = FALSE;
 	}
     }
 
@@ -724,7 +764,8 @@ void Chat(int sysop)
      */
     snprintf(buf, 200, "CCLO,1,%d;", mypid);
     if (socket_send(buf) == 0) {
-	strcpy(buf, socket_receive());
+	const char *reply = socket_receive();
+	snprintf(buf, sizeof(buf), "%s", reply != NULL ? reply : "");
     }
     sleep(1);
 }

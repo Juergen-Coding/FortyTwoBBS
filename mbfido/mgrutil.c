@@ -245,11 +245,18 @@ void MgrPasswd(faddr *t, char *Buf, FILE *tmp, int Len, int mgr)
 	    return;
 	}
 
-	memset(&nodes.Apasswd, 0, sizeof(nodes.Apasswd));
-	strncpy(nodes.Apasswd, tu(Buf), 15);
-	MacroVars("RABCDE", "ssssss",(char *)"OK_PASS",nodes.Apasswd,(char *)"",(char *)"",(char *)"",(char *)"");
+	if (mgr) {
+	    memset(nodes.Fpasswd, 0, sizeof(nodes.Fpasswd));
+	    snprintf(nodes.Fpasswd, sizeof(nodes.Fpasswd), "%s", tu(Buf));
+	} else {
+	    memset(nodes.Apasswd, 0, sizeof(nodes.Apasswd));
+	    snprintf(nodes.Apasswd, sizeof(nodes.Apasswd), "%s", tu(Buf));
+	}
+	MacroVars("RABCDE", "ssssss", (char *)"OK_PASS", (char *)"<updated>",
+	          (char *)"", (char *)"", (char *)"", (char *)"");
 	MsgResult(mgr?"filemgr.responses":"areamgr.responses",tmp,'\n');
-	Mgrlog("%s: Password \"%s\" for node %s", mgr?(char *)"Filemgr":(char *)"Areamgr", nodes.Apasswd, ascfnode(t, 0x1f));
+	Mgrlog("%s: Password updated for node %s",
+	       mgr?(char *)"Filemgr":(char *)"Areamgr", ascfnode(t, 0x1f));
         MacroClear();
 	UpdateNode();
 	SearchNodeFaddr(t);

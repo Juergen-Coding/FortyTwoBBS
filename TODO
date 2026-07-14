@@ -7,39 +7,95 @@ Current status
 FortyTwo BBS is pre-alpha software intended for development, code review and
 isolated testing.
 
-The only currently tested development platform is:
+The currently tested development environment is:
 
 - Ubuntu 25.10
 - x86_64
 - glibc-based Linux
+- rootless Podman test operation on the development host
+
+There is no supported production installation, public deployment or upgrade
+procedure yet.
 
 This roadmap describes current development priorities. It is not a promise
-that every item will be completed for the first public release.
+that every item will be completed for the first public test release.
 
 
-Security and isolation
-----------------------
+Established foundations
+-----------------------
 
-- replace the inherited privileged account-creation model
-- keep new-user registration disabled until account creation is isolated
-- design and test rootless Podman deployment
-- separate BBS, SSH, Telnet and web-server responsibilities
-- review filesystem ownership, permissions and persistent storage
-- remove or harden inherited setuid helpers
+The following foundations have already been implemented or verified:
+
+- rootless Podman test image builds and starts successfully
+- fixed service accounts are used for the current container test runtime
+- BBS users are planned as internal application identities rather than
+  personal Unix or container accounts
+- `mbuseradd` and `mbpasswd` are excluded from the normal build and install
+  path
+- `mbtask` is installed without setuid or setgid bits
+- `mbtask` checks and performs privilege dropping
+- raw ICMP monitoring can be disabled with `MBSE_DISABLE_RAW_PING=1`
+- deleted and locked BBS accounts are rejected before session startup
+- transitional environment-name handling in `mbsebbs` is bounded
+- localhost-only Telnet and restricted SSH access have been tested
+- SSH command execution, forwarding and additional interactive features are
+  restricted
+- AddressSanitizer and UndefinedBehaviorSanitizer builds are used during
+  review
+- English and German security architecture documents have been created
+- English and German project and developer documentation have been combined
+  into `README.md` and `LIESMICH.md`
+
+
+Immediate security priorities
+-----------------------------
+
+- remove plaintext password display from administration screens and generated
+  output
+- remove passwords and other secrets from logs
+- review password exposure in door dropfiles and offline-mail formats
+- disable or replace independent plaintext authentication paths
+- review NNTP authentication, account-state checks and rate limiting
 - continue reviewing unsafe string, buffer and memory handling
-- test with AddressSanitizer and UndefinedBehaviorSanitizer
-- define logging, rate-limiting and service-security requirements
+- review network-facing parsers and archive handling
+- define security logging, audit events and rate-limiting requirements
+- review filesystem ownership, permissions and persistent storage
+- ensure no setuid-root or setgid BBS helper programs remain in the supported
+  runtime
+
+
+Identity and authentication
+---------------------------
+
+- replace mutable Unix-name-based identity handling
+- introduce stable, opaque and server-generated user IDs
+- separate login identifiers, display names and internal user IDs
+- store users, credentials, roles, sessions and audit events in a transactional
+  database
+- define and implement database migrations and foreign-key constraints
+- use Argon2id for password hashing
+- support optional TOTP multi-factor authentication
+- introduce rotating, revocable and server-side session credentials
+- centralize authentication, account-state, role and capability checks
+- replace display-name-based sysop detection with roles and capabilities
+- stop trusting environment variables, command-line arguments or mutable
+  names as authenticated session identity
+- design an authenticated local session handoff for terminal transports
+- migrate user storage from mutable names to stable internal IDs
+- define a safe migration path from historical `users.data` records
 
 
 Installation and deployment
 ---------------------------
 
-- replace the inherited SETUP.sh installation procedure
+- replace the inherited `SETUP.sh` installation procedure
 - create a reproducible Ubuntu 25.10 development setup
-- create the first rootless Podman deployment for Debian
+- complete and document the rootless Podman test deployment
+- prepare Debian as the first planned container deployment target
 - define persistent storage for configuration, users, messages and files
 - provide service supervision and clean container shutdown
 - document backup and restore procedures
+- define image updates, database migrations and rollback behaviour
 - create a supported upgrade and migration process
 - test additional Linux distributions and BSD after the first release
 
@@ -47,13 +103,16 @@ Installation and deployment
 Telnet, SSH and user access
 ---------------------------
 
-- retain Telnet for login and future new-user registration
-- retain restricted SSH access for registered users
-- prevent SSH command execution, forwarding, tunnelling, SCP and SFTP
+- retain Telnet as a supported terminal transport
+- retain restricted SSH access for registered BBS users
+- keep SSH command execution, forwarding, tunnelling, SCP and SFTP disabled
 - integrate the final access configuration into deployment tooling
-- isolate operating-system account creation from the host
-- review logout, utmp and session-accounting behaviour
+- remove the dependency on personal operating-system accounts
+- implement registration entirely inside the BBS identity system
+- keep public self-registration disabled until the replacement is complete
+- review logout and session-accounting behaviour
 - test uploads and downloads through supported terminal clients
+- test concurrent sessions, interrupted sessions and forced termination
 
 
 File areas and importing
@@ -61,10 +120,12 @@ File areas and importing
 
 - continue testing recursive file-tree importing
 - preserve directory structure and file-area relationships
-- verify FILES.BBS parsing with real-world archives
+- verify `FILES.BBS` parsing with real-world archives
 - test multiline descriptions and maximum field lengths
 - improve error reporting and recovery during imports
 - test duplicate files, malformed metadata and unusual filenames
+- review character-set conversion for CP437 and UTF-8 descriptions
+- test file checking, packing and adoption workflows
 - document generated HTML indexes, downloads and image previews
 
 
@@ -73,6 +134,7 @@ Fidonet and messaging
 
 - verify mailer, tosser and TIC processing on current systems
 - test message bases, echomail, netmail and file distribution
+- review packet passwords, logging and secret handling
 - review network-facing parsers and protocol handling
 - test BinkP and legacy Fidonet transport functions
 - document supported Fidonet configuration and operating procedures
@@ -86,31 +148,35 @@ Web publishing
 - publish generated indexes and downloadable files read-only where possible
 - define safe shared storage between FortyTwo BBS and the web server
 - test download accounting from external web-server logs
+- ensure web publishing cannot expose credentials or private BBS data
 
 
 Build system and naming
 -----------------------
 
 - modernize the inherited Autoconf and Make build system
-- replace public MBSE branding with FortyTwo BBS
+- replace remaining public MBSE branding with FortyTwo BBS
 - retain historical attribution and license information
-- review inherited technical names such as MBSE_ROOT and mbsebbs
+- review inherited technical names such as `MBSE_ROOT` and `mbsebbs`
 - define package name, versioning and release archive format
 - remove obsolete platform claims and distribution instructions
 - keep generated files synchronized with their source templates
+- add reproducible clean-build and sanitizer-build checks
 
 
 Developer interfaces
 --------------------
 
+- define a versioned, self-hosted API for native clients and external tools
 - identify stable public interfaces and internal implementation details
-- document data formats and directory structures
-- define interfaces for Doors, clients and external tools
-- document Telnet, SSH, Fidonet and web integration
+- prohibit direct modification of historical binary data files by new tools
+- document authentication, sessions, roles and capabilities
+- define stable identifiers for users, messages, files and areas
+- define interfaces for Doors, clients and administration tools
+- document Telnet, SSH, NNTP, Fidonet and web integration
 - define coding and security requirements for extensions
-- provide compatibility guarantees where practical
+- provide versioning, deprecation and compatibility rules
 - create example programs and reproducible test environments
-- maintain English and German developer documentation
 
 
 Documentation and release preparation
@@ -118,16 +184,19 @@ Documentation and release preparation
 
 - audit all user-visible text, templates and generated documentation
 - replace obsolete websites, support addresses and project references
+- review and update `FILE_ID.DIZ.in` before the first release
 - review language files, menus, templates and ANSI screens
 - verify every installation and operating instruction
 - document known limitations and unsupported features
 - create release notes and a tested first-release checklist
 - perform clean installation tests before publishing downloadable releases
+- keep `README.md` and `LIESMICH.md` synchronized
+- keep `SECURITY_ARCHITECTURE.md` and `SICHERHEITS_ARCHITEKTUR.md`
+  synchronized
 
 
 Project information
 -------------------
 
-Project: https://www.ihlau.net
-Source:  https://github.com/Juergen-Coding/FortyTwoBBS
-Contact: neo67@linuxmintusers.de
+Project & Source:  https://github.com/Juergen-Coding/FortyTwoBBS
+Support: https://github.com/Juergen-Coding/FortyTwoBBS/issues

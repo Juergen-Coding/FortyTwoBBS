@@ -5,29 +5,34 @@ Development status
 ------------------
 
 FortyTwo BBS is currently pre-alpha software intended exclusively for
-development, code review and testing.
+development, code review and isolated testing.
 
-There is currently no supported production installation procedure and no
-supported upgrade path for existing MBSE BBS installations.
+There is currently no supported production installation procedure, public
+deployment or supported upgrade path for existing MBSE BBS installations.
 
 Do not expose the current software to public networks or use it on systems
 containing valuable, personal, business-critical or irreplaceable data.
 
-Use only an isolated test machine or disposable virtual machine and maintain
-independent backups of all affected data and configuration files.
+Use only an isolated test machine, disposable virtual machine or rootless
+container. Maintain independent backups of all affected data and
+configuration files.
 
 
 Current platform target
 -----------------------
 
-The current development target is:
+The currently tested development environment is:
 
 - x86_64 Linux
 - glibc-based systems
-- currently tested on Ubuntu
+- Ubuntu 25.10
+- rootless Podman
 
-A rootless Podman deployment on Debian is planned as the first supported
-container environment.
+A rootless Podman test image has been built and started successfully on the
+development host.
+
+Debian is planned as the first container deployment target, but is not yet a
+supported platform.
 
 BSD support is planned for later platform and build tests, but is not
 currently supported or verified.
@@ -36,11 +41,15 @@ currently supported or verified.
 Legacy setup warning
 --------------------
 
-Do not run the inherited SETUP.sh script.
+Do not run the inherited `SETUP.sh` script.
 
-SETUP.sh still implements the historical MBSE BBS installation model. Among
-other things, it creates the old mbse and bbs accounts, assumes /opt/mbse,
-modifies system account files and configures legacy network services.
+`SETUP.sh` still implements the historical MBSE BBS installation model. Among
+other things, it creates the old `mbse` and `bbs` accounts, assumes
+`/opt/mbse`, modifies system account files and configures legacy network
+services.
+
+Personal operating-system accounts for BBS users are not part of the intended
+FortyTwo BBS architecture.
 
 That procedure is being replaced and is not considered a supported
 FortyTwo BBS installation method.
@@ -71,11 +80,28 @@ Optional functionality may use:
 - external virus scanners
 
 The existing build system still contains technical compatibility names such
-as MBSE_ROOT, mbsebbs and mbsetup. These internal names are being reviewed
-gradually and do not represent the current product name.
+as `MBSE_ROOT`, `mbsebbs` and `mbsetup`. These internal names are being
+reviewed gradually and do not represent the current product name.
 
-The current make install target and privilege model are still under review.
+The current `make install` target and privilege model are still under review.
 They must not be treated as a safe or supported public installation method.
+
+The normal build and installation path no longer includes `mbuseradd` or
+`mbpasswd`. `mbtask` is installed without setuid or setgid bits.
+
+
+Rootless Podman
+---------------
+
+The current rootless Podman test runtime uses fixed service accounts and
+least-privilege permissions.
+
+BBS users are intended to become internal application identities with stable,
+opaque and server-generated user IDs. They are not intended to receive
+personal Unix or container accounts.
+
+The current Podman configuration remains a development setup and must not be
+treated as a supported public deployment.
 
 
 Telnet and SSH
@@ -83,15 +109,16 @@ Telnet and SSH
 
 Tested localhost-only Telnet and SSH configuration examples are available in:
 
-examples/fortytwo-access
+`examples/fortytwo-access`
 
 These examples are intended for isolated development testing.
 
-SSH access is restricted to registered users and starts only the BBS through
-a forced command.
+SSH access starts only FortyTwo BBS through a forced command. Command
+execution, forwarding, tunnelling, SCP and SFTP are disabled.
 
-New-user registration remains disabled until operating-system account
-creation has been isolated and hardened.
+Public new-user registration remains disabled until registration,
+authentication and session handling have been migrated completely to the
+internal BBS identity system.
 
 
 Web access
@@ -103,13 +130,25 @@ download links and optional image previews.
 FortyTwo BBS does not include its own HTTP server. A separate web server or
 web-server container is required to publish these files.
 
+Generated content should be mounted read-only wherever practical and must not
+expose credentials, private messages or internal BBS data.
+
+
+Further information
+-------------------
+
+Read these files before building or testing:
+
+- `README.md`
+- `LIESMICH.md`
+- `README.Ubuntu`
+- `TODO`
+- `SECURITY_ARCHITECTURE.md`
+- `SICHERHEITS_ARCHITEKTUR.md`
+
 
 Project information
 -------------------
 
-Project: https://www.ihlau.net
-Source:  https://github.com/Juergen-Coding/FortyTwoBBS
-Support: neo67@linuxmintusers.de
-
-See README.md for the current development status, safety warning, project
-heritage and license information.
+Project & Source:  https://github.com/Juergen-Coding/FortyTwoBBS
+Support: https://github.com/Juergen-Coding/FortyTwoBBS/issues

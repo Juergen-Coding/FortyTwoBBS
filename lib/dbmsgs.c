@@ -42,10 +42,31 @@ unsigned int	mgrp_crc = -1;		/* CRC value of group record	   */
 static int	sysstart, sysrecord;
 
 
+static int valid_msgs_header(void)
+{
+    long record_size;
+
+    if ((msgshdr.hdrsize < (int)sizeof(msgshdr)) ||
+        (msgshdr.recsize <= 0) ||
+        (msgshdr.recsize > (int)sizeof(msgs)) ||
+        (msgshdr.syssize < 0))
+        return FALSE;
+    record_size = (long)msgshdr.recsize + msgshdr.syssize;
+    return (record_size > 0) && (record_size <= INT_MAX);
+}
+
+static int valid_mgroup_header(void)
+{
+    return (mgrouphdr.hdrsize >= (int)sizeof(mgrouphdr)) &&
+           (mgrouphdr.recsize > 0) &&
+           (mgrouphdr.recsize <= (int)sizeof(mgroup));
+}
+
 
 int InitMsgs(void)
 {
 	FILE	*fil;
+	long	end, record_size;
 
 	memset(&msgs, 0, sizeof(msgs));
 	memset(&mgroup, 0, sizeof(mgroup));
@@ -56,9 +77,14 @@ int InitMsgs(void)
 	if ((fil = fopen(msgs_fil, "r")) == NULL)
 		return FALSE;
 
-	fread(&msgshdr, sizeof(msgshdr), 1, fil);
-	fseek(fil, 0, SEEK_END);
-	msgs_cnt = (ftell(fil) - msgshdr.hdrsize) / (msgshdr.recsize + msgshdr.syssize);
+	if ((fread(&msgshdr, sizeof(msgshdr), 1, fil) != 1) ||
+	    !valid_msgs_header() || (fseek(fil, 0, SEEK_END) != 0) ||
+	    ((end = ftell(fil)) < msgshdr.hdrsize)) {
+		fclose(fil);
+		return FALSE;
+	}
+	record_size = (long)msgshdr.recsize + msgshdr.syssize;
+	msgs_cnt = (end - msgshdr.hdrsize) / record_size;
 	fclose(fil);
 
 	snprintf(mgrp_fil, PATH_MAX -1, "%s/etc/mgroups.data", getenv("MBSE_ROOT"));
@@ -76,9 +102,14 @@ int smsgarea(char *what, int newsgroup, int bad)
 	return FALSE;
     }
 
-    fread(&msgshdr, sizeof(msgshdr), 1, fil);
+    if ((fread(&msgshdr, sizeof(msgshdr), 1, fil) != 1) ||
+        !valid_msgs_header() ||
+        (fseek(fil, msgshdr.hdrsize, SEEK_SET) != 0)) {
+	fclose(fil);
+	return FALSE;
+    }
 
-    while (fread(&msgs, msgshdr.recsize, 1, fil) == 1) {
+    while (fread(&msgs, (size_t)msgshdr.recsize, 1, fil) == 1) {
 	/*
 	 * Mark the start of the connected systems records
 	 * for later use and skip the system records.
@@ -98,8 +129,13 @@ int smsgarea(char *what, int newsgroup, int bad)
 
 	    if (strlen(msgs.Group)) {
 		if ((fil = fopen(mgrp_fil, "r")) != NULL) {
-		    fread(&mgrouphdr, sizeof(mgrouphdr), 1, fil);
-		    while ((fread(&mgroup, mgrouphdr.recsize, 1, fil)) == 1) {
+		    if ((fread(&mgrouphdr, sizeof(mgrouphdr), 1, fil) != 1) ||
+		        !valid_mgroup_header() ||
+		        (fseek(fil, mgrouphdr.hdrsize, SEEK_SET) != 0)) {
+			fclose(fil);
+			return FALSE;
+		    }
+		    while ((fread(&mgroup, (size_t)mgrouphdr.recsize, 1, fil)) == 1) {
 			if (!strcmp(msgs.Group, mgroup.Name)) {
 			    mgrp_pos = ftell(fil) - mgrouphdr.recsize;
 			    mgrp_crc = 0xffffffff;

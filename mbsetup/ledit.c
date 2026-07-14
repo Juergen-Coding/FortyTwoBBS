@@ -169,6 +169,8 @@ char *edit_field(int y, int x, int w, int p, char *s_)
 {
     int		    i, charok, first, curpos, AllSpaces;
     static char	    s[256];
+    char		    masked[256];
+    size_t	    secret_len;
     unsigned int    ch;
 
     memset((char *)s, 0, 256);
@@ -179,7 +181,16 @@ char *edit_field(int y, int x, int w, int p, char *s_)
 
     do {
 	set_color(YELLOW, BLUE);
-	show_field(y, x, s, w, '_');
+	if (p == 'P') {
+	    secret_len = strlen(s);
+	    if (secret_len >= sizeof(masked))
+		secret_len = sizeof(masked) - 1;
+	    memset(masked, '*', secret_len);
+	    masked[secret_len] = '\0';
+	    show_field(y, x, masked, w, '_');
+	} else {
+	    show_field(y, x, s, w, '_');
+	}
 	mbse_locate(y, x + curpos);
 	do {
 	    ch = readkey(y, x + curpos, YELLOW, BLUE);
@@ -196,6 +207,7 @@ char *edit_field(int y, int x, int w, int p, char *s_)
 				charok = 1;
 				break;
 		    case 'X':
+		    case 'P':
 				charok = 1;
 				break;
 		    case '9':
@@ -702,6 +714,14 @@ void show_str(int y, int x, int l, char *line)
 
 
 
+void show_secret(int y, int x, int l, char *line)
+{
+	show_field(y, x, (line != NULL && line[0] != '\0') ?
+		   (char *)"<configured>" : (char *)"<not set>", l, ' ');
+}
+
+
+
 char *edit_str(int y, int x, int l, char *line, char *help)
 {
 	static char s[256];
@@ -711,6 +731,20 @@ char *edit_str(int y, int x, int l, char *line, char *help)
 	strcpy(s, edit_field(y, x, l, 'X', line));
 	set_color(WHITE, BLACK);
 	show_str(y, x, l, s);
+	return s;
+}
+
+
+
+char *edit_secret(int y, int x, int l, char *line, char *help)
+{
+	static char s[256];
+
+	showhelp(help);
+	memset((char *)s, 0, sizeof(s));
+	snprintf(s, sizeof(s), "%s", edit_field(y, x, l, 'P', line));
+	set_color(WHITE, BLACK);
+	show_secret(y, x, l, s);
 	return s;
 }
 

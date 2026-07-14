@@ -1,14 +1,15 @@
-FortyTwo BBS @VERSION@ for x86_64 Linux
-Currently targets glibc-based Linux systems
-and is being tested on Ubuntu. Debian support
-is planned for the first container deployment.
-BSD support is planned for later platform tests.
-A complete open-source Bulletin Board System
-with Fidonet mailer, tosser, TIC processing,
-message areas, doors and file utilities.
-Users can connect through Telnet or SSH.
-File areas can be published through generated
-HTML indexes with downloads and image previews.
-Based on MBSE BBS and released under GPLv2.
-Project: https://www.ihlau.net
-Support: neo67@linuxmintusers.de
+FortyTwo BBS @VERSION@ - pre-alpha
+for x86_64 glibc-based Linux systems.
+Tested on Ubuntu 25.10 with rootless
+Podman. Debian container support is
+planned; BSD testing will follow later.
+Open-source Bulletin Board System with
+Fidonet mailer, tosser, TIC processing,
+message areas, Doors and file utilities.
+Local test access is available by Telnet
+and restricted SSH. Based on MBSE BBS.
+Released under GNU GPL version 2.
+Project & Source:
+https://github.com/Juergen-Coding/FortyTwoBBS
+Support:
+https://github.com/Juergen-Coding/FortyTwoBBS/issues

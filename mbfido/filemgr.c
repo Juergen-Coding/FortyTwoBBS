@@ -848,8 +848,8 @@ int FileMgr(faddr *f, faddr *t, char *replyid, char *subj, time_t mdate, int fla
      * If the password failed, we respond with an error message.
      */
     if ((!strlen(subj)) || (strcasecmp(subj, nodes.Fpasswd))) {
-	WriteError("FileMgr: password expected \"%s\", got \"%s\"", nodes.Fpasswd, subj);
-	Mgrlog("FileMgr: password expected \"%s\", got \"%s\"", nodes.Fpasswd, subj);
+	WriteError("FileMgr: password mismatch");
+	Mgrlog("FileMgr: password mismatch");
 	Mgrlog("FileMgr request from %s finished", ascfnode(f, 0xff));
 	net_bad++;
 	/*

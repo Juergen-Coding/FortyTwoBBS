@@ -223,8 +223,10 @@ faddr *parsefaddr(char *s)
 	rfcaddr.remainder = NULL;
 	rfcaddr.comment   = NULL;
 
+	if ((s == NULL) || (*s == '\0'))
+		return NULL;
 	t = xstrcpy(s);
-	if (*(q=t+strlen(t)-1) == '\n') 
+	if (*(q=t+strlen(t)-1) == '\n')
 		*q='\0';
 	if (((*(p=t) == '(') && (*(q=p+strlen(p)-1) == ')')) || ((*p == '\"') && (*q == '\"'))) {
 		p++;
@@ -241,27 +243,56 @@ faddr *parsefaddr(char *s)
 	if ((addrerror) || (rfcaddr.target == NULL))
 		goto leave;
 
-	p = calloc(PATH_MAX, sizeof(char));
-	snprintf(p, PATH_MAX -1, "%s/etc/domain.data", getenv("MBSE_ROOT"));
+	if (getenv("MBSE_ROOT") == NULL) {
+		WriteError("MBSE_ROOT is not set");
+		goto leave;
+	}
+	p = xmalloc(PATH_MAX);
+	if (snprintf(p, PATH_MAX, "%s/etc/domain.data", getenv("MBSE_ROOT")) >= PATH_MAX) {
+		WriteError("Domain database path is too long");
+		free(p);
+		goto leave;
+	}
 	if ((fp = fopen(p, "r")) == NULL) {
 		WriteError("$Can't open %s", p);
 		free(p);
 	} else {
-		free(p);
-		fread(&domainhdr, sizeof(domainhdr), 1, fp);
-		p = rfcaddr.target;
+		if (fread(&domainhdr, sizeof(domainhdr), 1, fp) != 1 ||
+		    domainhdr.hdrsize < (int)sizeof(domainhdr) ||
+		    domainhdr.recsize <= 0 ||
+		    domainhdr.recsize > (int)sizeof(domtrans) ||
+		    fseek(fp, domainhdr.hdrsize, SEEK_SET) != 0) {
+			WriteError("$Invalid domain database header in %s", p);
+			free(p);
+		} else {
+			free(p);
+			p = rfcaddr.target;
 
-		while (fread(&domtrans, domainhdr.recsize, 1, fp) == 1) {
-			q = p + strlen(p) - strlen(domtrans.intdom);
-			if ((q >= p) && (strcasecmp(domtrans.intdom, q) == 0)) {
-				*q = '\0';
-				q = malloc(strlen(p) + strlen(domtrans.ftndom) +1);
-				strcpy(q, p);
-				strcat(q, domtrans.ftndom);
-				p = q;
-				free(rfcaddr.target);
-				rfcaddr.target = p;
-				break;
+			while (1) {
+				size_t plen, ilen;
+
+				memset(&domtrans, 0, sizeof(domtrans));
+				if (fread(&domtrans, domainhdr.recsize, 1, fp) != 1)
+					break;
+
+				domtrans.ftndom[sizeof(domtrans.ftndom) - 1] = '\0';
+				domtrans.intdom[sizeof(domtrans.intdom) - 1] = '\0';
+
+				plen = strlen(p);
+				ilen = strlen(domtrans.intdom);
+				if ((ilen > 0) && (ilen <= plen) &&
+				    (strcasecmp(domtrans.intdom,
+						p + plen - ilen) == 0)) {
+					p[plen - ilen] = '\0';
+					q = xmalloc(strlen(p) +
+						    strlen(domtrans.ftndom) + 1);
+					strcpy(q, p);
+					strcat(q, domtrans.ftndom);
+					p = q;
+					free(rfcaddr.target);
+					rfcaddr.target = p;
+					break;
+				}
 			}
 		}
 		fclose(fp);
@@ -381,11 +412,122 @@ leave:
 
 
 
+static int append_ftn_char(char *dst, size_t dst_size, size_t *used, char ch)
+{
+	if ((*used + 1) >= dst_size)
+		return FALSE;
+
+	dst[*used] = ch;
+	(*used)++;
+	dst[*used] = '\0';
+	return TRUE;
+}
+
+
+static int encode_ftn_name(const char *name, char *dst, size_t dst_size)
+{
+	const unsigned char	*f;
+	size_t			used = 0;
+	int			quoted;
+
+	dst[0] = '\0';
+	quoted = ((!strchr(name, '@')) &&
+		  (strchr(name, BLANK_SUBS) || strchr(name, '.') ||
+		   strchr(name, '_')));
+
+	if (quoted && !append_ftn_char(dst, dst_size, &used, '"'))
+		return FALSE;
+
+	for (f = (const unsigned char *)name; *f; f++) {
+		switch (*f) {
+		case '_':
+		case '.':
+			if (!append_ftn_char(dst, dst_size, &used, (char)*f))
+				return FALSE;
+			break;
+
+		case ' ':
+			if (!quoted) {
+				if (!append_ftn_char(dst, dst_size, &used,
+						     BLANK_SUBS))
+					return FALSE;
+			} else {
+				if (!append_ftn_char(dst, dst_size, &used, '=') ||
+				    !append_ftn_char(dst, dst_size, &used, '2') ||
+				    !append_ftn_char(dst, dst_size, &used, '0'))
+					return FALSE;
+			}
+			break;
+
+		case ',':
+			if (!quoted &&
+			    !append_ftn_char(dst, dst_size, &used, '\\'))
+				return FALSE;
+			if (!append_ftn_char(dst, dst_size, &used, '=') ||
+			    !append_ftn_char(dst, dst_size, &used, '2') ||
+			    !append_ftn_char(dst, dst_size, &used, 'c'))
+				return FALSE;
+			break;
+
+		case '@':
+			if (quoted) {
+				if (!append_ftn_char(dst, dst_size, &used, '"'))
+					return FALSE;
+				quoted = FALSE;
+			}
+			if (!append_ftn_char(dst, dst_size, &used, '%'))
+				return FALSE;
+			break;
+
+		case '"':
+			if (!append_ftn_char(dst, dst_size, &used, '\\') ||
+			    !append_ftn_char(dst, dst_size, &used, (char)*f))
+				return FALSE;
+			break;
+
+		case '>':
+		case '<':
+		case '\'':
+			if (!quoted &&
+			    !append_ftn_char(dst, dst_size, &used, '\\'))
+				return FALSE;
+			if (!append_ftn_char(dst, dst_size, &used, (char)*f))
+				return FALSE;
+			break;
+
+		default:
+			if (((*f > 0x29) && (*f < 0x3a)) ||
+			    ((*f > 0x40) && (*f < 0x5b)) ||
+			    ((*f > 0x60) && (*f < 0x7b))) {
+				if (!append_ftn_char(dst, dst_size, &used,
+						     (char)*f))
+					return FALSE;
+			} else {
+				if (!quoted &&
+				    !append_ftn_char(dst, dst_size, &used, '\\'))
+					return FALSE;
+				if (!append_ftn_char(dst, dst_size, &used,
+						     (char)*f))
+					return FALSE;
+			}
+			break;
+		}
+	}
+
+	if (quoted && !append_ftn_char(dst, dst_size, &used, '"'))
+		return FALSE;
+
+	return append_ftn_char(dst, dst_size, &used, '@');
+}
+
+
 char *ascinode(faddr *a, int fl)
 {
-	static char	buf[128], *f, *t, *p;
+	static char	buf[128], *p;
 	static char	*q;
-	int		skip, found = FALSE;
+	char		encoded_name[128];
+	size_t		len;
+	int		found = FALSE;
 	FILE		*fp;
 
 	if (a == NULL) {
@@ -398,96 +540,49 @@ char *ascinode(faddr *a, int fl)
 		if ((strchr(a->name,'.')) || (strchr(a->name,'@')) ||
 		    (strchr(a->name,'\'')) || (strchr(a->name,',')) ||
 		    (strchr(a->name,'<')) || (strchr(a->name,'>')))
-			snprintf(buf+strlen(buf), 128, "\"%s\" <", a->name);
+			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "\"%s\" <", a->name);
 		else
-			snprintf(buf+strlen(buf), 128, "%s <", a->name);
+			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s <", a->name);
 	}
 
 	if ((fl & 0x40) && (a->name)) {
-		f = a->name;
-		t = buf + strlen(buf);
-		skip = 0;
-		if ((!strchr(f,'@')) && ((strchr(f,BLANK_SUBS)) || (strchr(f,'.')) || (strchr(f,'_')))) { 
-			skip = 1; 
-			*t++='"'; 
+		len = strlen(buf);
+		if (!encode_ftn_name(a->name, encoded_name,
+				     sizeof(encoded_name)) ||
+		    (strlen(encoded_name) >= (sizeof(buf) - len))) {
+			WriteError("FTN address name is too long");
+		} else {
+			memcpy(buf + len, encoded_name,
+			       strlen(encoded_name) + 1);
 		}
-		while (*f) {
-			switch (*f) {
-			case '_':
-			case '.':	*t++=*f; 
-					break;
-			case ' ':	if (!skip) 
-						*t++=BLANK_SUBS; 
-					else {
-						*t++='='; *t++='2'; *t++='0';
-					}
-					break;
-			case ',':	{ /* "," is a problem on mail addr */
-					if (!skip) 
-						*t++='\\';
-					*t++='=';
-					*t++='2';
-					*t++='c';
-					}
-			case '@':	if (skip) { 
-						*t++='"'; 
-						skip=0; 
-					}
-					*t++='%'; 
-					break;
-			case '"':	*t++='\\'; 
-					*t++=*f; 
-					break;
-			case '>':
-			case '<':
-			case '\'':	if (!skip) 
-						*t++='\\'; 
-					*t++=*f; 
-					break;
-			default:	if ((((*f & 0xff) > 0x29) && ((*f & 0xff) < 0x3a)) ||
-                                            (((*f & 0xff) > 0x40) && ((*f & 0xff) < 0x5b)) ||
-                                            (((*f & 0xff) > 0x60) && ((*f & 0xff) < 0x7b)))
-						*t++=*f;
-					else {
-						if (!skip) 
-							*t++='\\';
-						*t++=*f;
-					}
-					break;
-			}
-			f++;
-		}
-		if (skip) 
-			*t++='"'; 
-		skip = 0;
-		*t++ = '@';
-		*t++ = '\0';
 	}
 
 	if ((fl & 0x01) && (a->point))
-		snprintf(buf+strlen(buf), 128, "p%u.", a->point);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "p%u.", a->point);
 	if (fl & 0x02)
-		snprintf(buf+strlen(buf), 128, "f%u.", a->node);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "f%u.", a->node);
 	if (fl & 0x04)
-		snprintf(buf+strlen(buf), 128, "n%u.", a->net);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "n%u.", a->net);
 	if ((fl & 0x08) && (a->zone))
-		snprintf(buf+strlen(buf), 128, "z%u.", a->zone);
-	buf[strlen(buf)-1]='\0';
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "z%u.", a->zone);
+	len = strlen(buf);
+	if ((len > 0) && (buf[len - 1] == '.'))
+		buf[len - 1] = '\0';
 
 	if (fl & 0x10) {
 		if (a->domain)
-			snprintf(buf+strlen(buf), 128, ".%s", a->domain);
+			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ".%s", a->domain);
 	}
 
 	if (fl & 0x20) {
 		if (a->domain) {
 			if ((fl & 0x10) == 0)
-				snprintf(buf+strlen(buf), 128, ".%s", a->domain);
+				snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ".%s", a->domain);
 		} else {
 			if (SearchFidonet(a->zone))
-				snprintf(buf+strlen(buf), 128, ".%s", fidonet.domain);
+				snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ".%s", fidonet.domain);
 			else
-				snprintf(buf+strlen(buf), 128, ".fidonet");
+				snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ".fidonet");
 		}
 
 		p = calloc(128, sizeof(char));
@@ -495,24 +590,57 @@ char *ascinode(faddr *a, int fl)
 		if ((fp = fopen(p, "r")) == NULL) {
 			WriteError("$Can't open %s", p);
 		} else {
-			fread(&domainhdr, sizeof(domainhdr), 1, fp);
-			while (fread(&domtrans, domainhdr.recsize, 1, fp) == 1) {
-				q = buf + strlen(buf) - strlen(domtrans.ftndom);
-				if ((q >= buf) && (strcasecmp(domtrans.ftndom, q) == 0)) {
-					strcpy(q, domtrans.intdom);
-					found = TRUE;
-					break;
+			if (fread(&domainhdr, sizeof(domainhdr), 1, fp) != 1 ||
+			    domainhdr.recsize <= 0 ||
+			    domainhdr.recsize > sizeof(domtrans)) {
+				WriteError("$Invalid domain database header in %s", p);
+			} else {
+				while (1) {
+					size_t buflen, ftndomlen;
+					size_t prefixlen, intdomlen;
+
+					memset(&domtrans, 0, sizeof(domtrans));
+					if (fread(&domtrans, domainhdr.recsize,
+						  1, fp) != 1)
+						break;
+
+					domtrans.ftndom[
+					    sizeof(domtrans.ftndom) - 1] = '\0';
+					domtrans.intdom[
+					    sizeof(domtrans.intdom) - 1] = '\0';
+
+					buflen = strlen(buf);
+					ftndomlen = strlen(domtrans.ftndom);
+					if ((ftndomlen > 0) &&
+					    (ftndomlen <= buflen) &&
+					    (strcasecmp(domtrans.ftndom,
+						buf + buflen - ftndomlen) == 0)) {
+						q = buf + buflen - ftndomlen;
+						prefixlen = (size_t)(q - buf);
+						intdomlen = strlen(domtrans.intdom);
+
+						if (prefixlen + intdomlen <
+						    sizeof(buf)) {
+							memcpy(q, domtrans.intdom,
+							       intdomlen + 1);
+							found = TRUE;
+						} else {
+							WriteError(
+							    "Domain translation result too long");
+						}
+						break;
+					}
 				}
 			}
 			fclose(fp);
 		}
 		free(p);
 		if (!found) 
-			snprintf(buf + strlen(buf), 128, ".ftn");
+			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ".ftn");
 	}
 
 	if ((fl & 0x80) && (a->name))
-		snprintf(buf+strlen(buf), 128, ">");
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ">");
 
 	return buf;
 }
@@ -534,17 +662,17 @@ char *ascfnode(faddr *a, int fl)
 
 	buf[0] = '\0';
 	if ((fl & 0x40) && (a->name))
-		snprintf(buf+strlen(buf),128,"%s of ",a->name);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),"%s of ",a->name);
 	if ((fl & 0x08) && (a->zone))
-		snprintf(buf+strlen(buf),128,"%u:",a->zone);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),"%u:",a->zone);
 	if (fl & 0x04)
-		snprintf(buf+strlen(buf),128,"%u/",a->net);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),"%u/",a->net);
 	if (fl & 0x02)
-		snprintf(buf+strlen(buf),128,"%u",a->node);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),"%u",a->node);
 	if ((fl & 0x01) && (a->point))
-		snprintf(buf+strlen(buf),128,".%u",a->point);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),".%u",a->point);
 	if ((fl & 0x10) && (a->domain))
-		snprintf(buf+strlen(buf),128,"@%s",a->domain);
+		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),"@%s",a->domain);
 	return buf;
 }
 
@@ -552,6 +680,8 @@ char *ascfnode(faddr *a, int fl)
 
 int metric(faddr *a1, faddr *a2)
 {
+	if ((a1 == NULL) || (a2 == NULL))
+		return METRIC_MAX;
 	if ((a1->domain != NULL) && (a2->domain != NULL) &&
 	    (strcasecmp(a1->domain,a2->domain) != 0))
 		return METRIC_DOMAIN;
@@ -572,7 +702,7 @@ faddr *fido2faddr(fidoaddr aka)
 {
 	faddr	*fa;
 
-	fa = (faddr *)malloc(sizeof(faddr));
+	fa = (faddr *)xmalloc(sizeof(faddr));
 	fa->name   = NULL;
 	fa->domain = xstrcpy(aka.domain);;
 	fa->zone   = aka.zone;
@@ -592,7 +722,9 @@ fidoaddr *faddr2fido(faddr *aka)
 {
 	fidoaddr *Sys;
 
-	Sys = (fidoaddr *)malloc(sizeof(fidoaddr));
+	if (aka == NULL)
+		return NULL;
+	Sys = (fidoaddr *)xmalloc(sizeof(fidoaddr));
 	memset(Sys, 0, sizeof(*Sys));
 	Sys->zone  = aka->zone;
 	Sys->net   = aka->net;
@@ -617,7 +749,7 @@ faddr *bestaka_s(faddr *addr)
 			break;
 		}
 	}
-	if (addr == NULL) 
+	if ((addr == NULL) || (best == NULL))
 		return best;
 	minmetric = metric(addr, best);
 
@@ -648,9 +780,14 @@ int is_local(faddr *addr)
     int	    i;
     faddr   *tmp;
 
+    if (addr == NULL)
+	return FALSE;
+
     for (i = 0; i < 40; i++) {
+	if (!CFG.akavalid[i])
+	    continue;
 	tmp = fido2faddr(CFG.aka[i]);
-	if ((CFG.akavalid[i]) && (metric(tmp, addr) == METRIC_EQUAL)) {
+	if (metric(tmp, addr) == METRIC_EQUAL) {
 	    tidy_faddr(tmp);
 	    return TRUE;
 	}

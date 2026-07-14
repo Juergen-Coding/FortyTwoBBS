@@ -358,6 +358,7 @@ int main(int argc, char **argv)
     int		    subroot = 0;
     int		    is_console = 0;
     int		    FoundName;
+    int		    DisabledName;
     const char	    *cp;
     char	    *tmp;
     char	    fromhost[1024];
@@ -565,6 +566,8 @@ top:
 
 	while (1) {			/* repeatedly get login/password pairs */
 	    failed = 0;			/* haven't failed authentication yet */
+	    DisabledName = 0;
+	    pwd = NULL;
 	    if (! username[0]) {	/* need to get a login id */
 		if (subroot) {
 		    closelog ();
@@ -604,6 +607,15 @@ top:
 				(strcmp(usrconfig.Name, username) == 0)) {
 				FoundName = 1;
 				STRFCPY(username, usrconfig.Name);
+				if (usrconfig.Deleted || usrconfig.LockedOut) {
+				    DisabledName = 1;
+				    syslog(LOG_WARNING,
+					   "login denied for disabled BBS account `%s' "
+					   "(deleted=%u, locked=%u)",
+					   usrconfig.Name,
+					   (unsigned)usrconfig.Deleted,
+					   (unsigned)usrconfig.LockedOut);
+				}
 				break;
 			    }
 			}
@@ -628,7 +640,8 @@ top:
 		}
 	    }
 
-	    if ((! (pwd = getpwnam(username))) || (FoundName == 0)) {
+	    if (DisabledName || (! (pwd = getpwnam(username))) ||
+		(FoundName == 0)) {
 		pwent.pw_name = username;
 		strcpy(temp_pw, "!");
 		pwent.pw_passwd = temp_pw;

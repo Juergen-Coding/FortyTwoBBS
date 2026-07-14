@@ -37,48 +37,65 @@ int	e_pid = 0;		/* Execute child pid	*/
 int _execute(char **, char *, char *, char *);
 int _execute(char **args, char *in, char *out, char *err)
 {
-    char    buf[PATH_MAX];
-    int	    i, pid, status = 0, rc = 0;
+    int     pid, status = 0, rc, fd;
 
-    memset(&buf, 0, sizeof(buf));
-    for (i = 0; i < 16; i++) {
-	if (args[i])
-	    snprintf(buf + strlen(buf), PATH_MAX - strlen(buf), " %s", args[i]);
-	else
-	    break;
+    if ((args == NULL) || (args[0] == NULL) || (args[0][0] == '\0')) {
+	WriteError("Execute: missing program name");
+	return -1;
     }
-    Syslog('+', "Execute:%s",buf);
 
+    /* Arguments can contain credentials; never copy the full argv to logs. */
+    Syslog('+', "Execute program: %s", args[0]);
     fflush(stdout);
     fflush(stderr);
 
-    if ((pid = fork()) == 0) {
+    pid = fork();
+    if (pid == -1) {
+	WriteError("$Execute: fork failed");
+	return -1;
+    }
+    if (pid == 0) {
 	/*
-	 * A delay in the child to prevent it returns before the main
+	 * A delay in the child to prevent it returning before the main
 	 * process sees it ever started.
 	 */
 	msleep(150);
 
-	if (in) {
-	    close(0);
-	    if (open(in,O_RDONLY) != 0) {
+	if (in != NULL) {
+	    fd = open(in, O_RDONLY);
+	    if ((fd == -1) || ((fd != STDIN_FILENO) &&
+		(dup2(fd, STDIN_FILENO) == -1))) {
 		WriteError("$Reopen of stdin to %s failed", MBSE_SS(in));
-		exit(MBERR_EXEC_FAILED);
+		if (fd >= 0)
+		    close(fd);
+		_exit(MBERR_EXEC_FAILED);
 	    }
+	    if (fd != STDIN_FILENO)
+		close(fd);
 	}
-	if (out) {
-	    close(1);
-	    if (open(out,O_WRONLY | O_APPEND | O_CREAT,0600) != 1) {
+	if (out != NULL) {
+	    fd = open(out, O_WRONLY | O_APPEND | O_CREAT, 0600);
+	    if ((fd == -1) || ((fd != STDOUT_FILENO) &&
+		(dup2(fd, STDOUT_FILENO) == -1))) {
 		WriteError("$Reopen of stdout to %s failed", MBSE_SS(out));
-		exit(MBERR_EXEC_FAILED);
+		if (fd >= 0)
+		    close(fd);
+		_exit(MBERR_EXEC_FAILED);
 	    }
+	    if (fd != STDOUT_FILENO)
+		close(fd);
 	}
-	if (err) {
-	    close(2);
-	    if (open(err,O_WRONLY | O_APPEND | O_CREAT,0600) != 2) {
+	if (err != NULL) {
+	    fd = open(err, O_WRONLY | O_APPEND | O_CREAT, 0600);
+	    if ((fd == -1) || ((fd != STDERR_FILENO) &&
+		(dup2(fd, STDERR_FILENO) == -1))) {
 		WriteError("$Reopen of stderr to %s failed", MBSE_SS(err));
-		exit(MBERR_EXEC_FAILED);
+		if (fd >= 0)
+		    close(fd);
+		_exit(MBERR_EXEC_FAILED);
 	    }
+	    if (fd != STDERR_FILENO)
+		close(fd);
 	}
 
 	errno = 0;
@@ -90,51 +107,43 @@ int _execute(char **args, char *in, char *out, char *err)
 		    WriteError("$execv can't set priority to %d", CFG.priority);
 	    }
 	}
-	rc = execv(args[0],args);
-	WriteError("$execv \"%s\" returned %d", MBSE_SS(args[0]), rc);
-	exit(MBERR_EXEC_FAILED);
+	execv(args[0], args);
+	WriteError("$execv \"%s\" failed", MBSE_SS(args[0]));
+	_exit(MBERR_EXEC_FAILED);
     }
 
     e_pid = pid;
-
     do {
-	rc = wait(&status);
-	e_pid = 0;
-    } while (((rc > 0) && (rc != pid)) || ((rc == -1) && (errno == EINTR)));
+	rc = waitpid(pid, &status, 0);
+    } while ((rc == -1) && (errno == EINTR));
+    e_pid = 0;
 
-    switch (rc) {
-	case -1:
-		if (errno == ECHILD) {
-		    Syslog('+', "Execute: no child process");
-		    return 0;
-		} else {
-		    WriteError("$Wait returned %d, status %d,%d", rc,status>>8,status&0xff);
-		    return -1;
-		}
-	case 0:
-		return 0;
-	default:
-		if (WIFEXITED(status)) {
-		    rc = WEXITSTATUS(status);
-		    if (rc) {
-			if ((strstr(args[0], (char *)"unzip") == NULL) || (rc != 11)) {
-			    WriteError("Execute: returned error %d", rc);
-			}
-			return (rc + MBERR_EXTERNAL);
-		    }
-		}
-		if (WIFSIGNALED(status)) {
-		    rc = WTERMSIG(status);
-		    WriteError("Wait stopped on signal %d", rc);
-		    return rc;
-		}
-		if (rc)
-		    WriteError("Wait stopped unknown, rc=%d", rc);
-		return rc;	
+    if (rc == -1) {
+	if (errno == ECHILD) {
+	    Syslog('+', "Execute: no child process");
+	    return 0;
+	}
+	WriteError("$waitpid failed");
+	return -1;
     }
-    return 0;
-}
+    if (WIFEXITED(status)) {
+	rc = WEXITSTATUS(status);
+	if (rc != 0) {
+	    if ((strstr(args[0], (char *)"unzip") == NULL) || (rc != 11))
+		WriteError("Execute: returned error %d", rc);
+	    return rc + MBERR_EXTERNAL;
+	}
+	return 0;
+    }
+    if (WIFSIGNALED(status)) {
+	rc = WTERMSIG(status);
+	WriteError("Wait stopped on signal %d", rc);
+	return rc;
+    }
 
+    WriteError("Wait stopped in an unexpected state");
+    return -1;
+}
 
 
 int execute(char **args, char *in, char *out, char *err)
@@ -156,25 +165,40 @@ int execute(char **args, char *in, char *out, char *err)
  */
 int execute_str(char *cmd, char *fil, char *pkt, char *in, char *out, char *err)
 {
-    int     i;
-    char    *args[16], buf[PATH_MAX];
+    int     i = 0, written;
+    char    *args[16], *token, buf[PATH_MAX];
+
+    if ((cmd == NULL) || (*cmd == '\0') || (fil == NULL)) {
+	WriteError("execute_str: invalid command or filename");
+	return -1;
+    }
 
     memset(args, 0, sizeof(args));
-    memset(&buf, 0, sizeof(buf));
-    i = 0;
-
+    memset(buf, 0, sizeof(buf));
     if ((pkt != NULL) && strlen(pkt))
-	snprintf(buf, PATH_MAX -1, "%s %s %s", cmd, fil, pkt);
+	written = snprintf(buf, sizeof(buf), "%s %s %s", cmd, fil, pkt);
     else
-	snprintf(buf, PATH_MAX -1, "%s %s", cmd, fil);
-	
-    args[i++] = strtok(buf, " \t\0");
-    while ((args[i++] = strtok(NULL," \t\n")) && (i < 15));
-    args[i++] = NULL;
+	written = snprintf(buf, sizeof(buf), "%s %s", cmd, fil);
+    if ((written < 0) || (written >= (int)sizeof(buf))) {
+	WriteError("execute_str: command line is too long");
+	return -1;
+    }
+
+    token = strtok(buf, " \t\n");
+    while ((token != NULL) && (i < 15)) {
+	args[i++] = token;
+	token = strtok(NULL, " \t\n");
+    }
+    if (token != NULL) {
+	WriteError("execute_str: too many command arguments");
+	return -1;
+    }
+    args[i] = NULL;
+    if (i == 0)
+	return -1;
 
     return execute(args, in, out, err);
 }
-
 
 
 /*
@@ -185,7 +209,7 @@ int execute_pth(char *prog, char *opts, char *in, char *out, char *err)
     char    *pth;
     int	    rc;
 
-    if (strchr(prog, ' ') || strchr(prog, '/')) {
+    if ((prog == NULL) || (*prog == '\0') || strchr(prog, ' ') || strchr(prog, '/')) {
 	WriteError("First parameter of execute_pth() must be a program name");
 	return -1;
     }
@@ -226,65 +250,89 @@ int execute_pth(char *prog, char *opts, char *in, char *out, char *err)
 int _execsh(char *, char *, char *, char *);
 int _execsh(char *cmd, char *in, char *out, char *err)
 {
-    int	pid, status, rc, sverr;
+    int pid, status = 0, rc, fd;
 
-    Syslog('+', "Execute shell: %s", MBSE_SS(cmd));
+    if ((cmd == NULL) || (*cmd == '\0')) {
+	WriteError("Execute shell: missing command");
+	return -1;
+    }
+    /* Shell command strings can contain credentials; do not log them. */
+    Syslog('+', "Execute shell command");
     fflush(stdout);
     fflush(stderr);
 
-    if ((pid = fork()) == 0) {
-	/*
-	 * A delay in the child to prevent it returns before the main
-	 * process sess it ever started.
-	 */
+    pid = fork();
+    if (pid == -1) {
+	WriteError("$Execute shell: fork failed");
+	return -1;
+    }
+    if (pid == 0) {
 	msleep(150);
-	
-	if (in) {
-	    close(0);
-	    if (open(in, O_RDONLY) != 0) {
-		WriteError("$Reopen of stdin to %s failed",MBSE_SS(in));
-		exit(MBERR_EXEC_FAILED);
+
+	if (in != NULL) {
+	    fd = open(in, O_RDONLY);
+	    if ((fd == -1) || ((fd != STDIN_FILENO) &&
+		(dup2(fd, STDIN_FILENO) == -1))) {
+		WriteError("$Reopen of stdin to %s failed", MBSE_SS(in));
+		if (fd >= 0)
+		    close(fd);
+		_exit(MBERR_EXEC_FAILED);
 	    }
+	    if (fd != STDIN_FILENO)
+		close(fd);
 	}
-	if (out) {
-	    close(1);
-	    if (open(out, O_WRONLY | O_APPEND | O_CREAT,0600) != 1) {
-		WriteError("$Reopen of stdout to %s failed",MBSE_SS(out));
-		exit(MBERR_EXEC_FAILED);
+	if (out != NULL) {
+	    fd = open(out, O_WRONLY | O_APPEND | O_CREAT, 0600);
+	    if ((fd == -1) || ((fd != STDOUT_FILENO) &&
+		(dup2(fd, STDOUT_FILENO) == -1))) {
+		WriteError("$Reopen of stdout to %s failed", MBSE_SS(out));
+		if (fd >= 0)
+		    close(fd);
+		_exit(MBERR_EXEC_FAILED);
 	    }
+	    if (fd != STDOUT_FILENO)
+		close(fd);
 	}
-	if (err) {
-	    close(2);
-	    if (open(err, O_WRONLY | O_APPEND | O_CREAT,0600) != 2) {
-		WriteError("$Reopen of stderr to %s failed",MBSE_SS(err));
-		exit(MBERR_EXEC_FAILED);
+	if (err != NULL) {
+	    fd = open(err, O_WRONLY | O_APPEND | O_CREAT, 0600);
+	    if ((fd == -1) || ((fd != STDERR_FILENO) &&
+		(dup2(fd, STDERR_FILENO) == -1))) {
+		WriteError("$Reopen of stderr to %s failed", MBSE_SS(err));
+		if (fd >= 0)
+		    close(fd);
+		_exit(MBERR_EXEC_FAILED);
 	    }
+	    if (fd != STDERR_FILENO)
+		close(fd);
 	}
 
-	rc = execl(SHELL, "sh", "-c", cmd, NULL);
-	WriteError("$execl \"%s\" returned %d", MBSE_SS(cmd), rc);
-	exit(MBERR_EXEC_FAILED);
+	execl(SHELL, "sh", "-c", cmd, NULL);
+	WriteError("$execl shell command failed");
+	_exit(MBERR_EXEC_FAILED);
     }
 
     e_pid = pid;
-
     do {
-	rc = wait(&status);
-	e_pid = 0;
-	sverr = errno;
-	if (status)
-	    WriteError("$Wait returned %d, status %d,%d", rc, status >> 8, status & 0xff);
-    }
+	rc = waitpid(pid, &status, 0);
+    } while ((rc == -1) && (errno == EINTR));
+    e_pid = 0;
 
-    while (((rc > 0) && (rc != pid)) || ((rc == -1) && (sverr == EINTR))); 
     if (rc == -1) {
-	WriteError("$Wait returned %d, status %d,%d", rc, status >> 8, status & 0xff);
-	return 0;
+	WriteError("$waitpid for shell command failed");
+	return -1;
     }
-
-    return status;
+    if (WIFEXITED(status)) {
+	rc = WEXITSTATUS(status);
+	return rc == 0 ? 0 : rc + MBERR_EXTERNAL;
+    }
+    if (WIFSIGNALED(status)) {
+	rc = WTERMSIG(status);
+	WriteError("Shell command stopped on signal %d", rc);
+	return rc;
+    }
+    WriteError("Shell command stopped in an unexpected state");
+    return -1;
 }
-
 
 int execsh(char *cmd, char *in, char *out, char *err)
 {

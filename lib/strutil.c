@@ -35,16 +35,21 @@
 
 char *padleft(char *str, int size, char pad)
 {
-	static char stri[256];
 	static char temp[256];
+	size_t copylen;
 
-	strcpy(stri, str);
+	if (size < 0)
+		size = 0;
+	if (size >= (int)sizeof(temp))
+		size = (int)sizeof(temp) - 1;
 	memset(temp, pad, (size_t)size);
 	temp[size] = '\0';
-	if (strlen(stri) <= size)
-		memmove(temp, stri, (size_t)strlen(stri));
-	else
-		memmove(temp, stri, (size_t)size);
+	if (str != NULL) {
+		copylen = strlen(str);
+		if (copylen > (size_t)size)
+			copylen = (size_t)size;
+		memcpy(temp, str, copylen);
+	}
 	return temp;
 }
 
@@ -55,13 +60,12 @@ char *padleft(char *str, int size, char pad)
  */
 char *tl(char *str)
 {
-	char	*p = str;
+	char	*p;
 
-	while (*p != '\0') {
-		*p = (char)tolower(*p);
-		p++;
-	}
-
+	if (str == NULL)
+		return NULL;
+	for (p = str; *p != '\0'; p++)
+		*p = (char)tolower((unsigned char)*p);
 	return str;
 }
 
@@ -84,20 +88,20 @@ void Striplf(char *String)
 
 void mbse_CleanSubject(char *String)
 {
-    int	    i, fixed = FALSE;
+    size_t  len;
+    int     fixed = FALSE;
 
-    i = strlen(String) -1;
+    if ((String == NULL) || (*String == '\0'))
+	return;
 
-    while ((isspace(String[i])) && i) {
-	String[i] = '\0';
-	i--;
+    len = strlen(String);
+    while ((len > 0) && isspace((unsigned char)String[len - 1])) {
+	String[--len] = '\0';
 	fixed = TRUE;
     }
 
-    if ((strncasecmp(String, "Re: ", 4) == 0) && (strncmp(String, "Re: ", 4))) {
-	/*
-	 * Fix Re:
-	 */
+    if ((len >= 4) && (strncasecmp(String, "Re: ", 4) == 0) &&
+	(strncmp(String, "Re: ", 4) != 0)) {
 	String[0] = 'R';
 	String[1] = 'e';
 	String[2] = ':';
@@ -116,8 +120,10 @@ void mbse_CleanSubject(char *String)
  */
 void tlf(char *str)
 {
-	*(str) = toupper(*(str));
+	if ((str != NULL) && (*str != '\0'))
+		*str = (char)toupper((unsigned char)*str);
 }
+
 
 
 
@@ -126,15 +132,15 @@ void tlf(char *str)
  */
 char *tu(char *str)
 {
-	char	*p = str;
+	char	*p;
 
-	while (*p != '\0') {
-		*p = (char)toupper(*p);
-		p++;
-	}
-
+	if (str == NULL)
+		return NULL;
+	for (p = str; *p != '\0'; p++)
+		*p = (char)toupper((unsigned char)*p);
 	return str;
 }
+
 
 
 
@@ -146,29 +152,23 @@ char *tu(char *str)
 char *tlcap(char *String)
 {
 	static char	stri[256];
-	int	Loop, Strlen;
-	
-	strcpy(stri, String);
-	Strlen = strlen(stri);
+	size_t		i, len;
+	int		capitalize = TRUE;
 
-	/*
-	 * Automatic do the first character
-	 */
-	stri[0] = toupper(stri[0]);
-
-	for(Loop = 1; Loop < Strlen; Loop++) {
-		stri[Loop] = tolower(stri[Loop]);
-		if (( stri[Loop] == ' ') || (stri[Loop] == '.')) {
-			/* 
-			 * This is a space charracter, increase the counter
-			 * and convert the next character to uppercase.
-			 */
-			Loop++;
-			stri[Loop] = toupper(stri[Loop]);
-		}
+	if (String == NULL) {
+		stri[0] = '\0';
+		return stri;
+	}
+	snprintf(stri, sizeof(stri), "%s", String);
+	len = strlen(stri);
+	for (i = 0; i < len; i++) {
+		unsigned char ch = (unsigned char)stri[i];
+		stri[i] = capitalize ? (char)toupper(ch) : (char)tolower(ch);
+		capitalize = ((stri[i] == ' ') || (stri[i] == '.'));
 	}
 	return stri;
 }
+
 
 
 
@@ -178,35 +178,73 @@ char *tlcap(char *String)
  */
 char *Hilite(char *str, char *Word)
 {
-	char *pos;
-	char *new;
-	char *old;
-	int t;
+	static const char on[] = "\033[1;37m";
+	static const char off[] = "\033[0;37m";
+	char *lower, *needle, *original, *match, *out, *dst;
+	size_t wordlen, count = 0, srcpos = 0, needed;
 
-	new = strdup(str);
-	old = strdup(str);
-	tl(new);
+	if ((str == NULL) || (Word == NULL) || (*Word == '\0'))
+		return str;
 
-	if ((pos = strstr(new,Word)) == NULL)
-		return(str);
-
-	str = realloc(str,strlen(new)+200);
-	strcpy(str,"\0");
-
-	while (( pos = strstr(new,Word)) != NULL) {
-		*pos = '\0';
-		t = strlen(new);
-		strncat(str,old,t);
-		strcat(str,"[1;37m");
-		old+=t;
-		strncat(str,old,strlen(Word));
-		strcat(str,"[0;37m");
-		old+=strlen(Word);
-		new = new+t+strlen(Word);
+	lower = xstrcpy(str);
+	needle = xstrcpy(Word);
+	original = xstrcpy(str);
+	if ((lower == NULL) || (needle == NULL) || (original == NULL)) {
+		free(lower);
+		free(needle);
+		free(original);
+		return str;
 	}
-	strcat(str,old);
-	return(str);
+	tl(lower);
+	tl(needle);
+	wordlen = strlen(needle);
+	for (match = strstr(lower, needle); match != NULL;
+	     match = strstr(match + wordlen, needle))
+		count++;
+	if (count == 0) {
+		free(lower);
+		free(needle);
+		free(original);
+		return str;
+	}
+
+	if (count > (SIZE_MAX - strlen(original) - 1) /
+	            (sizeof(on) - 1 + sizeof(off) - 1)) {
+		free(lower);
+		free(needle);
+		free(original);
+		return str;
+	}
+	needed = strlen(original) + count *
+	         (sizeof(on) - 1 + sizeof(off) - 1) + 1;
+	out = realloc(str, needed);
+	if (out == NULL) {
+		free(lower);
+		free(needle);
+		free(original);
+		return str;
+	}
+
+	dst = out;
+	while ((match = strstr(lower + srcpos, needle)) != NULL) {
+		size_t pos = (size_t)(match - lower);
+		memcpy(dst, original + srcpos, pos - srcpos);
+		dst += pos - srcpos;
+		memcpy(dst, on, sizeof(on) - 1);
+		dst += sizeof(on) - 1;
+		memcpy(dst, original + pos, wordlen);
+		dst += wordlen;
+		memcpy(dst, off, sizeof(off) - 1);
+		dst += sizeof(off) - 1;
+		srcpos = pos + wordlen;
+	}
+	strcpy(dst, original + srcpos);
+	free(lower);
+	free(needle);
+	free(original);
+	return out;
 }
+
 
 
 

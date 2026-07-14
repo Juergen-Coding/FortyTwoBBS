@@ -1,16 +1,21 @@
 FortyTwo BBS on Ubuntu 25.10
 ============================
 
-Supported development platform
-------------------------------
+Tested development platform
+---------------------------
 
-Ubuntu 25.10 on x86_64 hardware is currently the only tested development
-platform for FortyTwo BBS.
+The currently tested host platform for FortyTwo BBS development is:
+
+- Ubuntu 25.10
+- x86_64
+- glibc-based Linux
+- rootless Podman
 
 No other Linux distribution, Linux version, processor architecture or BSD
 system is currently documented as supported or compatible.
 
-Additional platforms will be tested after the first public release.
+Debian is planned as the first container deployment target, but is not yet a
+supported platform.
 
 
 Development status
@@ -19,12 +24,15 @@ Development status
 FortyTwo BBS is pre-alpha software intended exclusively for development,
 code review and isolated testing.
 
-There is currently no supported production installation or upgrade
-procedure.
+There is currently no supported production installation, public deployment
+or upgrade procedure.
 
-Do not run the inherited SETUP.sh script. It still implements the historical
+Do not run the inherited `SETUP.sh` script. It still implements the historical
 MBSE BBS installation model, creates legacy system accounts and modifies
 system configuration files.
+
+Personal operating-system accounts for BBS users are not part of the intended
+FortyTwo BBS architecture.
 
 
 Build requirements
@@ -53,20 +61,36 @@ reviewed and will be documented only after they have been reproduced on a
 clean Ubuntu 25.10 test system.
 
 
+Rootless Podman
+---------------
+
+A rootless Podman test image has been built and started successfully on the
+development host.
+
+The current test runtime uses fixed service accounts. BBS users are intended
+to become internal application identities with stable server-generated IDs,
+not personal Unix or container accounts.
+
+The Podman configuration is still a development setup and must not be treated
+as a supported public deployment.
+
+
 Network access
 --------------
 
-Telnet and SSH access have been tested locally on Ubuntu 25.10.
+Telnet and SSH access have been tested locally on Ubuntu 25.10 and inside the
+rootless Podman test environment.
 
 The current examples listen only on localhost and are available under:
 
-examples/fortytwo-access
+`examples/fortytwo-access`
 
-SSH is restricted to registered users and starts only FortyTwo BBS through a
-forced command.
+SSH is restricted and starts only FortyTwo BBS through a forced command.
+Command execution, forwarding, tunnelling, SCP and SFTP are disabled.
 
-New-user registration remains disabled until operating-system account
-creation has been isolated and hardened.
+Public new-user registration remains disabled until registration and
+authentication have been migrated completely to the internal BBS identity
+system.
 
 
 Further information
@@ -74,11 +98,12 @@ Further information
 
 Read these files before building or testing:
 
-- README.md
-- INSTALL.in
-- README.developer
-- LESEMICH.Entwickler
+- `README.md`
+- `LIESMICH.md`
+- `INSTALL.in`
+- `TODO`
+- `SECURITY_ARCHITECTURE.md`
+- `SICHERHEITS_ARCHITEKTUR.md`
 
-Project: https://www.ihlau.net
-Source:  https://github.com/Juergen-Coding/FortyTwoBBS
-Support: neo67@linuxmintusers.de
+Project & Source:  https://github.com/Juergen-Coding/FortyTwoBBS
+Support: https://github.com/Juergen-Coding/FortyTwoBBS/issues

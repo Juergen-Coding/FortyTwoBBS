@@ -72,17 +72,28 @@ int ftnmsgid(char *msgid, char **s, unsigned int *n, char *areaname)
     }
 
     buf = malloc(strlen(msgid)+65);
+    if (buf == NULL) {
+	*s = NULL;
+	*n = 0L;
+	return ftnorigin;
+    }
     strcpy(buf, msgid);
-    if ((l = strchr(buf,'<'))) 
+    if ((l = strchr(buf,'<')))
 	l++;
-    else 
+    else
 	l = buf;
-    while (isspace(*l)) 
+    while (isspace((unsigned char)*l))
 	l++;
-    if ((r = strchr(l,'>'))) 
+    if ((r = strchr(l,'>')))
 	*r = '\0';
+    if (*l == '\0') {
+	free(buf);
+	*s = NULL;
+	*n = 0L;
+	return ftnorigin;
+    }
     r = l + strlen(l) - 1;
-    while (isspace(*r) && (r > l)) 
+    while ((r > l) && isspace((unsigned char)*r))
 	(*r--)='\0';
     if ((tmp = parsefaddr(l))) {
 	if (tmp->name) {
@@ -124,20 +135,26 @@ int ftnmsgid(char *msgid, char **s, unsigned int *n, char *areaname)
 	} else if (strncmp(l,"ftn_",4) == 0) {
 	    *r = '\0';
 	    if ((r = strchr(l+4,'$')) || (r=strchr(l+4,'#'))) {
-		if (*r=='$') 
+		if (*r=='$')
 		    *r='@';
 		if ((r=strchr(l+4,'.')))
 		    *r=':';
 		if ((r=strchr(l+4,'.')))
 		    *r='/';
 	    }
-	    while ((r=strrchr(l+4,'_')) != strchr(l+4,'_')) 
+	    while (((r = strrchr(l+4, '_')) != NULL) &&
+		   (r != strchr(l+4, '_')))
 		*r='\0';
-	    r=strchr(l+4,'_');
-	    *r++='\0';
-	    *s=xstrcpy(l+4);
-	    sscanf(r,"%x",&nid);
-	    ftnorigin=1;
+	    r = strchr(l+4, '_');
+	    if (r != NULL) {
+		*r++='\0';
+		*s=xstrcpy(l+4);
+		sscanf(r,"%x",&nid);
+		ftnorigin=1;
+	    } else {
+		*s=xstrcpy(l+4);
+		hash_update_s(&nid, l+4);
+	    }
 	/* <wgcid$3$g712$h610$i22$kfidonet$j6596dbf5@brazerko.com> */
 	} else if (strncmp(l,"wgcid$",6) == 0) {
 	    *r='\0';

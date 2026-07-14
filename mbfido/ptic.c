@@ -183,7 +183,7 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 
     if (!TIC.TicIn.Hatch) {
 	if (strcasecmp(TIC.TicIn.Pw, nodes.Fpasswd)) {
-	    Bad((char *)"Pwd error, got %s, expected %s", TIC.TicIn.Pw, nodes.Fpasswd);
+	    Bad((char *)"TIC password mismatch");
 	    free(path_tic);
 	    return 1;
 	}
@@ -582,17 +582,17 @@ int ProcessTic(fa_list **sbl, orphans **opl)
 			Syslog('f', "Panic, no spaces");
 			j = 47;
 		    }
-		    strncpy(TIC.File_Id[TIC.File_Id_Ct], TDesc, j);
+		    memcpy(TIC.File_Id[TIC.File_Id_Ct], TDesc, (size_t)j);
+		    TIC.File_Id[TIC.File_Id_Ct][j] = '\0';
 		    Syslog('f', "%2d/%2d: \"%s\"", TIC.File_Id_Ct, j, TIC.File_Id[TIC.File_Id_Ct]);
 		    TIC.File_Id_Ct++;
 		    k = strlen(TDesc);
-		    j++; /* Correct space */
-		    for (i = 0; i <= k; i++, j++)
-			TDesc[i] = TDesc[j];
+		    j++; /* Skip the separating space. */
+		    memmove(TDesc, TDesc + j, k >= j ? (size_t)(k - j + 1) : 1);
 		    if (TIC.File_Id_Ct == 23)
 			break;
 		}
-		memcpy(TIC.File_Id[TIC.File_Id_Ct], TDesc, 48);
+		snprintf(TIC.File_Id[TIC.File_Id_Ct], sizeof(TIC.File_Id[TIC.File_Id_Ct]), "%.48s", TDesc);
 		Syslog('f', "%2d/%2d: \"%s\"", TIC.File_Id_Ct, strlen(TIC.File_Id[TIC.File_Id_Ct]), TIC.File_Id[TIC.File_Id_Ct]);
 		TIC.File_Id_Ct++;
 	    }

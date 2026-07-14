@@ -56,62 +56,105 @@ int check_auth(char *cmd)
 void auth_user(char *cmd)
 {
     char    *p;
-    
-    p = strtok(cmd, " \0");
-    p = strtok(NULL, " \0");
-    p = strtok(NULL, " \0");
-    if (strlen(p) > 8) {
-	/*
-	 * Username too long
-	 */
-	WriteError("Got a username of %d characters", sizeof(p));
+
+    got_username = FALSE;
+    memset(username, 0, sizeof(username));
+    if (cmd == NULL) {
+	WriteError("Malformed AUTHINFO USER command");
 	send_nntp("482 Authentication rejected");
 	return;
     }
-    memset(&username, 0, sizeof(username));
-    strncpy(username, p, 8);
+
+    p = strtok(cmd, " \0");
+    if (p != NULL)
+	p = strtok(NULL, " \0");
+    if (p != NULL)
+	p = strtok(NULL, " \0");
+    if ((p == NULL) || (*p == '\0')) {
+	WriteError("AUTHINFO USER without username");
+	send_nntp("482 Authentication rejected");
+	return;
+    }
+    if (strlen(p) >= sizeof(username)) {
+	WriteError("Got a username of %u characters", (unsigned int)strlen(p));
+	send_nntp("482 Authentication rejected");
+	return;
+    }
+
+    snprintf(username, sizeof(username), "%s", p);
     send_nntp("381 More authentication information required");
     got_username = TRUE;
 }
 
 
-
 void auth_pass(char *cmd)
 {
-    char    *p, *temp;
+    char    *p, path[PATH_MAX];
+    const char *root;
     FILE    *fp;
-    int	    FoundName = FALSE;
+    int     FoundName = FALSE;
 
-    if (! got_username) {
+    if (!got_username) {
 	WriteError("Got AUTHINFO PASS before AUTHINFO USER");
 	send_nntp("482 Authentication rejected");
 	return;
     }
 
-    p = strtok(cmd, " \0");
-    p = strtok(NULL, " \0");
-    p = strtok(NULL, " \0");
-
-    temp = calloc(PATH_MAX, sizeof(char));
-    snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
-    if ((fp = fopen(temp,"r+")) == NULL) {
-	/*
-	 * This should not happen
-	 */
-	WriteError("$Can't open %s", temp);
+    if (cmd == NULL) {
+	WriteError("Malformed AUTHINFO PASS command");
 	send_nntp("482 Authentication rejected");
-	free(temp);
 	got_username = FALSE;
 	return;
     }
-    free(temp);
+    p = strtok(cmd, " \0");
+    if (p != NULL)
+	p = strtok(NULL, " \0");
+    if (p != NULL)
+	p = strtok(NULL, " \0");
+    if (p == NULL) {
+	WriteError("AUTHINFO PASS without password");
+	send_nntp("482 Authentication rejected");
+	got_username = FALSE;
+	return;
+    }
+
+    root = getenv("MBSE_ROOT");
+    if ((root == NULL) || (*root == '\0') ||
+	(snprintf(path, sizeof(path), "%s/etc/users.data", root) >= (int)sizeof(path))) {
+	WriteError("Invalid MBSE_ROOT while authenticating NNTP user");
+	send_nntp("482 Authentication rejected");
+	got_username = FALSE;
+	return;
+    }
+    if ((fp = fopen(path, "r+")) == NULL) {
+	WriteError("$Can't open %s", path);
+	send_nntp("482 Authentication rejected");
+	got_username = FALSE;
+	return;
+    }
+
+    if ((fread(&usrconfighdr, sizeof(usrconfighdr), 1, fp) != 1) ||
+	(usrconfighdr.recsize <= 0) ||
+	((size_t)usrconfighdr.recsize > sizeof(usrconfig)) ||
+	(usrconfighdr.hdrsize < (int)sizeof(usrconfighdr)) ||
+	(fseek(fp, usrconfighdr.hdrsize, SEEK_SET) != 0)) {
+	WriteError("Invalid users.data header");
+	send_nntp("482 Authentication rejected");
+	fclose(fp);
+	got_username = FALSE;
+	return;
+    }
 
     grecno = 0;
-    fread(&usrconfighdr, sizeof(usrconfighdr), 1, fp);
-    while (fread(&usrconfig, usrconfighdr.recsize, 1, fp) == 1) {
+    while (TRUE) {
+	memset(&usrconfig, 0, sizeof(usrconfig));
+	if (fread(&usrconfig, usrconfighdr.recsize, 1, fp) != 1)
+	    break;
+	usrconfig.Name[sizeof(usrconfig.Name) - 1] = '\0';
+	usrconfig.Password[sizeof(usrconfig.Password) - 1] = '\0';
 	if (strcmp(usrconfig.Name, username) == 0) {
 	    FoundName = TRUE;
-	    usercharset=usrconfig.Charset;
+	    usercharset = usrconfig.Charset;
 	    break;
 	}
 	grecno++;
@@ -125,8 +168,18 @@ void auth_pass(char *cmd)
 	memset(&usrconfig, 0, sizeof(usrconfig));
 	return;
     }
-    
-    if (strcasecmp(usrconfig.Password, p)) {
+
+    if (usrconfig.Deleted || usrconfig.LockedOut) {
+	Syslog('+', "Disabled NNTP account rejected for user \"%s\"", username);
+	send_nntp("482 Authentication rejected");
+	fclose(fp);
+	got_username = FALSE;
+	memset(&usrconfig, 0, sizeof(usrconfig));
+	return;
+    }
+
+    /* Legacy compatibility only: users.data still stores a cleartext password. */
+    if (strcmp(usrconfig.Password, p) != 0) {
 	Syslog('+', "Password error, reject user \"%s\"", username);
 	send_nntp("482 Authentication rejected");
 	fclose(fp);
@@ -135,27 +188,21 @@ void auth_pass(char *cmd)
 	return;
     }
 
-    /*
-     * Update user record
-     */
-    usrconfig.tLastLoginDate = time(NULL);  /* Login date is current date   */
-    usrconfig.iTotalCalls++;		    /* Increase calls		    */
-	
-    /*
-     * Update user record.
-     */
-    if (fseek(fp, usrconfighdr.hdrsize + (grecno * usrconfighdr.recsize), 0) != 0) {
-	WriteError("Can't seek in %s/etc/users.data", getenv("MBSE_ROOT"));
-    } else {
-	fwrite(&usrconfig, sizeof(usrconfig), 1, fp);
+    usrconfig.tLastLoginDate = time(NULL);
+    usrconfig.iTotalCalls++;
+
+    if ((fseek(fp, usrconfighdr.hdrsize +
+	      ((long)grecno * usrconfighdr.recsize), SEEK_SET) != 0) ||
+	(fwrite(&usrconfig, usrconfighdr.recsize, 1, fp) != 1)) {
+	WriteError("Can't update %s", path);
+	send_nntp("482 Authentication rejected");
+	fclose(fp);
+	got_username = FALSE;
+	memset(&usrconfig, 0, sizeof(usrconfig));
+	return;
     }
     fclose(fp);
 
-    /*
-     * User logged in, tell it to the server. Check if a location is
-     * set, if Ask User location for new users is off, this field is
-     * empty but we have to send something to the server.
-     */
     if (strlen(usrconfig.sLocation))
 	UserCity(mypid, usrconfig.Name, usrconfig.sLocation);
     else

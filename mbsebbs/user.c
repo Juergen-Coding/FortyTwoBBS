@@ -218,6 +218,21 @@ void user(void)
     }
 
     /*
+     * Disabled BBS accounts must never enter a session.  This check is
+     * deliberately enforced here as the common boundary for all transports,
+     * including callers which start mbsebbs without using mblogin.
+     */
+    if (usrconfig.Deleted || usrconfig.LockedOut) {
+	fclose(pUsrConfig);
+	Syslog('!', "Login denied for disabled BBS account %s "
+	       "(deleted=%u, locked=%u)",
+	       usrconfig.Name, usrconfig.Deleted, usrconfig.LockedOut);
+	PUTSTR((char *)"Login denied.\r\n");
+	Free_Language();
+	ExitClient(MBERR_OK);
+    }
+
+    /*
      * Copy username, split first and lastname.
      */
     strncpy(UserName, usrconfig.sUserName, sizeof(UserName)-1);

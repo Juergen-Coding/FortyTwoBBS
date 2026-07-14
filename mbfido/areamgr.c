@@ -1032,7 +1032,7 @@ int AreaMgr(faddr *f, faddr *t, char *replyid, char *subj, time_t mdate, int fla
      * If the password failed, we respond with an error message.
      */
     if ((!strlen(subj)) || (strcasecmp(subj, nodes.Apasswd))) {
-	WriteError("AreaMgr: password expected \"%s\", got \"%s\"", nodes.Apasswd, subj);
+	WriteError("AreaMgr: password mismatch");
 	Mgrlog("AreaMgr request from %s finished", ascfnode(f, 0xff));
 	net_bad++;
 	/*

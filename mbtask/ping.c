@@ -285,6 +285,23 @@ void ping_receive(char *buf, int len)
  */
 void init_pingsocket(void)
 {
+    const char *disable_ping = getenv("MBSE_DISABLE_RAW_PING");
+
+    /*
+     * Containers should not need CAP_NET_RAW merely to run mbtask.
+     * When explicitly disabled, assume the Internet connection is up
+     * and leave the ping descriptor at -1; poll() ignores negative fds.
+     */
+    if ((disable_ping != NULL) && (strcmp(disable_ping, "1") == 0)) {
+	ping_isocket = -1;
+	pingresult[0] = pingresult[1] = TRUE;
+	ping_next = ping_sent = ping_rcvd = time(NULL);
+	snprintf(pingaddress, 41, "disabled");
+	internet = TRUE;
+	fprintf(stderr, "Raw ICMP ping monitoring disabled\n");
+	return;
+    }
+
     if ((ping_isocket = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
 	if (errno == EPERM) {
 	    fprintf(stderr, "socket init failed, mbtask not installed setuid root\n");
@@ -316,6 +333,9 @@ void check_ping(void)
 {
     int	    rc = 0;
     time_t  now;
+
+    if (ping_isocket < 0)
+	return;
 
     now = time(NULL);
     if ((int)now >= (int)ping_next) {
@@ -391,12 +411,15 @@ void deinit_ping(void)
 {
     int	    rc;
 
-    if ((rc = close(ping_isocket))) {
-	WriteError("$ping loop error socket close");
+    if (ping_isocket >= 0) {
+	if ((rc = close(ping_isocket))) {
+	    WriteError("$ping loop error socket close");
+	}
+	ping_isocket = -1;
+	Syslog('+', "Ping loop stopped");
+    } else {
+	Syslog('+', "Ping loop was disabled");
     }
-    ping_isocket = -1;
-
-    Syslog('+', "Ping loop stopped");
 }
 
 

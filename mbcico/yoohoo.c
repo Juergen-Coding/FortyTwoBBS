@@ -191,7 +191,7 @@ int rx_yoohoo(void)
 		if (pwd)
 		    free(pwd);
 		pwd = xstrcpy((char *)"BAD_PASS");
-		Syslog('?', "Remote password \"%s\", expected \"%s\"", (char*)hello2.my_password, nodes.Spasswd);
+		Syslog('?', "YooHoo: password mismatch");
 		localcaps = 0;
 	    }
 	} else

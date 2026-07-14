@@ -52,6 +52,10 @@ int Chg_Language(int NewMode)
     char    *temp;
 
     temp = calloc(PATH_MAX, sizeof(char));
+    if (temp == NULL) {
+	WriteError("Chg_Language: out of memory");
+	return 0;
+    }
 
     if (!NewMode)
 	ReadExitinfo();
@@ -251,6 +255,11 @@ int CheckHandle(char *Name)
     char    *temp;
 
     temp = calloc(PATH_MAX, sizeof(char));
+    if (temp == NULL) {
+	WriteError("CheckHandle: out of memory");
+	return FALSE;
+    }
+
     snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
     if ((fp = fopen(temp,"rb")) != NULL) {
         fread(&uhdr, sizeof(uhdr), 1, fp);
@@ -279,6 +288,12 @@ void Chg_Handle()
 
     Handle = calloc(81, sizeof(char));
     temp   = calloc(81, sizeof(char));
+    if ((Handle == NULL) || (temp == NULL)) {
+	WriteError("Chg_Handle: out of memory");
+	free(Handle);
+	free(temp);
+	return;
+    }
 
     ReadExitinfo();
     Syslog('+', "Old handle \"%s\"", exitinfo.sHandle);
@@ -790,6 +805,11 @@ void Chg_DOB()
 	return;
 
     temp  = calloc(81, sizeof(char));
+    if (temp == NULL) {
+	WriteError("Chg_DOB: out of memory");
+	return;
+    }
+
     ReadExitinfo();
     Syslog('+', "Old DOB %s", exitinfo.sDateOfBirth);
 
@@ -822,6 +842,11 @@ void Chg_Archiver()
     char    *temp;
 
     temp = calloc(PATH_MAX, sizeof(char));
+    if (temp == NULL) {
+	WriteError("Chg_Archiver: out of memory");
+	return;
+    }
+
     ReadExitinfo();
     Syslog('+', "Old archiver %s", exitinfo.Archiver);
 
@@ -914,6 +939,11 @@ void Chg_Protocol()
     char    *temp, Prot[2];
 
     temp = calloc(PATH_MAX, sizeof(char));
+    if (temp == NULL) {
+	WriteError("Chg_Protocol: out of memory");
+	return;
+    }
+
     ReadExitinfo();
     Set_Protocol(exitinfo.sProtocol);
     Syslog('+', "Old protocol %s", sProtName);
@@ -929,7 +959,6 @@ void Chg_Protocol()
 	    Enter(2);
 	    Pause();
 	    free(temp);
-	    fclose(pProtConfig);
 	    return;
 	}
 	fread(&PROThdr, sizeof(PROThdr), 1, pProtConfig);
@@ -1013,6 +1042,10 @@ void Set_Protocol(char *Protocol)
 
     memset(&sProtName, 0, sizeof(sProtName));
     temp = calloc(PATH_MAX, sizeof(char));
+    if (temp == NULL) {
+	WriteError("Set_Protocol: out of memory");
+	return;
+    }
 
     snprintf(temp, PATH_MAX, "%s/etc/protocol.data", getenv("MBSE_ROOT"));
 
@@ -1079,6 +1112,11 @@ void Chg_Charset()
     char    *temp;
 
     temp = calloc(81, sizeof(char));
+    if (temp == NULL) {
+	WriteError("Chg_Charset: out of memory");
+	return;
+    }
+
     ReadExitinfo();
     Syslog('+', "Old character set %s", getftnchrs(exitinfo.Charset));
 

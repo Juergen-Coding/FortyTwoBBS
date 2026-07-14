@@ -166,10 +166,12 @@ SM_EDECL
 	fl.l_pid = getpid();
 	if (fcntl(fileno(fp),F_SETLK,&fl) != 0) {
 		WriteError("$cannot lock local file \"%s\" to send, skip it",MBSE_SS(ln));
+		fclose(fp);
 		return 0;
 	}
 	if (stat(ln,&st) != 0) {
 		WriteError("$cannot access local file \"%s\" to send, skip it",MBSE_SS(ln));
+		fclose(fp);
 		return 0;
 	}
 

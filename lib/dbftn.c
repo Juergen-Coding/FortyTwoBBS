@@ -33,11 +33,26 @@
 #include "mbsedb.h"
 
 
+static int valid_fidonet_header(void)
+{
+    return (fidonethdr.hdrsize >= (int)sizeof(fidonethdr)) &&
+           (fidonethdr.recsize > 0) &&
+           (fidonethdr.recsize <= (int)sizeof(fidonet));
+}
+
+
+static int valid_domalias_header(void)
+{
+    return (domaliashdr.hdrsize >= (int)sizeof(domaliashdr)) &&
+           (domaliashdr.recsize > 0) &&
+           (domaliashdr.recsize <= (int)sizeof(domalias));
+}
 
 
 int InitFidonet(void)
 {
 	FILE	*fil;
+	long	end;
 
 	memset(&fidonet, 0, sizeof(fidonet));
 	LoadConfig();
@@ -46,9 +61,13 @@ int InitFidonet(void)
 	if ((fil = fopen(fidonet_fil, "r")) == NULL)
 		return FALSE;
 
-	fread(&fidonethdr, sizeof(fidonethdr), 1, fil);
-	fseek(fil, 0, SEEK_END);
-	fidonet_cnt = (ftell(fil) - fidonethdr.hdrsize) / fidonethdr.recsize;
+	if ((fread(&fidonethdr, sizeof(fidonethdr), 1, fil) != 1) ||
+	    !valid_fidonet_header() || (fseek(fil, 0, SEEK_END) != 0) ||
+	    ((end = ftell(fil)) < fidonethdr.hdrsize)) {
+		fclose(fil);
+		return FALSE;
+	}
+	fidonet_cnt = (end - fidonethdr.hdrsize) / fidonethdr.recsize;
 	fclose(fil);
 
 	return TRUE;
@@ -82,9 +101,14 @@ int SearchFidonet(unsigned short zone)
 	if ((fil = fopen(fidonet_fil, "r")) == NULL) {
 		return FALSE;
 	}
-	fread(&fidonethdr, sizeof(fidonethdr), 1, fil);
+	if ((fread(&fidonethdr, sizeof(fidonethdr), 1, fil) != 1) ||
+	    !valid_fidonet_header() ||
+	    (fseek(fil, fidonethdr.hdrsize, SEEK_SET) != 0)) {
+		fclose(fil);
+		return FALSE;
+	}
 
-	while (fread(&fidonet, fidonethdr.recsize, 1, fil) == 1) {
+	while (fread(&fidonet, (size_t)fidonethdr.recsize, 1, fil) == 1) {
 		if (TestFidonet(zone)) {
 			fclose(fil);
 			return TRUE;
@@ -113,6 +137,7 @@ char *GetFidoDomain(unsigned short zone)
 int InitDomainAlias(void)
 {
         FILE	*fil;
+        long	end;
         
         memset(&domalias, 0, sizeof(domalias));
         LoadConfig();
@@ -121,9 +146,13 @@ int InitDomainAlias(void)
         if ((fil = fopen(domalias_fil, "r")) == NULL)
                 return FALSE;
                 
-        fread(&domaliashdr, sizeof(domaliashdr), 1, fil);
-        fseek(fil, 0, SEEK_END);
-        domalias_cnt = (ftell(fil) - domaliashdr.hdrsize) / domaliashdr.recsize;
+        if ((fread(&domaliashdr, sizeof(domaliashdr), 1, fil) != 1) ||
+            !valid_domalias_header() || (fseek(fil, 0, SEEK_END) != 0) ||
+            ((end = ftell(fil)) < domaliashdr.hdrsize)) {
+                fclose(fil);
+                return FALSE;
+        }
+        domalias_cnt = (end - domaliashdr.hdrsize) / domaliashdr.recsize;
         fclose(fil);
         
         return TRUE;
@@ -136,9 +165,14 @@ char *SearchDomainAlias(char *alias)
 	if ((fil = fopen(domalias_fil, "r")) == NULL) {
 		return NULL;
 	}
-	fread(&domaliashdr, sizeof(domaliashdr), 1, fil);
+	if ((fread(&domaliashdr, sizeof(domaliashdr), 1, fil) != 1) ||
+	    !valid_domalias_header() ||
+	    (fseek(fil, domaliashdr.hdrsize, SEEK_SET) != 0)) {
+		fclose(fil);
+		return NULL;
+	}
 
-	while (fread(&domalias, domaliashdr.recsize, 1, fil) == 1) {
+	while (fread(&domalias, (size_t)domaliashdr.recsize, 1, fil) == 1) {
 		if (strcmp(alias, domalias.alias) == 0) {
 			fclose(fil);
 			return domalias.domain;

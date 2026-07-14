@@ -203,7 +203,7 @@ int getheader(faddr *f, faddr *t, FILE *pkt, char *pname, int session)
 	    if (strcasecmp(nodes.Spasswd, pktpwd) == 0) {
 		return 0; /* Secure session */
 	    } else {
-		Syslog('!', "Password : got \"%s\", expected \"%s\"", pktpwd, nodes.Spasswd);
+		Syslog('!', "Session password mismatch");
 		return 4; /* Bad password */
 	    }
 	} else {
@@ -218,7 +218,7 @@ int getheader(faddr *f, faddr *t, FILE *pkt, char *pname, int session)
 	    if (strcasecmp(nodes.Epasswd, pktpwd) == 0) {   
 		return 0; /* Password Ok */
 	    } else {
-		Syslog('!', "Password : got \"%s\", expected \"%s\"", pktpwd, nodes.Epasswd);
+		Syslog('!', "Mail packet password mismatch");
 		return 4; /* Bad password */
 	    }
 	} else {

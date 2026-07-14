@@ -995,6 +995,11 @@ int command_pass(int slot, char *hostname, char *parameters)
     version = strtok(NULL, " \0");
     lnk = strtok(NULL, " \0");
 
+    if (passwd == NULL) {
+	send_msg(slot, (char *)"400 PASS: Missing password\r\n");
+	return 400;
+    }
+
     if (strcmp(passwd, "0100") == 0) {
 	send_msg(slot, (char *)"414 PASS: Got empty password\r\n");
 	return 414;
@@ -1006,7 +1011,8 @@ int command_pass(int slot, char *hostname, char *parameters)
     }
 
     if (strcmp(passwd, ncs_list[slot].passwd)) {
-	Syslog('!', "IBC: got bad password %s from %s", passwd, hostname);
+	Syslog('!', "IBC: bad password from %s",
+	       hostname != NULL ? hostname : "<unknown>");
 	return 0;
     }
 

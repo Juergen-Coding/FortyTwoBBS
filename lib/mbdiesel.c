@@ -42,8 +42,15 @@ void MacroVars( const char *codes, const char *fmt, ...)
     int	    j, dieselrc, vd;
     double  vf;
 
-    tmp1 = calloc(MAXSTR, sizeof(char));
-    tmp2 = calloc(MAXSTR, sizeof(char));
+    if ((codes == NULL) || (fmt == NULL)) {
+	WriteError("MacroVars: invalid arguments");
+	return;
+    }
+
+    tmp1 = xmalloc(MAXSTR);
+    tmp2 = xmalloc(MAXSTR);
+    memset(tmp1, 0, MAXSTR);
+    memset(tmp2, 0, MAXSTR);
 
     va_start(ap,fmt);
     for (j = 0; (codes[j] != '\0') && (fmt[j] != '\0') ; j++ ){
@@ -51,7 +58,8 @@ void MacroVars( const char *codes, const char *fmt, ...)
         switch (fmt[j]) {
 	    case 's':   /* string */
                         vs = va_arg(ap, char *);
-                        snprintf(tmp1, MAXSTR -1, "@(setvar,%c,\"%s\")",codes[j], clencode(vs));
+                        snprintf(tmp1, MAXSTR, "@(setvar,%c,\"%s\")", codes[j],
+			 clencode(vs != NULL ? vs : (char *)""));
                         break;
 	    case 'd':   /* int */
                         vd = va_arg(ap, int);
@@ -85,7 +93,8 @@ void MacroClear(void)
     int	    dieselrc;
     char    tmp1[] = "@(CLEAR)", *tmp2;
 
-    tmp2 = calloc(10,sizeof(char));
+    tmp2 = xmalloc(10);
+    memset(tmp2, 0, 10);
     dieselrc = diesel(tmp1, tmp2);
     if (dieselrc)
 	Syslog('!', "MacroClear error %d", dieselrc);
@@ -103,19 +112,27 @@ char *ParseMacro( const char *line, int *dieselrc)
     char	code;
 
     res[0]='\0';
+    if (dieselrc == NULL)
+	return res;
     *dieselrc=0;
+
+    if (line == NULL)
+	return res;
 
     if ( *line == '#' )
 	return res;
 
-    tmp1 = calloc(MAXSTR, sizeof(char));
-    tmp2 = calloc(MAXSTR, sizeof(char));
-    tmp3 = calloc(MAXSTR, sizeof(char));
+    tmp1 = xmalloc(MAXSTR);
+    tmp2 = xmalloc(MAXSTR);
+    tmp3 = xmalloc(MAXSTR);
+    memset(tmp1, 0, MAXSTR);
+    memset(tmp2, 0, MAXSTR);
+    memset(tmp3, 0, MAXSTR);
 
     tmp1[0]='\0';
 
     for (i = line; i[0] != '\0'; i++) {
-	if ( (i[0] == '@') && isalpha(i[1]) ){
+	if ( (i[0] == '@') && isalpha((unsigned char)i[1]) ){
 	    l=2;
 	    i++;
 	    if (i[0] != '@') {
@@ -133,17 +150,23 @@ char *ParseMacro( const char *line, int *dieselrc)
 		if (l>2){
 		    if ( *i != '>')
 			l=-l;
-		    snprintf(&tmp1[strlen(tmp1)], MAXSTR, "%*.*s", l, l, tmp3);
+		    snprintf(&tmp1[strlen(tmp1)], MAXSTR - strlen(tmp1), "%*.*s", l, l, tmp3);
 		}else{
-		    snprintf(&tmp1[strlen(tmp1)], MAXSTR, "%s", tmp3);
+		    snprintf(&tmp1[strlen(tmp1)], MAXSTR - strlen(tmp1), "%s", tmp3);
 		}
 	    }else{
-		tmp1[(j=strlen(tmp1))]='@';
-		tmp1[j+1]='\0';
+		j = strlen(tmp1);
+		if (j < (MAXSTR - 1)) {
+		    tmp1[j] = '@';
+		    tmp1[j + 1] = '\0';
+		}
 	    }
 	}else{
-	    tmp1[(j=strlen(tmp1))]=i[0];
-	    tmp1[j+1]='\0';
+	    j = strlen(tmp1);
+	    if (j < (MAXSTR - 1)) {
+		tmp1[j] = i[0];
+		tmp1[j + 1] = '\0';
+	    }
 	}
     }
 
@@ -172,7 +195,7 @@ char *ParseMacro( const char *line, int *dieselrc)
     free(tmp1);
     free(tmp2);
     free(tmp3);
-    while (isspace(res[strlen(res) - 1])) {
+    while ((res[0] != '\0') && isspace((unsigned char)res[strlen(res) - 1])) {
 	res[strlen(res) - 1] = EOS;
     }
     if ((res[0] == '@') && (res[1] =='!' ))
@@ -195,8 +218,13 @@ void Cookie(int HtmlMode)
     int	    recno, records;
 
     MacroVars("F", "s", "");
-    fname = calloc(PATH_MAX, sizeof(char));
-    snprintf(fname, PATH_MAX -1, "%s/etc/oneline.data", getenv("MBSE_ROOT"));
+    if ((getenv("MBSE_ROOT") == NULL) || (*getenv("MBSE_ROOT") == '\0')) {
+	WriteError("Cookie: MBSE_ROOT is not set");
+	return;
+    }
+    fname = xmalloc(PATH_MAX);
+    memset(fname, 0, PATH_MAX);
+    snprintf(fname, PATH_MAX, "%s/etc/oneline.data", getenv("MBSE_ROOT"));
 
     if ((olf = fopen(fname, "r")) == NULL) {
 	WriteError("Can't open %s", fname);
@@ -204,9 +232,23 @@ void Cookie(int HtmlMode)
 	return;
     }
 
-    fread(&olhdr, sizeof(olhdr), 1, olf);
-    fseek(olf, 0, SEEK_END);
+    if ((fread(&olhdr, sizeof(olhdr), 1, olf) != 1) ||
+	(olhdr.hdrsize < (int)sizeof(olhdr)) ||
+	(olhdr.recsize <= 0) || (olhdr.recsize > (int)sizeof(ol)) ||
+	(fseek(olf, 0, SEEK_END) != 0) ||
+	(ftell(olf) < olhdr.hdrsize)) {
+	WriteError("Invalid oneline database: %s", fname);
+	fclose(olf);
+	free(fname);
+	return;
+    }
     records = (ftell(olf) - olhdr.hdrsize) / olhdr.recsize;
+    if (records <= 0) {
+	WriteError("Empty oneline database: %s", fname);
+	fclose(olf);
+	free(fname);
+	return;
+    }
 
     if (firstrandom) {
 	srand(getpid());
@@ -241,27 +283,46 @@ void Cookie(int HtmlMode)
  */
 void html_massage(char *inbuf, char *outbuf, size_t size)
 {
-        char    *inptr = inbuf;
-        char    *outptr = outbuf;
+    const char  *inptr;
+    char        *outptr;
+    size_t      remaining;
 
-        memset(outbuf, 0, sizeof(*outbuf));
+    if ((outbuf == NULL) || (size == 0))
+	return;
 
-        while (*inptr) {
+    outbuf[0] = '\0';
+    if (inbuf == NULL)
+	return;
 
-                switch ((unsigned char)*inptr) {
+    inptr = inbuf;
+    outptr = outbuf;
+    remaining = size;
 
-                        case '"':       snprintf(outptr, size, "&quot;");      break;
-                        case '&':       snprintf(outptr, size, "&amp;");       break;
-                        case '<':       snprintf(outptr, size, "&lt;");        break;
-                        case '>':       snprintf(outptr, size, "&gt;");        break;
-                        default:        *outptr++ = *inptr; *outptr = '\0';     break;
-                }
-                while (*outptr)
-                        outptr++;
+    while ((*inptr != '\0') && (remaining > 1)) {
+	const char  *entity = NULL;
+	size_t      length;
 
-                inptr++;
-        }
-        *outptr = '\0';
+	switch ((unsigned char)*inptr) {
+	    case '"': entity = "&quot;"; break;
+	    case '&': entity = "&amp;";  break;
+	    case '<': entity = "&lt;";   break;
+	    case '>': entity = "&gt;";   break;
+	}
+
+	if (entity != NULL) {
+	    length = strlen(entity);
+	    if (length >= remaining)
+		break;
+	    memcpy(outptr, entity, length);
+	    outptr += length;
+	    remaining -= length;
+	} else {
+	    *outptr++ = *inptr;
+	    remaining--;
+	}
+	inptr++;
+    }
+    *outptr = '\0';
 }
 
 
@@ -269,29 +330,48 @@ void html_massage(char *inbuf, char *outbuf, size_t size)
 FILE *OpenMacro(const char *filename, int Language, int htmlmode)
 {
     FILE	*pLang, *fi = NULL;
-    char	*temp, *aka, linebuf[1024], outbuf[1024];
+    char	*temp, *aka, linebuf[1024], outbuf[1024], language_file[PATH_MAX];
 		            
-    temp = calloc(PATH_MAX, sizeof(char));
-    aka  = calloc(81, sizeof(char));
-    temp[0] = '\0';
+    const char  *root = getenv("MBSE_ROOT");
+
+    if ((filename == NULL) || (*filename == '\0') || (root == NULL) || (*root == '\0')) {
+	WriteError("OpenMacro: invalid filename or MBSE_ROOT");
+	return NULL;
+    }
+
+    temp = xmalloc(PATH_MAX);
+    aka  = xmalloc(81);
+    memset(temp, 0, PATH_MAX);
+    memset(aka, 0, 81);
 
     if (Language != '\0') {
 	/*
 	 * Maybe a valid language character, try to load the language
 	 */
-	snprintf(temp, PATH_MAX -1, "%s/etc/language.data", getenv("MBSE_ROOT"));
-	if ((pLang = fopen(temp, "rb")) == NULL) {
-	    WriteError("mbdiesel: Can't open language file: %s", temp);
+	snprintf(language_file, sizeof(language_file), "%s/etc/language.data", root);
+	if ((pLang = fopen(language_file, "rb")) == NULL) {
+	    WriteError("mbdiesel: Can't open language file: %s", language_file);
 	} else {
-	    fread(&langhdr, sizeof(langhdr), 1, pLang);
-    
-	    while (fread(&lang, langhdr.recsize, 1, pLang) == 1) {
+	    if ((fread(&langhdr, sizeof(langhdr), 1, pLang) != 1) ||
+		(langhdr.hdrsize < (int)sizeof(langhdr)) ||
+		(langhdr.recsize <= 0) || (langhdr.recsize > (int)sizeof(lang)) ||
+		(fseek(pLang, langhdr.hdrsize, SEEK_SET) != 0)) {
+		WriteError("mbdiesel: Invalid language database header: %s", language_file);
+		fclose(pLang);
+		pLang = NULL;
+	    }
+
+	    while (pLang != NULL) {
+		memset(&lang, 0, sizeof(lang));
+		if (fread(&lang, langhdr.recsize, 1, pLang) != 1)
+		    break;
 		if ((lang.LangKey[0] == Language) && (lang.Available)) {
-		    snprintf(temp, PATH_MAX -1, "%s/share/int/macro/%s/%s", getenv("MBSE_ROOT"), lang.lc, filename);
+		    snprintf(temp, PATH_MAX, "%s/share/int/macro/%s/%s", root, lang.lc, filename);
 		    break;
 		}
 	    }
-	    fclose(pLang);
+	    if (pLang != NULL)
+		fclose(pLang);
 	}
     }
     
@@ -306,7 +386,7 @@ FILE *OpenMacro(const char *filename, int Language, int htmlmode)
      */
     if (fi == NULL) {
 	Syslog('-', "Macro file \"%s\" for language %c not found, trying default", filename, Language);
-	snprintf(temp, PATH_MAX -1, "%s/share/int/macro/%s/%s", getenv("MBSE_ROOT"), CFG.deflang, filename);
+	snprintf(temp, PATH_MAX, "%s/share/int/macro/%s/%s", root, CFG.deflang, filename);
 	fi = fopen(temp,"r");
     }
 

@@ -282,7 +282,7 @@ void load_maincfg(void)
         CFG.ct_Message = TRUE;
         CFG.ct_TIC = TRUE;
         CFG.tic_days = 30;
-        snprintf(CFG.hatchpasswd, 21, "DizIzMyBIGseeKret");
+        CFG.hatchpasswd[0] = '\0';
         CFG.tic_systems = 10;
         CFG.tic_groups  = 25;
         CFG.tic_dupes   = 16000;
@@ -1576,34 +1576,50 @@ int main(int argc, char **argv)
     init_pingsocket();
 
     /*
-     *  mbtask is setuid root, drop privileges to user mbse.
-     *  This will stay forever like this, no need to become
-     *  root again. The child can't even become root anymore.
+     * mbtask starts with root privileges, initializes the raw ping socket
+     * when enabled, then permanently drops privileges to user mbse.
      */
     pw = getpwnam((char *)"mbse");
-    if (setuid(pw->pw_uid)) {
-	perror("");
-	fprintf(stderr, "can't setuid to mbse\n");
-	close(ping_isocket);
+    if (pw == NULL) {
+	fprintf(stderr, "can't find user mbse\n");
+	if (ping_isocket >= 0)
+	    close(ping_isocket);
 	exit(MBERR_INIT_ERROR);
     }
 
     /*
-     * If running in the foreground under valgrind the next call fails.
-     * Developers should know what they are doing so we are not bailing out.
+     * Set supplementary groups and the primary group while still
+     * privileged. Drop the user ID last; afterwards privileges cannot
+     * be regained.
      */
-    if (setgid(pw->pw_gid)) {
-	perror("");
-	fprintf(stderr, "can't setgid to bbs\n");
-	if (! nodaemon) {
+    if (initgroups(pw->pw_name, pw->pw_gid)) {
+	perror("initgroups");
+	fprintf(stderr, "can't initialize groups for mbse\n");
+	if (ping_isocket >= 0)
 	    close(ping_isocket);
-	    exit(MBERR_INIT_ERROR);
-	}
+	exit(MBERR_INIT_ERROR);
+    }
+
+    if (setgid(pw->pw_gid)) {
+	perror("setgid");
+	fprintf(stderr, "can't setgid to mbse\n");
+	if (ping_isocket >= 0)
+	    close(ping_isocket);
+	exit(MBERR_INIT_ERROR);
+    }
+
+    if (setuid(pw->pw_uid)) {
+	perror("setuid");
+	fprintf(stderr, "can't setuid to mbse\n");
+	if (ping_isocket >= 0)
+	    close(ping_isocket);
+	exit(MBERR_INIT_ERROR);
     }
 
     umask(007);
     if (locktask(pw->pw_dir)) {
-	close(ping_isocket);
+	if (ping_isocket >= 0)
+	    close(ping_isocket);
         exit(MBERR_NO_PROGLOCK);
     }
 

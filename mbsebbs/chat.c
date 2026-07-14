@@ -134,24 +134,29 @@ void DispMsg(char *msg)
 {
     int     i;
 
+    if (msg == NULL)
+	return;
+
     /*
      * Beep on minor system messages
      */
     if ((msg[0] == '*') && (msg[1] != '*'))
 	putchar('\007');
-    
-    strncpy(rbuf[rpointer], msg, RBUFLEN);
+    snprintf(rbuf[rpointer], RBUFLEN, "%s", msg);
     Showline(2 + rpointer, 1, rbuf[rpointer]);
     if (rpointer == rsize) {
 	/*
-	 * Scroll buffer
+	 * Scroll buffer and leave the final row empty for the next message.
 	 */
-	for (i = 0; i <= rsize; i++) {
+	for (i = 0; i < rsize; i++) {
 	    locate(i + 2, 1);
 	    clrtoeol();
-	    snprintf(rbuf[i], RBUFLEN, "%s", rbuf[i+1]);
+	    memmove(rbuf[i], rbuf[i+1], RBUFLEN);
 	    Showline(i + 2, 1, rbuf[i]);
 	}
+	rbuf[rsize][0] = '\0';
+	locate(rsize + 2, 1);
+	clrtoeol();
     } else {
 	rpointer++;
     }
@@ -188,6 +193,10 @@ void Chat(char *username, char *channel)
     clear();
 
     rsize = rows - 5;
+    if (rsize < 1)
+	rsize = 1;
+    if (rsize >= (int)(sizeof(rbuf) / sizeof(rbuf[0])))
+	rsize = (sizeof(rbuf) / sizeof(rbuf[0])) - 1;
     rpointer = 0;
 
     if (SYSOP == TRUE) {

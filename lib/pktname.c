@@ -51,81 +51,109 @@
 char *prepbuf(faddr *);
 char *prepbuf(faddr *addr)
 {
-    static char	buf[PATH_MAX];
-    char	*p, *domain=NULL, zpref[8];
-    int		i;
+    static char buf[PATH_MAX];
+    char        *p, *domain = NULL, zpref[8];
+    const char  *domain_name;
+    size_t      remaining, used;
+    int         i;
 
-    snprintf(buf, PATH_MAX -1, "%s", CFG.outbound);
+    buf[0] = '\0';
+    zpref[0] = '\0';
 
-    if (CFG.addr4d) {
-	Syslog('o', "Use 4d addressing, zone is %d", addr->zone);
-
-	if ((addr->zone == 0) || (addr->zone == CFG.aka[0].zone))
-	    zpref[0] = '\0';
-	else
-	    snprintf(zpref, 8, ".%03x", addr->zone & 0xfff);
-    } else {
-	/*
-	 * If we got a 5d address we use the given domain, if
-	 * we got a 4d address, we look for a matching domain name.
-	 */
-	if (addr && addr->domain && strlen(addr->domain)) {
-	    domain = xstrcpy(addr->domain);
-	} else {
-	    domain = xstrcpy(GetFidoDomain(addr->zone));
-	}
-
-	/*
-	 * If we got a 2d address, add the default zone.
-	 */
-	if (addr->zone == 0 ) {
-	    addr->zone = CFG.aka[0].zone;
-	}
-
-	if ((domain != NULL) && (strlen(CFG.aka[0].domain) != 0) && (strcasecmp(domain,CFG.aka[0].domain) != 0)) {
-	    if ((p = strrchr(buf,'/'))) 
-		p++;
-	    else 
-		p = buf;
-	    strcpy(p, domain);
-	    for (; *p; p++) 
-		*p = tolower(*p);
-	    for (i = 0; i < 40; i++)
-		if ((strlen(CFG.aka[i].domain)) && (strcasecmp(CFG.aka[i].domain, domain) == 0))
-		    break;
-
-	    /*
-	     * The default zone must be the first one in the
-	     * setup, other zones get the hexadecimal zone
-	     * number appended.
-	     */
-	    if (CFG.aka[i].zone == addr->zone)
-		zpref[0] = '\0';
-	    else
-		snprintf(zpref, 8, ".%03x", addr->zone);
-	} else {
-	    /*
-	     * this is our primary domain
-	     */
-	    if ((addr->zone == 0) || (addr->zone == CFG.aka[0].zone))
-		zpref[0]='\0';
-	    else 
-		snprintf(zpref, 8, ".%03x",addr->zone);
-	}
+    if (addr == NULL) {
+        WriteError("prepbuf: NULL address");
+        return buf;
     }
 
-    p = buf + strlen(buf);
+    snprintf(buf, sizeof(buf), "%s", CFG.outbound);
 
-    if (addr->point)
-	snprintf(p, PATH_MAX -1, "%s/%04x%04x.pnt/%08x.", zpref,addr->net,addr->node,addr->point);
-    else
-	snprintf(p, PATH_MAX -1, "%s/%04x%04x.",zpref,addr->net,addr->node);
+    if (CFG.addr4d) {
+        Syslog('o', "Use 4d addressing, zone is %d", addr->zone);
 
-    if (domain)
-	free(domain);
+        if ((addr->zone == 0) || (addr->zone == CFG.aka[0].zone))
+            zpref[0] = '\0';
+        else
+            snprintf(zpref, sizeof(zpref), ".%03x", addr->zone & 0xfff);
+    } else {
+        /*
+         * If we got a 5d address we use the given domain, if
+         * we got a 4d address, we look for a matching domain name.
+         */
+        domain_name = ((addr->domain != NULL) && (*addr->domain != '\0')) ?
+                      addr->domain : GetFidoDomain(addr->zone);
+        if ((domain_name != NULL) && (*domain_name != '\0'))
+            domain = xstrcpy((char *)domain_name);
+
+        /*
+         * If we got a 2d address, add the default zone.
+         */
+        if (addr->zone == 0)
+            addr->zone = CFG.aka[0].zone;
+
+        if ((domain != NULL) && (CFG.aka[0].domain[0] != '\0') &&
+            (strcasecmp(domain, CFG.aka[0].domain) != 0)) {
+            p = strrchr(buf, '/');
+            p = (p != NULL) ? p + 1 : buf;
+            remaining = sizeof(buf) - (size_t)(p - buf);
+            snprintf(p, remaining, "%s", domain);
+            for (; *p != '\0'; p++)
+                *p = (char)tolower((unsigned char)*p);
+
+            for (i = 0; i < 40; i++) {
+                if ((CFG.aka[i].domain[0] != '\0') &&
+                    (strcasecmp(CFG.aka[i].domain, domain) == 0))
+                    break;
+            }
+
+            /*
+             * Only a matching configured AKA can make this the
+             * default zone.  Never dereference CFG.aka[40].
+             */
+            if ((i < 40) && (CFG.aka[i].zone == addr->zone))
+                zpref[0] = '\0';
+            else
+                snprintf(zpref, sizeof(zpref), ".%03x", addr->zone & 0xfff);
+        } else {
+            if (addr->zone == CFG.aka[0].zone)
+                zpref[0] = '\0';
+            else
+                snprintf(zpref, sizeof(zpref), ".%03x", addr->zone & 0xfff);
+        }
+    }
+
+    used = strlen(buf);
+    if (used < sizeof(buf)) {
+        if (addr->point)
+            snprintf(buf + used, sizeof(buf) - used, "%s/%04x%04x.pnt/%08x.",
+                     zpref, addr->net, addr->node, addr->point);
+        else
+            snprintf(buf + used, sizeof(buf) - used, "%s/%04x%04x.",
+                     zpref, addr->net, addr->node);
+    }
+
+    free(domain);
     return buf;
 }
 
+
+static void append_suffix(char *buffer, const char *format, ...)
+{
+    size_t  used;
+    va_list ap;
+
+    if ((buffer == NULL) || (format == NULL))
+        return;
+
+    used = strnlen(buffer, PATH_MAX);
+    if (used >= PATH_MAX) {
+        buffer[PATH_MAX - 1] = '\0';
+        return;
+    }
+
+    va_start(ap, format);
+    vsnprintf(buffer + used, PATH_MAX - used, format, ap);
+    va_end(ap);
+}
 
 
 char *pktname(faddr *addr, char flavor)
@@ -139,7 +167,8 @@ char *pktname(faddr *addr, char flavor)
 	flavor = 'd';
 
     q = p + strlen(p);
-    snprintf(q, PATH_MAX -1, "%c%s", flavor, ptyp);
+    (void)q;
+    append_suffix(p, "%c%s", flavor, ptyp);
     return p;
 }
 
@@ -156,7 +185,8 @@ char *floname(faddr *addr, char flavor)
 	flavor = 'd';
 
     q = p + strlen(p);
-    snprintf(q, PATH_MAX -1, "%c%s", flavor, ftyp);
+    (void)q;
+    append_suffix(p, "%c%s", flavor, ftyp);
     return p;
 }
 
@@ -167,8 +197,9 @@ char *reqname(faddr *addr)
     static char *p, *q;
 
     p = prepbuf(addr);
-    q = p + strlen(p);    
-    snprintf(q, PATH_MAX -1, "%s", rtyp);
+    q = p + strlen(p);
+    (void)q;
+    append_suffix(p, "%s", rtyp);
     return p;
 }
 
@@ -180,7 +211,8 @@ char *splname(faddr *addr)
 
     p = prepbuf(addr);
     q = p + strlen(p);
-    snprintf(q, PATH_MAX -1, "%s", styp);
+    (void)q;
+    append_suffix(p, "%s", styp);
     return p;
 }
 
@@ -192,7 +224,8 @@ char *bsyname(faddr *addr)
 
     p = prepbuf(addr);
     q = p + strlen(p);
-    snprintf(q, PATH_MAX -1, "%s", btyp);
+    (void)q;
+    append_suffix(p, "%s", btyp);
     return p;
 }
 
@@ -204,7 +237,8 @@ char *stsname(faddr *addr)
 
     p = prepbuf(addr);
     q = p + strlen(p);
-    snprintf(q, PATH_MAX -1, "%s", qtyp);
+    (void)q;
+    append_suffix(p, "%s", qtyp);
     return p;
 }
 
@@ -216,7 +250,8 @@ char *polname(faddr *addr)
 
     p = prepbuf(addr);
     q = p + strlen(p);
-    snprintf(q, PATH_MAX -1, "%s", ltyp);
+    (void)q;
+    append_suffix(p, "%s", ltyp);
     return p;
 }
 
@@ -233,7 +268,10 @@ char *dayname(void)
     
     tt = time(NULL);
     ptm = localtime(&tt);
-    snprintf(buf, 3, "%s", dow[ptm->tm_wday]);
+    if (ptm == NULL)
+        snprintf(buf, sizeof(buf), "??");
+    else
+        snprintf(buf, sizeof(buf), "%s", dow[ptm->tm_wday]);
 
     return buf;	
 }
@@ -242,49 +280,50 @@ char *dayname(void)
 
 char *arcname(faddr *addr, unsigned short Zone, int ARCmailCompat)
 {
-    static char	*buf;
-	char	*p;
-	char	*ext;
-	time_t	tt;
-	struct	tm *ptm;
-	faddr	*bestaka;
+    static char *buf;
+    char        *p;
+    const char  *ext;
+    time_t      tt;
+    struct tm   *ptm;
+    faddr       *bestaka;
+    size_t      remaining;
 
-	tt = time(NULL);
-	ptm = localtime(&tt);
-	ext = dow[ptm->tm_wday];
+    if (addr == NULL)
+        return prepbuf(NULL);
 
-	bestaka = bestaka_s(addr);
+    tt = time(NULL);
+    ptm = localtime(&tt);
+    ext = (ptm != NULL) ? dow[ptm->tm_wday] : "??";
 
-	buf = prepbuf(addr);
-	p = strrchr(buf, '/');
+    bestaka = bestaka_s(addr);
+    buf = prepbuf(addr);
+    p = strrchr(buf, '/');
+    if (p == NULL)
+        p = buf + strlen(buf);
+    remaining = PATH_MAX - (size_t)(p - buf);
 
-	if (!ARCmailCompat && (Zone != addr->zone)) {
-		/*
-		 * Generate ARCfile name from the CRC of the ASCII string
-		 * of the node address.
-		 */
-		snprintf(p, PATH_MAX -1, "/%08x.%s0", StringCRC32(ascfnode(addr, 0x1f)), ext);
-	} else {
-		if (addr->point) {
-			snprintf(p, PATH_MAX -1, "/%04x%04x.%s0",
-				((bestaka->net) - (addr->net)) & 0xffff,
-				((bestaka->node) - (addr->node) + (addr->point)) & 0xffff,
-				ext);
-		} else if (bestaka->point) {
-			/*
-			 * Inserted the next code for if we are a point,
-			 * I hope this is ARCmail 0.60 compliant. 21-May-1999
-			 */
-			snprintf(p, PATH_MAX -1, "/%04x%04x.%s0", ((bestaka->net) - (addr->net)) & 0xffff,
-				((bestaka->node) - (addr->node) - (bestaka->point)) & 0xffff, ext);
-		} else {
-			snprintf(p, PATH_MAX -1, "/%04x%04x.%s0", ((bestaka->net) - (addr->net)) & 0xffff,
-				((bestaka->node) - (addr->node)) &0xffff, ext);
-		}
-	}
+    if (!ARCmailCompat && (Zone != addr->zone)) {
+        snprintf(p, remaining, "/%08x.%s0",
+                 StringCRC32(ascfnode(addr, 0x1f)), ext);
+    } else if (bestaka != NULL) {
+        if (addr->point) {
+            snprintf(p, remaining, "/%04x%04x.%s0",
+                     ((bestaka->net) - (addr->net)) & 0xffff,
+                     ((bestaka->node) - (addr->node) + (addr->point)) & 0xffff,
+                     ext);
+        } else if (bestaka->point) {
+            snprintf(p, remaining, "/%04x%04x.%s0",
+                     ((bestaka->net) - (addr->net)) & 0xffff,
+                     ((bestaka->node) - (addr->node) - (bestaka->point)) & 0xffff,
+                     ext);
+        } else {
+            snprintf(p, remaining, "/%04x%04x.%s0",
+                     ((bestaka->net) - (addr->net)) & 0xffff,
+                     ((bestaka->node) - (addr->node)) & 0xffff, ext);
+        }
+    }
 
-	tidy_faddr(bestaka);
-	return buf;
+    if (bestaka != NULL)
+        tidy_faddr(bestaka);
+    return buf;
 }
-
-

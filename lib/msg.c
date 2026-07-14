@@ -317,7 +317,10 @@ void Msg_Write(FILE *fp)
 {
 	char	*Buf;
 
-	Buf = calloc(MAX_LINE_LENGTH +1, sizeof(char));
+	if (fp == NULL)
+		return;
+	Buf = xmalloc(MAX_LINE_LENGTH + 1);
+	memset(Buf, 0, MAX_LINE_LENGTH + 1);
 	while ((Fgets(Buf, MAX_LINE_LENGTH, fp)) != NULL)
 		MsgText_Add2(Buf);
 
@@ -508,8 +511,13 @@ int Msg_Link(char *Path, int do_quiet, int slow_util)
  */
 
 char *Fgets(char *l, int size, FILE *f) {
-  char *cp = l;
+  char *cp;
   int  cr, eol = FALSE;
+
+  if ((l == NULL) || (f == NULL) || (size <= 0))
+    return NULL;
+
+  cp = l;
 
   if (feof(f)) return NULL;
 

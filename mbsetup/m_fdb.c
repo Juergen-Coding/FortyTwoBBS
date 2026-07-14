@@ -156,7 +156,7 @@ void EditFile()
 
 	show_str(15,16,36, fdb.Uploader);
 	show_int(16,16,    fdb.TimesDL);
-	show_str(17,16,15, fdb.Password);
+	show_secret(17,16,15, fdb.Password);
 
 	show_bool(15,75, fdb.Deleted);
 	show_bool(16,75, fdb.NoKill);
@@ -166,7 +166,7 @@ void EditFile()
 	    case 0: return;
 	    case 1: E_STR( 15,16,35, fdb.Uploader,  "The ^uploader^ of this file"); break;
 	    case 2: E_INT( 16,16,    fdb.TimesDL,   "The number of times file is sent with ^download^"); break;
-	    case 3: E_STR( 17,16,15, fdb.Password,  "The ^password^ to protect this file with"); break;
+	    case 3: E_SECRET( 17,16,15, fdb.Password,  "The ^password^ to protect this file with"); break;
 	    case 4: E_BOOL(15,75,    fdb.Deleted,   "Should this this file be ^deleted^"); break;
 	    case 5: E_BOOL(16,75,    fdb.NoKill,    "File can't be ^killed^ automatic"); break;
 	    case 6: E_BOOL(17,75,    fdb.Announced, "File is ^announced^ as new file"); break;

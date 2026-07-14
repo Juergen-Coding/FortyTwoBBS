@@ -166,12 +166,12 @@ int rx_emsi(char *data)
 	    Syslog('+', "Password correct, protected EMSI session");
 	} else {
 	    denypw = 1;
-	    Syslog('?', "Remote password \"%s\", expected \"%s\"", MBSE_SS(emsi_remote_password), nodes.Spasswd);
+	    Syslog('?', "EMSI: password mismatch");
 	    emsi_local_password = xstrcpy((char *)"BAD_PASS");
 	    emsi_local_lcodes = LCODE_HAT;
 	}
     } else {
-	Syslog('?', "Unexpected remote password \"%s\"", MBSE_SS(emsi_local_password));
+	Syslog('?', "EMSI: unexpected remote password");
     }
 
     inbound_open(remote->addr, protect, FALSE);

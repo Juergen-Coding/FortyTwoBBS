@@ -33,11 +33,18 @@
 #include "mbsedb.h"
 
 
+static int valid_user_header(void)
+{
+    return (usrhdr.hdrsize >= (int)sizeof(usrhdr)) &&
+           (usrhdr.recsize > 0) &&
+           (usrhdr.recsize <= (int)sizeof(usr));
+}
 
 
 int InitUser(void)
 {
 	FILE	*fil;
+	long	end;
 
 	memset(&usr, 0, sizeof(usr));
 	LoadConfig();
@@ -46,9 +53,13 @@ int InitUser(void)
 	if ((fil = fopen(usr_fil, "r")) == NULL)
 		return FALSE;
 
-	fread(&usrhdr, sizeof(usrhdr), 1, fil);
-	fseek(fil, 0, SEEK_END);
-	usr_cnt = (ftell(fil) - usrhdr.hdrsize) / usrhdr.recsize;
+	if ((fread(&usrhdr, sizeof(usrhdr), 1, fil) != 1) ||
+	    !valid_user_header() || (fseek(fil, 0, SEEK_END) != 0) ||
+	    ((end = ftell(fil)) < usrhdr.hdrsize)) {
+		fclose(fil);
+		return FALSE;
+	}
+	usr_cnt = (end - usrhdr.hdrsize) / usrhdr.recsize;
 	fclose(fil);
 
 	return TRUE;
@@ -60,6 +71,8 @@ int TestUser(char *Name)
 {
 	int	userok = FALSE;
 
+	if (Name == NULL)
+		return FALSE;
 	if ((strcasecmp(usr.sUserName, Name) == 0) ||
 	    ((strlen(usr.sHandle) > 0) && (strcasecmp(usr.sHandle, Name) == 0)) ||
 	    (strcmp(usr.Name, Name) == 0)) {
@@ -82,14 +95,14 @@ int SearchUser(char *Name)
 		memset(&usr, 0, sizeof(usr));
 		return FALSE;
 	}
-	fread(&usrhdr, sizeof(usrhdr), 1, fil);
-
-	if (usrhdr.recsize > sizeof(usr) || usrhdr.recsize < 0) {
+	if ((fread(&usrhdr, sizeof(usrhdr), 1, fil) != 1) ||
+	    !valid_user_header() ||
+	    (fseek(fil, usrhdr.hdrsize, SEEK_SET) != 0)) {
 		fclose(fil);
-		return FALSE; // malformed header
+		return FALSE;
 	}
 
-	while (fread(&usr, usrhdr.recsize, 1, fil) == 1) {
+	while (fread(&usr, (size_t)usrhdr.recsize, 1, fil) == 1) {
 		if (TestUser(Name)) {
 			fclose(fil);
 			return TRUE;

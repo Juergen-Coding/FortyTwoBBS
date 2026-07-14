@@ -19,7 +19,9 @@ char		*select_show(int);
 int 		select_menu(int);
 int		select_tag(int);
 void		show_str(int, int, int, char *);
+void		show_secret(int, int, int, char *);
 char		*edit_str(int, int, int, char *, char *);
+char		*edit_secret(int, int, int, char *, char *);
 char		*edit_pth(int, int, int, char *, char *, mode_t);
 void		test_jam(char *);
 char		*edit_jam(int, int, int, char *, char *);
@@ -96,6 +98,7 @@ int		edit_charset(int, int, int);
  * Macro's for the edit functions
  */
 #define E_STR(y,x,l,str,help) strcpy(str, edit_str(y,x,l,str,(char *)help))
+#define E_SECRET(y,x,l,str,help) strcpy(str, edit_secret(y,x,l,str,(char *)help))
 #define E_PTH(y,x,l,str,help,mode) strcpy(str, edit_pth(y,x,l,str,(char *)help,mode))
 #define E_UPS(y,x,l,str,help) strcpy(str, edit_ups(y,x,l,str,(char *)help))
 #define E_JAM(y,x,l,str,help) strcpy(str, edit_jam(y,x,l,str,(char *)help))

@@ -1736,6 +1736,7 @@ void Reply_Msg(int IsReply)
 		    } else {
 			for (i = 0; i < (TEXTBUFSIZE + 1); i++)
 			    free(Message[i]);
+			tidy_faddr(Dest);
 			return;
 		    }
 		    break;
@@ -1837,6 +1838,7 @@ void Reply_Msg(int IsReply)
 
     for (i = 0; i < (TEXTBUFSIZE + 1); i++)
 	free(Message[i]);
+    tidy_faddr(Dest);
 }
 
 
@@ -2390,7 +2392,7 @@ void MsgArea_List(char *Option)
 	    Enter(1);
 	    /* Password is incorrect */
 	    pout(WHITE, BLACK, (char *) Language(234));
-	    Syslog('!', "Incorrect Message Area # %d password given: %s", iMsgAreaNumber, temp);
+	    Syslog('!', "Incorrect password for Message Area # %d", iMsgAreaNumber);
 	    SetMsgArea(iOldArea);
 	} else {
 	    Enter(1);

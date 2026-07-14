@@ -244,7 +244,8 @@ int EditIBCRec(int Area)
 	show_str(  8,16,63, ibcsrv.server);
 	show_bool( 9,16,    ibcsrv.Dyndns);
 	show_str( 10,16,63, ibcsrv.myname);
-	show_str( 11,16,15, ibcsrv.passwd);
+	show_str( 11,16,15, strlen(ibcsrv.passwd) ?
+	    (char *)"<configured>" : (char *)"<not set>");
 	show_bool(12,16,    ibcsrv.Active);
 	show_bool(13,16,    ibcsrv.Deleted);
 	show_bool(14,16,    ibcsrv.Compress);
@@ -273,7 +274,9 @@ int EditIBCRec(int Area)
 	case 2:	E_STR(  8,16,63,ibcsrv.server,   "The known internet ^name^ or ^IP^ address of the remote server"); break;
 	case 3: E_BOOL( 9,16,   ibcsrv.Dyndns,   "Set to Yes if the remote server uses a ^dynamic dns^ service"); break;
 	case 4: E_STR( 10,16,63,ibcsrv.myname,   "The known internet ^name^ or ^IP^ address of this server"); break;
-	case 5:	E_STR( 11,16,64,ibcsrv.passwd,   "The ^password^ for this server"); break;
+	case 5:
+		errmsg((char *)"IBC password editing is disabled until secure secret storage is available");
+		break;
 	case 6:	E_BOOL(12,16,   ibcsrv.Active,   "Switch if this server is ^Active^ for chat"); break;
 	case 7:	E_BOOL(13,16,   ibcsrv.Deleted,  "Is this server to be ^Deleted^"); break;
 	case 8:	E_BOOL(14,16,   ibcsrv.Compress, "Use ^zlib compression^ with this server"); break;

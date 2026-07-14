@@ -73,20 +73,23 @@ int pop3_connect(void)
 
 	if ((pop3sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
 	    WriteError("$socket()");
-	    return -1;
+	    continue;
+	}
+
+	if (connect(pop3sock, p->ai_addr, p->ai_addrlen) == -1) {
+	    WriteError("$connect %s port pop3", ipstr);
+	    close(pop3sock);
+	    pop3sock = -1;
 	} else {
-	    if (connect(pop3sock, p->ai_addr, p->ai_addrlen) == -1) {
-	    	WriteError("$connect %s port pop3", ipstr);
-	    	close(pop3sock);
-	    } else {
-	    	break;
-	    }
+	    break;
 	}
     }
     if (p == NULL) {
+	freeaddrinfo(res);
 	return -1;	/* Not connected */
     }
 
+    freeaddrinfo(res);
     q = pop3_receive();
     if (strlen(q) == 0) {
 	WriteError("POP3: no response from server");

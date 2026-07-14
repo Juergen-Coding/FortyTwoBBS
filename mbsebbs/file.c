@@ -1546,7 +1546,7 @@ void FileArea_List(char *Option)
 	if ((strcmp(temp, area.Password)) != 0) { 
 	    /* Password is incorrect */
 	    pout(LIGHTRED, BLACK, (char *) Language(234));
-	    Syslog('!', "Incorrect File Area # %d password given: %s", iAreaNumber, temp);
+	    Syslog('!', "Incorrect password for File Area # %d", iAreaNumber);
 	    SetFileArea(iOldArea);
 	} else {
 	    /* Password is correct */

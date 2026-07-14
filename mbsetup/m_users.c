@@ -298,7 +298,7 @@ void Fields2(void)
 	show_str(11,17,19, usrconfig.sVoicePhone);
 	show_str(12,17,19, usrconfig.sDataPhone);
 	show_str(13,17,10, usrconfig.sDateOfBirth);
-	show_str(14,17,Max_passlen, (char *)"**************");
+	show_str(14,17,Max_passlen, (char *)"<disabled>");
 	show_str( 15,17, 7,usrconfig.sSex);
 	show_str( 16,17,12,usrconfig.sProtocol);
 	show_str( 17,17, 5,usrconfig.Archiver);
@@ -324,7 +324,7 @@ void Fields2(void)
 int EditUsrRec2(void)
 {
     int	    j = 0, ch;
-    char    temp[PATH_MAX], *args[16];
+    char    temp[PATH_MAX];
 
     Screen2();
     for (;;) {
@@ -340,34 +340,9 @@ int EditUsrRec2(void)
             case 6: E_STR(11,17,16, usrconfig.sVoicePhone, "The ^Voice Phone^ number of this user"); break;
             case 7: E_STR(12,17,16, usrconfig.sDataPhone,  "The ^Data Phone^ number of this user"); break;
             case 8: E_STR(13,17,10, usrconfig.sDateOfBirth,"The ^Date of Birth^ in DD-MM-YYYY format"); break;
-            case 9: strcpy(temp,edit_str(14,17,Max_passlen,usrconfig.Password,(char *)"Enter the ^password^ for this user"));
-                    if (strlen(temp)) {
-			if (strcasecmp(usrconfig.Password, temp)) {
-			    /*
-			     * Only do something if password really changed.
-			     */
-			    working(1,0,0);
-                            memset(&usrconfig.Password, 0, sizeof(usrconfig.Password));
-                            strcpy(usrconfig.Password, temp);
-			    usrconfig.tLastPwdChange = time(NULL);
-			    Syslog('+', "%s/bin/mbpasswd %s ******", getenv("MBSE_ROOT"), usrconfig.Name);
-			    snprintf(temp, PATH_MAX, "%s/bin/mbpasswd", getenv("MBSE_ROOT"));
-			    memset(args, 0, sizeof(args));
-			    args[0] = temp;
-			    args[1] = usrconfig.Name;
-			    args[2] = usrconfig.Password;
-			    args[3] = NULL;
-
-			    if (execute(args, (char *)"/dev/null", (char *)"/dev/null", (char *)"/dev/null")!= 0) {
-			        WriteError("$Failed to set new Unix password");
-			    } else {
-			        Syslog('+', "Password changed for %s (%s)", usrconfig.sUserName, usrconfig.Name);
-			    }
-			}
-                    } else {
-		        working(2, 0, 0);
-		    }
-                    break;
+            case 9:
+		    errmsg((char *)"Password editing is disabled until centralized authentication is available");
+		    break;
             case 10:showhelp((char *)"Toggle ^Sex^ with spacebar, press <Enter> when done.");
 		    do {
 			set_color(YELLOW, BLUE);
@@ -714,7 +689,6 @@ void users_doc(void)
 	    add_webtable(wp, (char *)"Voice phone", usrconfig.sVoicePhone);
 	    add_webtable(wp, (char *)"Data phone", usrconfig.sDataPhone);
 	    add_webtable(wp, (char *)"Date of birth", usrconfig.sDateOfBirth);
-	    add_webtable(wp, (char *)"Password", usrconfig.Password);
 	    add_webtable(wp, (char *)"Sex", usrconfig.sSex);
 	    add_webtable(wp, (char *)"Protocol", usrconfig.sProtocol);
 	    add_webtable(wp, (char *)"Archiver", usrconfig.Archiver);
