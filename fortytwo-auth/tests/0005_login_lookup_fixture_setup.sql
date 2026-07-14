@@ -33,6 +33,12 @@ INSERT INTO public.bbs_users (
     7
 );
 
+INSERT INTO public.bbs_legacy_mbse_bindings (user_id, legacy_name)
+VALUES (
+    '7f4a42b3-0005-4a11-8b32-42b3f00d0001'::uuid,
+    'b3look'
+);
+
 INSERT INTO public.bbs_user_profiles (
     user_id,
     display_name,

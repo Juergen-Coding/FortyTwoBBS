@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Safe field-by-field codec for FTAP 1.1.
+ * Safe field-by-field codec for FTAP 1.2.
  *
  * This interface never casts native C structures onto wire data and never
  * allocates memory. Callers own all input and output buffers.

@@ -38,6 +38,7 @@ typedef struct authd_login_record {
     uint8_t user_id[FTAP_UUID_SIZE];
     char login_name[FTAP_LOGIN_NAME_MAX + 1U];
     char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
     char password_hash[AUTHD_DATABASE_PASSWORD_HASH_MAX + 1U];
     authd_account_state_t account_state;
     uint64_t auth_epoch;

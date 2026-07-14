@@ -676,6 +676,11 @@ parse_terminal_context(const ftap_received_frame_t *frame,
                                      sizeof(context->display_name))
                          ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
             break;
+        case FTAP_FIELD_LEGACY_NAME:
+            status = copy_text_field(&field, context->legacy_name,
+                                     sizeof(context->legacy_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            break;
         case FTAP_FIELD_PROTOCOL:
             status = include_transport &&
                      copy_text_field(&field, context->protocol,

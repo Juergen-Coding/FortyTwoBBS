@@ -46,11 +46,26 @@ test_boundaries_and_rejections(void)
     assert(output[0] == '\0');
 }
 
+static void
+test_legacy_name_validation(void)
+{
+    assert(authd_legacy_name_is_valid("neo67"));
+    assert(authd_legacy_name_is_valid("bbs-user"));
+    assert(authd_legacy_name_is_valid("a"));
+    assert(authd_legacy_name_is_valid("12345678"));
+    assert(!authd_legacy_name_is_valid(""));
+    assert(!authd_legacy_name_is_valid("Neo67"));
+    assert(!authd_legacy_name_is_valid(".neo67"));
+    assert(!authd_legacy_name_is_valid("123456789"));
+    assert(!authd_legacy_name_is_valid("neo/67"));
+}
+
 int
 main(void)
 {
     test_canonicalization();
     test_boundaries_and_rejections();
+    test_legacy_name_validation();
     (void)puts("authd identity tests: OK");
     return 0;
 }

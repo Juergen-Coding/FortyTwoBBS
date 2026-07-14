@@ -1,12 +1,18 @@
 # FortyTwo Authentication Protocol – FTAP/1
 
 Status: Interne Protokollspezifikation
-Dokumentrevision: 1.3
-Wire-Version: FTAP 1.1
+Dokumentrevision: 1.4
+Wire-Version: FTAP 1.2
 Transport: lokaler Unix-Domain-Socket
 Standardpfad: `/run/fortytwo/auth.sock`
 
-Dokumentrevision 1.3 konsolidiert vor Beginn der Implementierung:
+Dokumentrevision 1.4 ergänzt für den MBSE-Sitzungsbootstrap:
+
+- explizite `LEGACY_NAME`-Bindung für den achtstelligen `users.data`-Schlüssel;
+- Pflichtfeld in Passwort- und Sitzungskontext-Ergebnissen;
+- keine Ableitung der Legacy-Identität aus `LOGNAME`, `USER` oder Clientdaten.
+
+Dokumentrevision 1.3 konsolidierte vor Beginn der Implementierung:
 
 - einen eigenen Service-Modus für `fortytwo-api`,
 - parallele, über Request-IDs gemultiplexte Anfragen,
@@ -368,6 +374,7 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 24   | AUTH_EPOCH              | uint64         |
 | 25   | AUTHZ_REVISION          | uint64         |
 | 26   | CAPABILITY              | Text           |
+| 27   | LEGACY_NAME             | Text           |
 | 30   | RESOURCE_TYPE           | Text           |
 | 31   | RESOURCE_ID             | Text           |
 | 32   | AUTHZ_ALLOWED           | Boolean        |
@@ -379,12 +386,19 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 60   | ACCESS_TOKEN            | Bytes/Text     |
 | 61   | API_SESSION_ID          | UUID           |
 
-`ACCOUNT_STATE` ist in FTAP 1.1 reserviert und in keiner Nachricht zulässig.
+`ACCOUNT_STATE` ist in FTAP 1.2 reserviert und in keiner Nachricht zulässig.
 Ein Auftreten wird als `FTAP_STATUS_ERR_FORBIDDEN_FIELD` behandelt. Der
 Kontostatus wird ausschließlich von `fortytwo-authd` interpretiert; laufende
 Clients erhalten bei einer sicherheitsrelevanten Änderung gegebenenfalls
 `SESSION_REVOKED`, statt selbst einen möglicherweise veralteten Status zu
 bewerten.
+
+`LEGACY_NAME` ist der explizit administrativ gebundene Schlüssel des
+bestehenden MBSE-`users.data`-Datensatzes. Er besteht aus 1 bis 8
+kleingeschriebenen ASCII-Zeichen. Das erste Zeichen ist `[a-z0-9]`, weitere
+Zeichen dürfen zusätzlich `.`, `_` oder `-` sein. Clients dürfen diesen Wert
+nicht vorgeben; der Auth-Dienst lädt ihn zusammen mit der UUID-Identität aus
+PostgreSQL. Eine Identität ohne Bindung kann keine Terminal-Sitzung eröffnen.
 
 Die numerische Feld-ID ist nicht an die interne Kardinalitätsverwaltung einer
 Implementierung gekoppelt. Implementierungen müssen deshalb auch Feld-IDs über
@@ -559,7 +573,7 @@ PROTOCOL
 AUTH_METHOD
 ```
 
-Für `AUTH_PASSWORD_REQUEST` sind in FTAP/1.1 ausschließlich folgende Werte
+Für `AUTH_PASSWORD_REQUEST` sind in FTAP/1.2 ausschließlich folgende Werte
 zulässig:
 
 ```text
@@ -594,6 +608,7 @@ USER_ID
 SESSION_ID
 LOGIN_NAME
 DISPLAY_NAME
+LEGACY_NAME
 AUTH_EPOCH
 AUTHZ_REVISION
 ```
@@ -643,6 +658,7 @@ USER_ID
 SESSION_ID
 LOGIN_NAME
 DISPLAY_NAME
+LEGACY_NAME
 PROTOCOL
 AUTH_METHOD
 AUTH_EPOCH
@@ -872,7 +888,7 @@ zum Schließen der Verbindung.
 Wird die FTAP-Verbindung während einer aktiven Terminal-Sitzung unerwartet
 geschlossen, beendet `mbsebbs` die Sitzung.
 
-Für eine `SESSION_BOUND`-Verbindung gibt es in FTAP 1.1 keine automatische
+Für eine `SESSION_BOUND`-Verbindung gibt es in FTAP 1.2 keine automatische
 Wiederanbindung an einen neu gestarteten Auth-Daemon. Die Benutzerin oder der
 Benutzer meldet sich anschließend neu an.
 
@@ -912,7 +928,7 @@ lokal zwischengespeicherter oder vermuteter Zustände.
 
 ### 24.1 TOTP und weitere Mehrfaktorverfahren
 
-TOTP und weitere Mehrfaktorverfahren sind nicht Bestandteil von FTAP/1.1.
+TOTP und weitere Mehrfaktorverfahren sind nicht Bestandteil von FTAP/1.2.
 
 Spätere Versionen ergänzen dafür neue Nachrichtentypen, beispielsweise:
 
@@ -925,7 +941,7 @@ AUTH_TOTP_RESULT
 ### 24.2 Interne SSH-Public-Key-Anmeldung
 
 Die Zuordnung und Prüfung von SSH-Schlüsseln gegen `bbs_ssh_keys` ist ebenfalls
-nicht Bestandteil von FTAP/1.1.
+nicht Bestandteil von FTAP/1.2.
 
 Die erste FTAP-Stufe unterstützt SSH als Transport mit der internen
 Passwortanmeldung:

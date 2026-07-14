@@ -1,14 +1,14 @@
 # fortytwo-auth Phase B4
 
 Phase B4 connects terminal transports to the internal FortyTwo identity without
-turning BBS users into Linux accounts. It is split deliberately: B4.1 creates
-and proves the secure access boundary, while the following step will adapt the
-legacy MBSE session bootstrap to consume that identity.
+turning BBS users into Linux accounts. B4.1 creates and proves the secure
+access boundary; B4.2 adapts the legacy MBSE session bootstrap to consume that
+identity.
 
 ## B4.1 access adapter and descriptor-bound identity
 
-This step identifies the daemon build as `fortytwo-authd 0.2.2`; the new
-terminal adapter starts at `fortytwo-login 0.1.0`. FTAP remains version 1.1.
+B4.1 identified the daemon build as `fortytwo-authd 0.2.2`; the terminal
+adapter started at `fortytwo-login 0.1.0` with FTAP 1.1.
 
 The historical login path cannot be reused as the new trust boundary:
 
@@ -101,6 +101,7 @@ USER_ID
 SESSION_ID
 LOGIN_NAME
 DISPLAY_NAME
+LEGACY_NAME
 PROTOCOL
 AUTH_METHOD
 AUTH_EPOCH
@@ -173,3 +174,56 @@ requests the authenticated context, and maps the internal UUID to the correct
 legacy BBS record without falling back to process environment identity. It must
 also separate per-session state such as `exitinfo` before concurrent sessions
 of the same user are declared safe.
+
+
+## B4.2 MBSE session bootstrap and UUID binding
+
+B4.2 identifies the daemon as `fortytwo-authd 0.2.3` and the adapter as
+`fortytwo-login 0.1.1`. The wire protocol advances to FTAP 1.2 because the
+legacy MBSE record key becomes an explicit authenticated result field.
+
+Migration `0007_legacy_mbse_binding.sql` creates a one-to-one administrative
+binding between the modern UUID identity and the existing one-to-eight
+character `users.data` name. The binding is unique, lower-case ASCII and is
+read only by the runtime daemon. A user without this explicit binding is not
+eligible for terminal login and is externally indistinguishable from an
+unknown user.
+
+Both `AUTH_PASSWORD_RESULT` and `SESSION_CONTEXT_RESULT` now require
+`LEGACY_NAME`. The field is loaded by `fortytwo-authd` from PostgreSQL and is
+never accepted from the terminal client, environment or command line.
+
+`mbsebbs` now starts by adopting authenticated FD 3 and requesting the bound
+session context. It ignores `LOGNAME` and `USER`, uses only `LEGACY_NAME` to
+select the existing `users.data` record, and closes the database-backed
+terminal session with a stable machine-readable reason on normal and abnormal
+shutdown paths.
+
+The historical per-user `exitinfo` file is replaced by a private path below:
+
+```text
+$MBSE_ROOT/tmp/fortytwo-sessions/<session-uuid>/exitinfo
+```
+
+The directory and file are service-owned and private. The snapshot is removed
+when the session closes. Lock files remain under a private `locks` directory so
+all processes always address the same inode.
+
+Several other legacy scratch files remain keyed only by the eight-character
+MBSE name. Therefore B4.2 deliberately holds an exclusive advisory lock for
+the complete lifetime of one legacy user session. Different users may run in
+parallel under the same restricted Linux service account. A second session for
+the same legacy record is rejected until the remaining scratch files are made
+session-scoped in a later step.
+
+The integration suite now also proves the B4.2 lifecycle: the exec'd session
+child adopts FD 3, obtains the authenticated legacy binding, creates and removes
+a private `exitinfo`, and holds the legacy-user lock until ordered session
+close. Two authenticated sessions for the same legacy record are allowed by
+the modern identity layer, but the second BBS bootstrap is rejected and its
+database session is closed with `duplicate_login` while the first remains
+active.
+
+`unix/mblogin.c` is unchanged. The old `mbnewusr` path is not restored to the
+runtime package; registration remains an internal FortyTwo identity workflow
+without Linux account creation.

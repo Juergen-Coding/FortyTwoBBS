@@ -4,6 +4,8 @@
 
 include ../Makefile.global
 
+.DEFAULT_GOAL := all
+
 SRCS		= signature.c filesub.c language.c mib.c \
 		  msgutil.c oneline.c morefile.c \
 		  email.c fsedit.c lineedit.c page.c \
@@ -13,7 +15,8 @@ SRCS		= signature.c filesub.c language.c mib.c \
 		  timeout.c chat.c file.c misc.c \
 		  offline.c user.c mbnewusr.c input.c whoson.c \
 		  door.c dispfile.c userlist.c timestats.c logentry.c \
-		  ymsend.c ymrecv.c zmmisc.c zmsend.c zmrecv.c protocol.c
+		  ymsend.c ymrecv.c zmmisc.c zmsend.c zmrecv.c protocol.c \
+		  fortytwo_session.c
 HDRS		= signature.h filesub.h language.h mbsebbs.h misc.h offline.h \
 		  timeout.h email.h fsedit.h lineedit.h mib.h \
 		  msgutil.h oneline.h user.h bye.h morefile.h \
@@ -22,18 +25,23 @@ HDRS		= signature.h filesub.h language.h mbsebbs.h misc.h offline.h \
 		  pinfo.h chat.h file.h menu.h transfer.h \
 		  pop3.h timecheck.h mbnewusr.h input.h whoson.h \
 		  door.h dispfile.h userlist.h timestats.h logentry.h lastcallers.h \
-		  ymsend.h ymrecv.h zmmisc.h zmsend.h zmrecv.h protocol.h
+		  ymsend.h ymrecv.h zmmisc.h zmsend.h zmrecv.h protocol.h \
+		  fortytwo_session.h
 MBSEBBS_OBJS	= signature.o chat.o file.o funcs.o mail.o menu.o mib.o \
 		  misc.o pinfo.o oneline.o page.o fsedit.o lineedit.o transfer.o \
 		  bye.o change.o mbsebbs.o timeout.o user.o timecheck.o \
 		  exitinfo.o filesub.o offline.o language.o msgutil.o \
 		  pop3.o email.o input.o whoson.o door.o dispfile.o userlist.o timestats.o \
 		  logentry.o morefile.o lastcallers.o term.o ttyio.o openport.o \
-		  ymsend.o ymrecv.o zmmisc.o zmsend.o zmrecv.o protocol.o
+		  ymsend.o ymrecv.o zmmisc.o zmsend.o zmrecv.o protocol.o \
+		  fortytwo_session.o fortytwo_ftap_client.o \
+		  fortytwo_ftap_codec.o fortytwo_ftap_schema.o
 MBSEBBS_LIBS	= ../lib/libmbse.a ../lib/libmsgbase.a ../lib/libdbase.a ../lib/libmbinet.a ../lib/libnodelist.a
 MBNEWUSR_OBJS	= mbnewusr.o newuser.o language.o timeout.o dispfile.o oneline.o ttyio.o mib.o \
 		  timecheck.o input.o exitinfo.o funcs.o misc.o change.o door.o term.o openport.o \
-		  filesub.o mail.o email.o msgutil.o pop3.o fsedit.o lineedit.o whoson.o protocol.o
+		  filesub.o mail.o email.o msgutil.o pop3.o fsedit.o lineedit.o whoson.o protocol.o \
+		  fortytwo_session.o fortytwo_ftap_client.o \
+		  fortytwo_ftap_codec.o fortytwo_ftap_schema.o
 MBNEWUSR_LIBS	= ../lib/libmbse.a ../lib/libmsgbase.a ../lib/libdbase.a ../lib/libmbinet.a ../lib/libnodelist.a
 OTHER		= Makefile
 TARGET		= mbsebbs mbnewusr
@@ -42,6 +50,15 @@ TARGET		= mbsebbs mbnewusr
 
 .c.o:
 		${CC} ${CFLAGS} ${INCLUDES} ${DEFINES} -c $<
+
+fortytwo_ftap_client.o: ../fortytwo-auth/src/ftap_client.c ../fortytwo-auth/include/ftap_client.h
+		${CC} ${CFLAGS} ${INCLUDES} ${DEFINES} -I../fortytwo-auth/include -c $< -o $@
+
+fortytwo_ftap_codec.o: ../fortytwo-auth/src/ftap_codec.c ../fortytwo-auth/include/ftap_codec.h
+		${CC} ${CFLAGS} ${INCLUDES} ${DEFINES} -I../fortytwo-auth/include -c $< -o $@
+
+fortytwo_ftap_schema.o: ../fortytwo-auth/src/ftap_schema.c ../fortytwo-auth/include/ftap_schema.h
+		${CC} ${CFLAGS} ${INCLUDES} ${DEFINES} -I../fortytwo-auth/include -c $< -o $@
 
 all:		${TARGET}
 
@@ -101,7 +118,7 @@ morefile.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h input.h la
 email.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/msgtext.h ../lib/msg.h ../lib/mbinet.h exitinfo.h language.h mail.h timeout.h msgutil.h input.h email.h whoson.h term.h ttyio.h
 fsedit.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h mail.h input.h language.h timeout.h pinfo.h fsedit.h term.h ttyio.h
 page.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h dispfile.h input.h chat.h page.h timeout.h mail.h language.h term.h ttyio.h
-bye.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/nodelist.h dispfile.h misc.h language.h bye.h term.h openport.h ttyio.h mib.h
+bye.o: fortytwo_session.h ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/nodelist.h dispfile.h misc.h language.h bye.h term.h openport.h ttyio.h mib.h
 funcs.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/msgtext.h ../lib/msg.h funcs.h term.h ttyio.h
 mail.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/nodelist.h ../lib/msgtext.h ../lib/msg.h mail.h funcs.h input.h language.h misc.h timeout.h oneline.h exitinfo.h fsedit.h filesub.h msgutil.h pop3.h email.h door.h whoson.h term.h ttyio.h openport.h
 term.o: ../config.h ../lib/mbselib.h ../lib/users.h term.h ttyio.h
@@ -112,8 +129,8 @@ pinfo.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h pinfo.h input
 timecheck.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h timecheck.h funcs.h bye.h exitinfo.h language.h input.h term.h ttyio.h
 change.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h change.h dispfile.h funcs.h input.h language.h misc.h timeout.h exitinfo.h bye.h term.h ttyio.h
 transfer.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h transfer.h change.h whoson.h funcs.h term.h ttyio.h filesub.h language.h openport.h timeout.h zmmisc.h zmsend.h zmrecv.h ymsend.h ymrecv.h
-exitinfo.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h funcs.h input.h language.h oneline.h misc.h bye.h timeout.h timecheck.h exitinfo.h
-mbsebbs.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/msg.h mbsebbs.h user.h dispfile.h language.h menu.h misc.h bye.h timeout.h funcs.h term.h ttyio.h openport.h input.h
+exitinfo.o: fortytwo_session.h ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h funcs.h input.h language.h oneline.h misc.h bye.h timeout.h timecheck.h exitinfo.h
+mbsebbs.o: fortytwo_session.h ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/msg.h mbsebbs.h user.h dispfile.h language.h menu.h misc.h bye.h timeout.h funcs.h term.h ttyio.h openport.h input.h
 menu.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h oneline.h mail.h change.h chat.h file.h funcs.h input.h misc.h timeout.h menu.h page.h pinfo.h bye.h timecheck.h whoson.h language.h offline.h email.h door.h dispfile.h userlist.h timestats.h logentry.h morefile.h lastcallers.h signature.h term.h ttyio.h
 pop3.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h ../lib/mbinet.h ../lib/msgtext.h ../lib/msg.h msgutil.h pop3.h term.h ttyio.h
 lastcallers.o: ../config.h ../lib/mbselib.h ../lib/mbse.h ../lib/users.h input.h language.h lastcallers.h term.h ttyio.h
@@ -138,3 +155,5 @@ zmsend.o: ../config.h ../lib/mbselib.h ttyio.h zmmisc.h transfer.h openport.h ti
 zmrecv.o: ../config.h ../lib/mbselib.h ../lib/users.h ttyio.h transfer.h zmmisc.h zmrecv.h ymrecv.h openport.h timeout.h input.h
 protocol.o: protocol.h
 # End of generated dependencies
+
+fortytwo_session.o: fortytwo_session.c fortytwo_session.h ../fortytwo-auth/include/ftap_client.h

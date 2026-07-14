@@ -16,7 +16,7 @@ struct authd_database {
     unsigned long health_checks;
     unsigned long fail_after;
     uint32_t failed_count;
-    bool session_open;
+    unsigned int open_session_count;
     uint8_t session_id[FTAP_UUID_SIZE];
 };
 
@@ -186,6 +186,9 @@ authd_database_lookup_login(authd_database_t *database,
                    canonical_login_name);
     (void)snprintf(record->display_name, sizeof(record->display_name),
                    "Test %s", canonical_login_name);
+    (void)snprintf(record->legacy_name, sizeof(record->legacy_name),
+                   "%s", strcmp(canonical_login_name, "alice") == 0
+                              ? "alice" : "testuser");
     (void)snprintf(record->password_hash, sizeof(record->password_hash), "%s",
                    strcmp(canonical_login_name, "invalidhash") == 0
                        ? "invalid"
@@ -300,7 +303,7 @@ authd_database_create_password_session(
     session->auth_epoch = record->auth_epoch;
     session->authz_revision = record->authz_revision;
     database->failed_count = 0U;
-    database->session_open = true;
+    ++database->open_session_count;
     record_event("session_create", record->login_name);
     return AUTHD_DATABASE_WRITE_OK;
 }
@@ -319,11 +322,11 @@ authd_database_close_terminal_session(
     if (database == NULL || session_id == NULL || ended_reason == NULL) {
         return AUTHD_DATABASE_WRITE_INVALID_ARGUMENT;
     }
-    if (!database->session_open ||
+    if (database->open_session_count == 0U ||
         memcmp(session_id, database->session_id, FTAP_UUID_SIZE) != 0) {
         return AUTHD_DATABASE_WRITE_NOT_FOUND;
     }
-    database->session_open = false;
+    --database->open_session_count;
     record_event("session_close", ended_reason);
     return AUTHD_DATABASE_WRITE_OK;
 }
@@ -333,7 +336,8 @@ authd_login_record_availability(const authd_login_record_t *record)
 {
     if (record == NULL || record->auth_epoch == 0U ||
         record->authz_revision == 0U || record->login_name[0] == '\0' ||
-        record->display_name[0] == '\0' || record->password_hash[0] == '\0') {
+        record->display_name[0] == '\0' || record->legacy_name[0] == '\0' ||
+        record->password_hash[0] == '\0') {
         return AUTHD_LOGIN_INVALID_RECORD;
     }
     if (record->deleted ||

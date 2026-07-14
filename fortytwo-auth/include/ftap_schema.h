@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Message-level validation for FTAP 1.1, document revision 1.3.
+ * Message-level validation for FTAP 1.2, document revision 1.4.
  */
 
 #ifndef FORTYTWO_FTAP_SCHEMA_H

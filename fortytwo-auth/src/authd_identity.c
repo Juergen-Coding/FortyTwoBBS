@@ -84,3 +84,36 @@ authd_login_name_is_canonical(const char *login_name)
     valid = authd_login_name_canonicalize(login_name, length, canonical);
     return valid && strcmp(login_name, canonical) == 0;
 }
+
+
+bool
+authd_legacy_name_is_valid(const char *legacy_name)
+{
+    size_t index;
+    size_t length;
+
+    if (legacy_name == NULL) {
+        return false;
+    }
+    length = strlen(legacy_name);
+    if (length == 0U || length > (size_t)FTAP_LEGACY_NAME_MAX) {
+        return false;
+    }
+
+    for (index = 0U; index < length; ++index) {
+        unsigned char character = (unsigned char)legacy_name[index];
+        bool valid = is_ascii_digit(character) ||
+                     (character >= (unsigned char)'a' &&
+                      character <= (unsigned char)'z');
+
+        if (index > 0U) {
+            valid = valid || character == (unsigned char)'.' ||
+                    character == (unsigned char)'_' ||
+                    character == (unsigned char)'-';
+        }
+        if (!valid) {
+            return false;
+        }
+    }
+    return true;
+}

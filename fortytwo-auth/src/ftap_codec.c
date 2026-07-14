@@ -193,6 +193,7 @@ ftap_field_type_is_known(uint16_t field_type)
     case FTAP_FIELD_AUTH_EPOCH:
     case FTAP_FIELD_AUTHZ_REVISION:
     case FTAP_FIELD_CAPABILITY:
+    case FTAP_FIELD_LEGACY_NAME:
     case FTAP_FIELD_RESOURCE_TYPE:
     case FTAP_FIELD_RESOURCE_ID:
     case FTAP_FIELD_AUTHZ_ALLOWED:

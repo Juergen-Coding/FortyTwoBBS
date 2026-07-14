@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
- * Compile-time contract test for FTAP 1.1 wire constants.
+ * Compile-time contract test for FTAP 1.2 wire constants.
  */
 
 #include "ftap_protocol.h"
@@ -9,7 +9,7 @@ _Static_assert(FTAP_MAGIC_U32 == UINT32_C(0x46544150),
                "FTAP magic must encode FTAP");
 _Static_assert(FTAP_VERSION_MAJOR == 1,
                "Unexpected FTAP major version");
-_Static_assert(FTAP_VERSION_MINOR == 1,
+_Static_assert(FTAP_VERSION_MINOR == 2,
                "Unexpected FTAP minor version");
 _Static_assert(FTAP_FRAME_HEADER_SIZE == 24,
                "FTAP frame header must be 24 bytes");
@@ -37,6 +37,10 @@ _Static_assert(FTAP_FRAME_FLAG_KNOWN_MASK == UINT16_C(0x0007),
                "Unexpected frame flag mask");
 _Static_assert(FTAP_FIELD_FLAG_KNOWN_MASK == UINT16_C(0x0001),
                "Unexpected field flag mask");
+_Static_assert(FTAP_LEGACY_NAME_MAX == 8,
+               "Unexpected legacy-name limit");
+_Static_assert(FTAP_FIELD_LEGACY_NAME == 27,
+               "Unexpected legacy-name field value");
 _Static_assert(FTAP_ACCOUNT_STATE_MAX == 16,
                "Unexpected account-state limit");
 _Static_assert(FTAP_RESOURCE_TYPE_MAX == 64,

@@ -35,6 +35,7 @@ typedef struct ftap_terminal_context {
     uint8_t session_id[FTAP_UUID_SIZE];
     char login_name[FTAP_LOGIN_NAME_MAX + 1U];
     char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
     char protocol[FTAP_PROTOCOL_NAME_MAX + 1U];
     char auth_method[FTAP_AUTH_METHOD_MAX + 1U];
     uint64_t auth_epoch;

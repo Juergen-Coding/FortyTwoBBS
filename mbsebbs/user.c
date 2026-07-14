@@ -179,7 +179,7 @@ void user(void)
     struct stat st;
 
     grecno = 0;
-    Syslog('+', "Unixmode login: %s", sUnixName);
+    Syslog('+', "FortyTwo session login: %s", sUnixName);
 
     snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
     if ((pUsrConfig = fopen(temp,"r+")) == NULL) {

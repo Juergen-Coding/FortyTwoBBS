@@ -29,9 +29,9 @@ on the migration history.
 The migration must be applied and registered before the production daemon can
 start successfully.
 
-Later B3 migrations add the canonical ASCII login-name policy and the
-monotonic authorization revision used by authenticated sessions. Current
-binaries therefore require migrations 0001 through 0006 with their exact
+Later migrations add the canonical ASCII login-name policy, the monotonic
+authorization revision and the explicit UUID-to-MBSE record binding. Current
+binaries therefore require migrations 0001 through 0007 with their exact
 registered SHA-256 checksums.
 
 ## Connection policy

@@ -53,9 +53,9 @@ test_migrations(void)
     assert(required[count - 1U].version ==
            AUTHD_DATABASE_REQUIRED_HIGHEST_MIGRATION);
     assert(strcmp(required[count - 1U].name,
-                  "0006_authorization_revision.sql") == 0);
+                  "0007_legacy_mbse_binding.sql") == 0);
     assert(strcmp(required[count - 1U].checksum,
-                  "0492f1763633aa87737cbea1b0456c9521e35adce9257af86534ef84896b1d1c") == 0);
+                  "e52dda0b652b47c93faeeb31a7cf4f0b467f0a3136241b5888641929e470fda3") == 0);
     for (index = 0U; index < count; ++index) {
         records[index] = required[index];
     }

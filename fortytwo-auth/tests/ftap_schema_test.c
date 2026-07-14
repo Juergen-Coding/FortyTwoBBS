@@ -534,6 +534,83 @@ test_reason_limits_and_syntax(void)
                  FTAP_STATUS_ERR_INVALID_VALUE);
 }
 
+
+static void
+test_legacy_name_result_contract(void)
+{
+    uint8_t payload[512];
+    uint8_t user_id[FTAP_UUID_SIZE] = { 0 };
+    uint8_t session_id[FTAP_UUID_SIZE] = { 1 };
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_validation_error_t error;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_SESSION_ID, 0, session_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"neo67", 5, FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"Neo 67", 6, FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LEGACY_NAME, 0,
+                     (const uint8_t *)"neo67", 5, FTAP_LEGACY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u64(
+                     &writer, FTAP_FIELD_AUTH_EPOCH, 0, 1),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u64(
+                     &writer, FTAP_FIELD_AUTHZ_REVISION, 0, 2),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_AUTH_PASSWORD_RESULT,
+                         FTAP_FRAME_FLAG_RESPONSE,
+                         (uint32_t)writer.length, 11);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_AUTHENTICATING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_SESSION_ID, 0, session_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"neo67", 5, FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"Neo 67", 6, FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LEGACY_NAME, 0,
+                     (const uint8_t *)"Neo67", 5, FTAP_LEGACY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u64(
+                     &writer, FTAP_FIELD_AUTH_EPOCH, 0, 1),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u64(
+                     &writer, FTAP_FIELD_AUTHZ_REVISION, 0, 2),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_AUTHENTICATING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_LEGACY_NAME);
+}
+
 static void
 test_account_state_is_reserved(void)
 {
@@ -570,6 +647,7 @@ main(void)
     test_push_and_payload_length();
     test_bounded_resource_fields();
     test_reason_limits_and_syntax();
+    test_legacy_name_result_contract();
     test_account_state_is_reserved();
 
     if (failures != 0U) {

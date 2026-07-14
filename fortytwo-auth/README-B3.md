@@ -186,7 +186,7 @@ password audit must use the atomic counter function rather than the audit-only
 function.
 
 IPv4 and IPv6 text is validated before PostgreSQL casts it to `inet`, and only
-FTAP 1.1 protocol names (`telnet`, `ssh`, and `local`) are accepted. The
+FTAP 1.2 protocol names (`telnet`, `ssh`, and `local`) are accepted. The
 in-memory per-IP short-window limiter remains a later integration component;
 this step implements the persistent per-user half of the documented hybrid
 model.
@@ -308,7 +308,7 @@ records the selected hash class and proves that unknown, locked, and disabled
 fixtures reached the dummy worker path.
 
 Temporary protection through `throttled_until` is intentionally visible in
-FTAP 1.1 as `FTAP_ERR_RATE_LIMITED` with a bounded `RETRY_AFTER_MS`. This avoids
+FTAP 1.2 as `FTAP_ERR_RATE_LIMITED` with a bounded `RETRY_AFTER_MS`. This avoids
 encouraging a client to retry expensive authentication immediately. Technical
 database or worker failures remain separate from credential failures.
 
@@ -335,7 +335,7 @@ authd_shutdown
 authd_failure
 ```
 
-`SESSION_CLOSE` has no response in FTAP 1.1. The daemon first stores the
+`SESSION_CLOSE` has no response in FTAP 1.2. The daemon first stores the
 optional machine-readable `ENDED_REASON` (default `normal_logout`) and then
 closes the socket. If PostgreSQL session creation succeeds but the FTAP success
 frame cannot be queued or sent, the new session is immediately closed as

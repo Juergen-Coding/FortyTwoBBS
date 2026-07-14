@@ -66,6 +66,7 @@ typedef struct authd_login_attempt {
 typedef struct authd_bound_session_context {
     char login_name[FTAP_LOGIN_NAME_MAX + 1U];
     char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
     char protocol[FTAP_PROTOCOL_NAME_MAX + 1U];
     char auth_method[FTAP_AUTH_METHOD_MAX + 1U];
 } authd_bound_session_context_t;
@@ -784,6 +785,12 @@ queue_authentication_result(authd_client_t *client,
             strlen(attempt->record.display_name), FTAP_DISPLAY_NAME_MAX);
     }
     if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LEGACY_NAME, 0,
+            (const uint8_t *)attempt->record.legacy_name,
+            strlen(attempt->record.legacy_name), FTAP_LEGACY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
         status = ftap_tlv_writer_put_u64(&writer, FTAP_FIELD_AUTH_EPOCH, 0,
                                          session->auth_epoch);
     }
@@ -838,6 +845,13 @@ queue_session_context_result(authd_client_t *client, uint64_t request_id)
             (const uint8_t *)client->session_context.display_name,
             strlen(client->session_context.display_name),
             FTAP_DISPLAY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LEGACY_NAME, 0,
+            (const uint8_t *)client->session_context.legacy_name,
+            strlen(client->session_context.legacy_name),
+            FTAP_LEGACY_NAME_MAX);
     }
     if (status == FTAP_STATUS_OK) {
         status = ftap_tlv_writer_put_text(
@@ -990,7 +1004,7 @@ parse_session_close_reason(const uint8_t *payload,
 }
 
 /*
- * SESSION_CLOSE has no response in FTAP 1.1. Close the database lifecycle
+ * SESSION_CLOSE has no response in FTAP 1.2. Close the database lifecycle
  * first, then let the event loop close the bound socket. A transient database
  * failure leaves the reason on the client so client_reset() can retry once.
  */
@@ -1088,7 +1102,7 @@ start_password_login(authd_client_t *client,
         availability = authd_login_record_availability(&attempt.record);
     }
 
-    /* Temporary account throttling is deliberately explicit in FTAP 1.1. */
+    /* Temporary account throttling is deliberately explicit in FTAP 1.2. */
     if (lookup_result == AUTHD_DATABASE_LOOKUP_OK &&
         availability == AUTHD_LOGIN_THROTTLED) {
         uint64_t retry_after_ms = attempt.record.retry_after_ms;
@@ -1217,6 +1231,9 @@ complete_password_login(authd_client_t *client,
             (void)snprintf(client->session_context.display_name,
                            sizeof(client->session_context.display_name), "%s",
                            attempt->record.display_name);
+            (void)snprintf(client->session_context.legacy_name,
+                           sizeof(client->session_context.legacy_name), "%s",
+                           attempt->record.legacy_name);
             (void)snprintf(client->session_context.protocol,
                            sizeof(client->session_context.protocol), "%s",
                            attempt->protocol);

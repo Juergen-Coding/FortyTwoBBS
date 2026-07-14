@@ -46,7 +46,7 @@ test_header_round_trip(void)
     uint8_t wire[FTAP_FRAME_HEADER_SIZE];
     static const uint8_t expected[FTAP_FRAME_HEADER_SIZE] = {
         0x46, 0x54, 0x41, 0x50,
-        0x00, 0x01, 0x00, 0x01,
+        0x00, 0x01, 0x00, 0x02,
         0x00, 0x78, 0x00, 0x00,
         0x00, 0x00, 0x03, 0x04,
         0x01, 0x02, 0x03, 0x04,
@@ -90,7 +90,7 @@ test_header_rejections(void)
                  FTAP_STATUS_ERR_VERSION);
 
     CHECK_STATUS(ftap_frame_header_encode(wire, &header), FTAP_STATUS_OK);
-    wire[7] = 2;
+    wire[7] = 3;
     CHECK_STATUS(ftap_frame_header_decode(wire, sizeof(wire), &decoded),
                  FTAP_STATUS_NEWER_MINOR);
 

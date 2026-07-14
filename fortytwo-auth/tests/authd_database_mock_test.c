@@ -51,7 +51,7 @@ typedef struct fake_scenario {
     bool login_found;
     bool login_query_error;
     int login_null_column;
-    const char *login_values[13];
+    const char *login_values[14];
     bool session_create_found;
     bool session_create_query_error;
     int session_create_null_column;
@@ -125,11 +125,12 @@ reset_scenario(void)
     scenario.login_values[6] = "9";
     scenario.login_values[7] = "0";
     scenario.login_values[8] = "Neo 67";
-    scenario.login_values[9] =
+    scenario.login_values[9] = "neo67";
+    scenario.login_values[10] =
         "$argon2id$v=19$m=262144,t=3,p=1$test$test";
-    scenario.login_values[10] = "0";
-    scenario.login_values[11] = "2";
-    scenario.login_values[12] = "1720000000000";
+    scenario.login_values[11] = "0";
+    scenario.login_values[12] = "2";
+    scenario.login_values[13] = "1720000000000";
     scenario.session_create_found = true;
     scenario.session_create_null_column = -1;
     scenario.session_create_values[0] =
@@ -294,8 +295,9 @@ __wrap_PQexecParams(PGconn *connection,
         assert(strstr(command, "audit_insert") != NULL);
         assert(strstr(command, "u.login_name = $8 COLLATE") != NULL);
         assert(strstr(command, "c.password_hash = $9") != NULL);
+        assert(strstr(command, "m.legacy_name = $10 COLLATE") != NULL);
         assert(strstr(command, "neo67") == NULL);
-        assert(parameter_count == 9);
+        assert(parameter_count == 10);
         assert(strcmp(parameter_values[0],
                       "00112233-4455-6677-8899-aabbccddeeff") == 0);
         assert(strcmp(parameter_values[1], "7") == 0);
@@ -306,6 +308,7 @@ __wrap_PQexecParams(PGconn *connection,
         assert(strcmp(parameter_values[6], "node-a") == 0);
         assert(strcmp(parameter_values[7], "neo67") == 0);
         assert(strncmp(parameter_values[8], "$argon2id$", 10U) == 0);
+        assert(strcmp(parameter_values[9], "neo67") == 0);
         result->kind = scenario.session_create_query_error ?
             FAKE_RESULT_ERROR : FAKE_RESULT_SESSION_CREATE;
     } else if (strstr(command, "auth.terminal_session_closed") != NULL) {
@@ -408,7 +411,7 @@ __wrap_PQnfields(const PGresult *result)
     case FAKE_RESULT_MIGRATIONS:
         return 3;
     case FAKE_RESULT_LOGIN:
-        return 13;
+        return 14;
     case FAKE_RESULT_SESSION_CREATE:
         return 5;
     case FAKE_RESULT_SESSION_CLOSE:
@@ -496,7 +499,7 @@ __wrap_PQgetvalue(const PGresult *result, int row, int column)
 
     if (fake->kind == FAKE_RESULT_LOGIN) {
         assert(row == 0);
-        assert(column >= 0 && column < 13);
+        assert(column >= 0 && column < 14);
         return (char *)scenario.login_values[column];
     }
 
@@ -622,6 +625,7 @@ test_login_lookup(void)
     assert(record.user_id[15] == 0xffU);
     assert(strcmp(record.login_name, "neo67") == 0);
     assert(strcmp(record.display_name, "Neo 67") == 0);
+    assert(strcmp(record.legacy_name, "neo67") == 0);
     assert(record.account_state == AUTHD_ACCOUNT_STATE_ACTIVE);
     assert(record.auth_epoch == 7U);
     assert(record.authz_revision == 9U);
@@ -658,15 +662,28 @@ test_login_lookup(void)
 
     scenario.login_values[3] = "0";
     scenario.login_values[4] = "0";
-    scenario.login_values[10] = "1";
+    scenario.login_values[11] = "1";
     assert(authd_database_lookup_login(database, "neo67", &record,
                                        error, sizeof(error)) ==
            AUTHD_DATABASE_LOOKUP_OK);
     assert(authd_login_record_availability(&record) ==
            AUTHD_LOGIN_PASSWORD_CHANGE_REQUIRED);
 
-    scenario.login_values[10] = "0";
+    scenario.login_values[11] = "0";
     scenario.login_null_column = 9;
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_INVALID_RECORD);
+    assert(strstr(error, "required field") != NULL);
+
+    scenario.login_null_column = -1;
+    scenario.login_values[9] = "Neo67";
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_INVALID_RECORD);
+    scenario.login_values[9] = "neo67";
+
+    scenario.login_null_column = 10;
     assert(authd_database_lookup_login(database, "neo67", &record,
                                        error, sizeof(error)) ==
            AUTHD_DATABASE_LOOKUP_INVALID_RECORD);
@@ -766,6 +783,14 @@ test_password_session_creation(void)
         database, &record, "192.0.2.42", "ssh", "", "node-a",
         &session, error, sizeof(error)) ==
         AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+
+    record.legacy_name[0] = '\0';
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    (void)snprintf(record.legacy_name, sizeof(record.legacy_name), "%s",
+                   "neo67");
 
     record.auth_epoch = 0U;
     assert(authd_database_create_password_session(
@@ -941,6 +966,8 @@ test_login_availability(void)
                    "neo67");
     (void)snprintf(record.display_name, sizeof(record.display_name), "%s",
                    "Neo 67");
+    (void)snprintf(record.legacy_name, sizeof(record.legacy_name), "%s",
+                   "neo67");
     (void)snprintf(record.password_hash, sizeof(record.password_hash), "%s",
                    "$argon2id$v=19$m=262144,t=3,p=1$test$test");
 

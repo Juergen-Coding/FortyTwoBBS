@@ -59,6 +59,7 @@ main(void)
     }
     assert(memcmp(record.user_id, expected_user_id,
                   sizeof(expected_user_id)) == 0);
+    assert(strcmp(record.legacy_name, "b3sess") == 0);
     assert(record.auth_epoch == UINT64_C(42));
     assert(record.authz_revision == UINT64_C(7));
     assert(record.failed_count == UINT32_C(4));

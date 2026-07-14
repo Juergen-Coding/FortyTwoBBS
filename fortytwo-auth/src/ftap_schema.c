@@ -68,6 +68,7 @@ static const ftap_field_rule_t auth_password_result_rules[] = {
     RULE_REQUIRED(FTAP_FIELD_SESSION_ID),
     RULE_REQUIRED(FTAP_FIELD_LOGIN_NAME),
     RULE_REQUIRED(FTAP_FIELD_DISPLAY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_LEGACY_NAME),
     RULE_REQUIRED(FTAP_FIELD_AUTH_EPOCH),
     RULE_REQUIRED(FTAP_FIELD_AUTHZ_REVISION),
     RULE_REPEATABLE(FTAP_FIELD_CAPABILITY)
@@ -78,6 +79,7 @@ static const ftap_field_rule_t session_context_result_rules[] = {
     RULE_REQUIRED(FTAP_FIELD_SESSION_ID),
     RULE_REQUIRED(FTAP_FIELD_LOGIN_NAME),
     RULE_REQUIRED(FTAP_FIELD_DISPLAY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_LEGACY_NAME),
     RULE_REQUIRED(FTAP_FIELD_PROTOCOL),
     RULE_REQUIRED(FTAP_FIELD_AUTH_METHOD),
     RULE_REQUIRED(FTAP_FIELD_AUTH_EPOCH),
@@ -200,6 +202,44 @@ is_reason_character(uint8_t character)
            character == (uint8_t)'.' ||
            character == (uint8_t)'-' ||
            character == (uint8_t)'_';
+}
+
+static bool
+is_legacy_name_first_character(uint8_t character)
+{
+    return (character >= (uint8_t)'a' && character <= (uint8_t)'z') ||
+           (character >= (uint8_t)'0' && character <= (uint8_t)'9');
+}
+
+static bool
+is_legacy_name_character(uint8_t character)
+{
+    return is_legacy_name_first_character(character) ||
+           character == (uint8_t)'.' ||
+           character == (uint8_t)'_' ||
+           character == (uint8_t)'-';
+}
+
+/* The legacy record key is an exact, lower-case ASCII filesystem component. */
+static ftap_status_t
+validate_legacy_name(const ftap_tlv_t *field)
+{
+    size_t i;
+    ftap_status_t status;
+
+    status = validate_text(field, FTAP_LEGACY_NAME_MAX, false);
+    if (status != FTAP_STATUS_OK) {
+        return status;
+    }
+    if (!is_legacy_name_first_character(field->value[0])) {
+        return FTAP_STATUS_ERR_INVALID_VALUE;
+    }
+    for (i = 1U; i < field->length; ++i) {
+        if (!is_legacy_name_character(field->value[i])) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+    }
+    return FTAP_STATUS_OK;
 }
 
 static ftap_status_t
@@ -325,6 +365,8 @@ validate_field_value(const ftap_tlv_t *field)
         return ftap_tlv_get_uuid(field, uuid);
     case FTAP_FIELD_DISPLAY_NAME:
         return validate_text(field, FTAP_DISPLAY_NAME_MAX, false);
+    case FTAP_FIELD_LEGACY_NAME:
+        return validate_legacy_name(field);
     case FTAP_FIELD_AUTH_EPOCH:
     case FTAP_FIELD_AUTHZ_REVISION:
         return ftap_tlv_get_u64(field, &u64_value);

@@ -52,6 +52,12 @@ INSERT INTO public.bbs_users (
     7
 );
 
+INSERT INTO public.bbs_legacy_mbse_bindings (user_id, legacy_name)
+VALUES (
+    '33333333-4444-4555-8666-777777777777'::uuid,
+    'b3sess'
+);
+
 INSERT INTO public.bbs_user_profiles (
     user_id,
     display_name,

@@ -60,6 +60,7 @@ main(void)
                   sizeof(expected_user_id)) == 0);
     assert(strcmp(record.login_name, "b3_lookup_test_7f4a") == 0);
     assert(strcmp(record.display_name, "B3 PostgreSQL Lookup Test") == 0);
+    assert(strcmp(record.legacy_name, "b3look") == 0);
     assert(strncmp(record.password_hash, "$argon2id$", 10U) == 0);
     assert(record.account_state == AUTHD_ACCOUNT_STATE_ACTIVE);
     assert(record.auth_epoch == UINT64_C(42));

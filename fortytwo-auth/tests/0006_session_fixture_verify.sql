@@ -40,6 +40,7 @@ BEGIN
       AND a.event_type = 'auth.login_succeeded'
       AND a.source_ip = '192.0.2.99'::inet
       AND a.detail ->> 'login_name' = 'b3_session_test_3333'
+      AND a.detail ->> 'legacy_name' = 'b3sess'
       AND a.detail ->> 'protocol' = 'ssh'
       AND a.detail ->> 'auth_method' = 'password'
       AND (a.detail ->> 'auth_epoch')::bigint = 42

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * FortyTwo Authentication Protocol (FTAP)
- * Wire constants for FTAP 1.1 (document revision 1.3).
+ * Wire constants for FTAP 1.2 (document revision 1.4).
  *
  * Source of truth:
  *   fortytwo-auth/protocol/FTAP-1.md
@@ -25,7 +25,7 @@
 /* Wire identification and version. */
 #define FTAP_MAGIC_U32                    UINT32_C(0x46544150) /* "FTAP" */
 #define FTAP_VERSION_MAJOR                UINT16_C(1)
-#define FTAP_VERSION_MINOR                UINT16_C(1)
+#define FTAP_VERSION_MINOR                UINT16_C(2)
 
 /* Fixed wire sizes and offsets. */
 #define FTAP_FRAME_HEADER_SIZE            UINT32_C(24)
@@ -49,9 +49,10 @@
 #define FTAP_SERVER_PUSH_REQUEST_ID       UINT64_C(0)
 #define FTAP_FIRST_CLIENT_REQUEST_ID       UINT64_C(1)
 
-/* Text and byte-string limits from FTAP 1.1. */
+/* Text and byte-string limits from FTAP 1.2. */
 #define FTAP_LOGIN_NAME_MAX               UINT32_C(32)
 #define FTAP_DISPLAY_NAME_MAX             UINT32_C(64)
+#define FTAP_LEGACY_NAME_MAX               UINT32_C(8)
 #define FTAP_ACCOUNT_STATE_MAX             UINT32_C(16)
 #define FTAP_CAPABILITY_NAME_MAX           UINT32_C(96)
 #define FTAP_PROTOCOL_NAME_MAX            UINT32_C(16)
@@ -70,7 +71,7 @@
 #define FTAP_PASSWORD_MAX                 UINT32_C(1024)
 #define FTAP_ACCESS_TOKEN_MAX             UINT32_C(512)
 
-/* Normative string values for FTAP 1.1. */
+/* Normative string values for FTAP 1.2. */
 #define FTAP_PROTOCOL_TELNET              "telnet"
 #define FTAP_PROTOCOL_SSH                 "ssh"
 #define FTAP_PROTOCOL_LOCAL               "local"
@@ -164,6 +165,7 @@ typedef enum ftap_field_type {
     FTAP_FIELD_AUTH_EPOCH         = 24,
     FTAP_FIELD_AUTHZ_REVISION     = 25,
     FTAP_FIELD_CAPABILITY         = 26,
+    FTAP_FIELD_LEGACY_NAME        = 27,
 
     FTAP_FIELD_RESOURCE_TYPE      = 30,
     FTAP_FIELD_RESOURCE_ID        = 31,

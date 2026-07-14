@@ -45,6 +45,7 @@
 #include "ttyio.h"
 #include "openport.h"
 #include "input.h"
+#include "fortytwo_session.h"
 
 
 
@@ -85,6 +86,7 @@ int main(int argc, char **argv)
 {
     FILE	    *pTty;
     char	    *p, *tty, temp[PATH_MAX];
+    char            session_error[FORTYTWO_SESSION_ERROR_MAX];
     int		    i, rc, Fix;
     struct stat	    sb;
     struct winsize  ws;
@@ -98,22 +100,41 @@ int main(int argc, char **argv)
     tty = ttyname(1);
 
     /*
-     * Find username from the environment
+     * The BBS identity is recovered only from the authenticated FTAP stream
+     * inherited on descriptor 3. LOGNAME and USER are intentionally ignored.
      */
-    sUnixName[0] = '\0';
-    if (getenv("LOGNAME") != NULL) {
-        snprintf(sUnixName, sizeof(sUnixName), "%s", getenv("LOGNAME"));
-    } else if (getenv("USER") != NULL) {
-        snprintf(sUnixName, sizeof(sUnixName), "%s", getenv("USER"));
-    } else {
-        fprintf(stderr, "No username in environment\n");
-        Quick_Bye(MBERR_OK);
+    if (FortyTwoSessionBootstrap(sUnixName, session_error,
+                                sizeof(session_error)) != 0) {
+        fprintf(stderr, "Authenticated FortyTwo session required: %s\n",
+                session_error);
+        free(pTTY);
+        return MBERR_INIT_ERROR;
     }
 
     /*
-     * Get MBSE_ROOT Path and load Config into Memory
+     * Get MBSE_ROOT Path and load Config into Memory.
      */
     FindMBSE();
+
+    /*
+     * Until every legacy scratch file is session-scoped, hold one exclusive
+     * lock per legacy user. Different users can run under the same service
+     * account, while a second session for the same record fails closed.
+     */
+    rc = FortyTwoSessionPrepare(getenv("MBSE_ROOT"), sUnixName,
+                                session_error, sizeof(session_error));
+    if (rc != 0) {
+        if (rc == 1) {
+            fprintf(stderr, "This BBS user already has an active session.\n");
+            FortyTwoSessionClose("duplicate_login");
+        } else {
+            fprintf(stderr, "Cannot prepare FortyTwo session: %s\n",
+                    session_error);
+            FortyTwoSessionClose("bootstrap_failed");
+        }
+        free(pTTY);
+        return MBERR_INIT_ERROR;
+    }
 
     /* 
      * Set local time and statistic indexes.

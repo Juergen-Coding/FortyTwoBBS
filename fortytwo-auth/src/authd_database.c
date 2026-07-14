@@ -644,7 +644,7 @@ authd_database_lookup_login(authd_database_t *database,
         "u.auth_epoch::pg_catalog.text, "
         "u.authz_revision::pg_catalog.text, "
         "CASE WHEN u.deleted_at IS NULL THEN '0' ELSE '1' END, "
-        "p.display_name, c.password_hash, "
+        "p.display_name, m.legacy_name, c.password_hash, "
         "CASE WHEN c.must_change THEN '1' ELSE '0' END, "
         "c.failed_count::pg_catalog.text, "
         "CASE WHEN c.last_failed_at IS NULL THEN NULL ELSE "
@@ -654,6 +654,8 @@ authd_database_lookup_login(authd_database_t *database,
         "LEFT JOIN public.bbs_user_profiles AS p ON p.user_id = u.user_id "
         "LEFT JOIN public.bbs_password_credentials AS c "
         "ON c.user_id = u.user_id "
+        "JOIN public.bbs_legacy_mbse_bindings AS m "
+        "ON m.user_id = u.user_id "
         "WHERE u.login_name = $1 COLLATE \"C\"";
     const char *parameter_values[1];
     PGresult *result;
@@ -700,7 +702,7 @@ authd_database_lookup_login(authd_database_t *database,
         return AUTHD_DATABASE_LOOKUP_ERROR;
     }
     if (PQresultStatus(result) != PGRES_TUPLES_OK ||
-        PQnfields(result) != 13) {
+        PQnfields(result) != 14) {
         const char *message = PQresultErrorMessage(result);
         if (message != NULL && message[0] != '\0') {
             size_t length = strlen(message);
@@ -742,7 +744,8 @@ authd_database_lookup_login(authd_database_t *database,
         PQgetisnull(result, 0, 8) ||
         PQgetisnull(result, 0, 9) ||
         PQgetisnull(result, 0, 10) ||
-        PQgetisnull(result, 0, 11)) {
+        PQgetisnull(result, 0, 11) ||
+        PQgetisnull(result, 0, 12)) {
         set_error(error, error_size,
                   "login record is missing a required field");
         PQclear(result);
@@ -769,12 +772,17 @@ authd_database_lookup_login(authd_database_t *database,
                            sizeof(record->display_name),
                            PQgetvalue(result, 0, 8),
                            FTAP_DISPLAY_NAME_MAX) ||
+        !copy_bounded_text(record->legacy_name,
+                           sizeof(record->legacy_name),
+                           PQgetvalue(result, 0, 9),
+                           FTAP_LEGACY_NAME_MAX) ||
+        !authd_legacy_name_is_valid(record->legacy_name) ||
         !copy_bounded_text(record->password_hash,
                            sizeof(record->password_hash),
-                           PQgetvalue(result, 0, 9),
+                           PQgetvalue(result, 0, 10),
                            AUTHD_DATABASE_PASSWORD_HASH_MAX) ||
-        !parse_boolean_digit(PQgetvalue(result, 0, 10), &must_change) ||
-        !parse_u32_strict(PQgetvalue(result, 0, 11), &failed_count) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 11), &must_change) ||
+        !parse_u32_strict(PQgetvalue(result, 0, 12), &failed_count) ||
         (throttled && retry_after_ms == 0U) ||
         (!throttled && retry_after_ms != 0U)) {
         memset(record, 0, sizeof(*record));
@@ -792,10 +800,10 @@ authd_database_lookup_login(authd_database_t *database,
     record->must_change = must_change;
     record->failed_count = failed_count;
 
-    if (PQgetisnull(result, 0, 12)) {
+    if (PQgetisnull(result, 0, 13)) {
         record->last_failed_at_set = false;
         record->last_failed_at_epoch_ms = 0;
-    } else if (!parse_i64_strict(PQgetvalue(result, 0, 12),
+    } else if (!parse_i64_strict(PQgetvalue(result, 0, 13),
                                  &record->last_failed_at_epoch_ms)) {
         memset(record, 0, sizeof(*record));
         set_error(error, error_size,
@@ -1144,10 +1152,13 @@ authd_database_create_password_session(
         "WITH eligible_user AS MATERIALIZED ("
         "SELECT u.user_id, u.auth_epoch, u.authz_revision "
         "FROM public.bbs_users AS u "
+        "JOIN public.bbs_legacy_mbse_bindings AS m "
+        "ON m.user_id = u.user_id "
         "WHERE u.user_id = $1::pg_catalog.uuid "
         "AND u.auth_epoch = $2::pg_catalog.int8 "
         "AND u.authz_revision = $3::pg_catalog.int8 "
         "AND u.login_name = $8 COLLATE \"C\" "
+        "AND m.legacy_name = $10 COLLATE \"C\" "
         "AND u.account_state = 'active' "
         "AND u.deleted_at IS NULL "
         "AND (u.throttled_until IS NULL "
@@ -1176,6 +1187,7 @@ authd_database_create_password_session(
         "'auth.login_succeeded', $5::pg_catalog.inet, "
         "pg_catalog.jsonb_build_object("
         "'login_name', $8::pg_catalog.text, "
+        "'legacy_name', $10::pg_catalog.text, "
         "'protocol', $4::pg_catalog.text, "
         "'auth_method', 'password', "
         "'auth_epoch', s.auth_epoch, "
@@ -1194,7 +1206,7 @@ authd_database_create_password_session(
         "FROM session_insert AS s "
         "JOIN credential_reset AS c USING (user_id) "
         "JOIN audit_insert AS a USING (session_id)";
-    const char *parameter_values[9];
+    const char *parameter_values[10];
     char user_id_text[37];
     char auth_epoch_text[32];
     char authz_revision_text[32];
@@ -1215,6 +1227,7 @@ authd_database_create_password_session(
     if (database == NULL || database->connection == NULL || record == NULL ||
         session == NULL || !uuid_is_valid(record->user_id) ||
         !authd_login_name_is_canonical(record->login_name) ||
+        !authd_legacy_name_is_valid(record->legacy_name) ||
         authd_login_record_availability(record) != AUTHD_LOGIN_AVAILABLE ||
         !authd_source_ip_is_valid(source_ip) ||
         !authd_login_protocol_is_valid(protocol) ||
@@ -1247,8 +1260,9 @@ authd_database_create_password_session(
     parameter_values[6] = node_id;
     parameter_values[7] = record->login_name;
     parameter_values[8] = record->password_hash;
+    parameter_values[9] = record->legacy_name;
 
-    result = PQexecParams(database->connection, sql, 9, NULL,
+    result = PQexecParams(database->connection, sql, 10, NULL,
                           parameter_values, NULL, NULL, 0);
     if (result == NULL) {
         copy_libpq_error(error, error_size,
@@ -1417,6 +1431,7 @@ authd_login_record_availability(const authd_login_record_t *record)
     if (record == NULL || record->auth_epoch == 0U ||
         record->authz_revision == 0U ||
         record->login_name[0] == '\0' || record->display_name[0] == '\0' ||
+        !authd_legacy_name_is_valid(record->legacy_name) ||
         record->password_hash[0] == '\0' ||
         (record->throttled && record->retry_after_ms == 0U) ||
         (!record->throttled && record->retry_after_ms != 0U)) {

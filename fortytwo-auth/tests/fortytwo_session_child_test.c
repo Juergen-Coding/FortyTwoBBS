@@ -1,38 +1,34 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Child program used to prove the authenticated FTAP descriptor survives
- * execve() without exposing identity values through the environment.
+ * Exec'd child that exercises the same descriptor-bound bootstrap used by
+ * mbsebbs without exposing identity through process arguments or environment.
  */
 
-#include "ftap_client.h"
-#include "ftap_protocol.h"
+#include "../../mbsebbs/fortytwo_session.h"
 
 #include <assert.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
-
-static bool
-uuid_is_nonzero(const uint8_t uuid[FTAP_UUID_SIZE])
-{
-    size_t index;
-
-    for (index = 0U; index < FTAP_UUID_SIZE; ++index) {
-        if (uuid[index] != 0U) {
-            return true;
-        }
-    }
-    return false;
-}
 
 int
 main(void)
 {
-    ftap_client_t client;
-    ftap_client_error_t error;
-    ftap_terminal_context_t context;
+    char legacy_name[FORTYTWO_LEGACY_NAME_SIZE];
+    char error[FORTYTWO_SESSION_ERROR_MAX];
+    char tmp_path[4096];
+    const char *state_path;
+    char saved_state_path[4096];
     const char *mbse_root = getenv("MBSE_ROOT");
+    char hold_path[4096];
+    char ready_path[4096];
+    char release_path[4096];
+    int prepare_result;
+    int fd;
 
     assert(mbse_root != NULL && mbse_root[0] == '/');
     assert(getenv("HOME") != NULL);
@@ -45,23 +41,48 @@ main(void)
     assert(getenv("MBSE_SESSION_ID") == NULL);
     assert(getenv("FORTYTWO_TEST_SECRET") == NULL);
 
-    memset(&context, 0, sizeof(context));
-    ftap_client_init(&client, FTAP_CLIENT_DEFAULT_TIMEOUT_MS);
-    ftap_client_error_clear(&error);
-    assert(ftap_client_adopt_bound_fd(&client, FTAP_INHERITED_SESSION_FD,
-                                      FTAP_CLIENT_DEFAULT_TIMEOUT_MS,
-                                      &error) == 0);
-    assert(ftap_client_session_context(&client, &context, &error) == 0);
-    assert(uuid_is_nonzero(context.user_id));
-    assert(uuid_is_nonzero(context.session_id));
-    assert(strcmp(context.login_name, "alice") == 0);
-    assert(strcmp(context.display_name, "Test alice") == 0);
-    assert(strcmp(context.protocol, FTAP_PROTOCOL_SSH) == 0);
-    assert(strcmp(context.auth_method, FTAP_AUTH_METHOD_PASSWORD) == 0);
-    assert(context.auth_epoch == UINT64_C(7));
-    assert(context.authz_revision == UINT64_C(11));
-    assert(ftap_client_session_close(&client, "normal_logout", &error) == 0);
-    ftap_client_close(&client);
+    assert(snprintf(tmp_path, sizeof(tmp_path), "%s/tmp", mbse_root) > 0);
+    assert(mkdir(tmp_path, 0700) == 0 || access(tmp_path, F_OK) == 0);
+
+    assert(FortyTwoSessionBootstrap(legacy_name, error, sizeof(error)) == 0);
+    assert(strcmp(legacy_name, "alice") == 0);
+    prepare_result = FortyTwoSessionPrepare(mbse_root, legacy_name,
+                                            error, sizeof(error));
+    if (prepare_result == 1) {
+        FortyTwoSessionClose("duplicate_login");
+        assert(write(STDOUT_FILENO, "FORTYTWO_SESSION_DUPLICATE\r\n",
+                     strlen("FORTYTWO_SESSION_DUPLICATE\r\n")) ==
+               (ssize_t)strlen("FORTYTWO_SESSION_DUPLICATE\r\n"));
+        return 2;
+    }
+    assert(prepare_result == 0);
+
+    state_path = FortyTwoSessionExitinfoPath();
+    assert(state_path != NULL);
+    assert(snprintf(saved_state_path, sizeof(saved_state_path), "%s",
+                    state_path) > 0);
+    fd = open(state_path, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    assert(fd >= 0);
+    assert(write(fd, "state", 5U) == 5);
+    assert(close(fd) == 0);
+
+    assert(snprintf(hold_path, sizeof(hold_path), "%s/hold-session",
+                    mbse_root) > 0);
+    if (access(hold_path, F_OK) == 0) {
+        assert(snprintf(ready_path, sizeof(ready_path), "%s/session-ready",
+                        mbse_root) > 0);
+        assert(snprintf(release_path, sizeof(release_path),
+                        "%s/release-session", mbse_root) > 0);
+        fd = open(ready_path, O_WRONLY | O_CREAT | O_EXCL, 0600);
+        assert(fd >= 0);
+        assert(close(fd) == 0);
+        while (access(release_path, F_OK) != 0) {
+            assert(usleep(10000U) == 0);
+        }
+    }
+
+    FortyTwoSessionClose("normal_logout");
+    assert(access(saved_state_path, F_OK) != 0);
 
     assert(write(STDOUT_FILENO, "FORTYTWO_SESSION_CHILD_OK\r\n",
                  strlen("FORTYTWO_SESSION_CHILD_OK\r\n")) ==

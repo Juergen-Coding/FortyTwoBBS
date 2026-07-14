@@ -40,6 +40,7 @@
 #include "openport.h"
 #include "ttyio.h"
 #include "mib.h"
+#include "fortytwo_session.h"
 
 
 extern	pid_t		mypid;
@@ -54,10 +55,29 @@ extern	unsigned int	mib_minutes;
 int			do_mailout = FALSE;
 
 
+/* Keep database session-end reasons stable and machine-readable. */
+static const char *
+FortyTwoEndReason(int onsig)
+{
+    if (onsig == 0 || onsig == MBERR_OK)
+        return "normal_logout";
+    if (onsig == SIGALRM || onsig == MBERR_TIMEOUT)
+        return "idle_timeout";
+    if (onsig == SIGHUP)
+        return "carrier_lost";
+    if (onsig == SIGPIPE)
+        return "transport_error";
+    if (onsig > 0 && onsig <= NSIG)
+        return "signal_terminated";
+    return "bbs_error";
+}
+
+
 void Good_Bye(int onsig)
 {
     FILE    *pUsrConfig, *pExitinfo;
     char    *temp;
+    const char *state_path;
     int	    offset;
     time_t  t_end;
     int	    i;
@@ -76,42 +96,51 @@ void Good_Bye(int onsig)
     SaveLastCallers();
 
     /*
-     * Update the users database record if we aren't on a guest account.
+     * Commit this session's private exitinfo snapshot back to the selected
+     * users.data record while the per-user lock is still held.
      */
     if (!usrconfig.Guest) {
         snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
-        if ((pUsrConfig = fopen(temp,"r+")) != NULL) {
-	    snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, exitinfo.Name);
-	    if ((pExitinfo = fopen(temp,"rb")) != NULL) {
-	        fread(&usrconfighdr, sizeof(usrconfighdr), 1, pUsrConfig);
-	        fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo);
+        pUsrConfig = fopen(temp, "r+");
+        state_path = FortyTwoSessionExitinfoPath();
+        pExitinfo = state_path != NULL ? fopen(state_path, "rb") : NULL;
 
-	        usrconfig = exitinfo;
-	        fclose(pExitinfo);
-	        
-	        /* Save current file area and message area in user record */
-	        
-	        usrconfig.iLastFileArea = iAreaNumber;
-                usrconfig.iLastMsgArea = iMsgAreaNumber;
+        if (pUsrConfig == NULL) {
+            WriteError("$Can't open %s for updating", temp);
+        } else if (pExitinfo == NULL) {
+            WriteError("$Can't open private session state");
+        } else if (fread(&usrconfighdr, sizeof(usrconfighdr), 1,
+                         pUsrConfig) != 1 ||
+                   fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+            WriteError("$Can't read user logout state");
+        } else {
+            usrconfig = exitinfo;
+            usrconfig.iLastFileArea = iAreaNumber;
+            usrconfig.iLastMsgArea = iMsgAreaNumber;
 
-                /* If time expired, do not say successful logoff */
-                if (!iExpired && !hanged_up)
-               	    Syslog('+', "User successfully logged off BBS");
+            if (!iExpired && !hanged_up)
+                Syslog('+', "User successfully logged off BBS");
 
-                offset = usrconfighdr.hdrsize + (grecno * usrconfighdr.recsize);
-                if (fseek(pUsrConfig, offset, SEEK_SET) != 0) {
-		    WriteError("$Can't move pointer in file %s/etc/users.data", getenv("MBSE_ROOT"));
-	        } else {
-	            fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
-                } /* else */
-	        fclose(pUsrConfig);
-            } /* if fopen exitinfo */
-        } /* if fopen userfile */
-    } else { /* If guest account time expired, do not say successful logoff */
+            offset = usrconfighdr.hdrsize + (grecno * usrconfighdr.recsize);
+            if (fseek(pUsrConfig, offset, SEEK_SET) != 0) {
+                WriteError("$Can't move pointer in file %s/etc/users.data",
+                           getenv("MBSE_ROOT"));
+            } else if (fwrite(&usrconfig, sizeof(usrconfig), 1,
+                              pUsrConfig) != 1) {
+                WriteError("$Can't update %s/etc/users.data",
+                           getenv("MBSE_ROOT"));
+            }
+        }
+
+        if (pExitinfo != NULL)
+            fclose(pExitinfo);
+        if (pUsrConfig != NULL)
+            fclose(pUsrConfig);
+    } else {
         if (!iExpired && !hanged_up)
             Syslog('+', "Guest account successfully logged off BBS");
-    } 
-    
+    }
+
     /*
      * Update mib counters
      */
@@ -181,8 +210,6 @@ void Good_Bye(int onsig)
     snprintf(temp, PATH_MAX, "%s/%s/dorinfo1.def", CFG.bbs_usersdir, exitinfo.Name);
     unlink(temp);
 
-    snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, exitinfo.Name);
-    unlink(temp);
     free(temp);
     unlink("taglist");
 
@@ -191,6 +218,7 @@ void Good_Bye(int onsig)
     if (StartTime)
 	free(StartTime);
     deinitnl();
+    FortyTwoSessionClose(FortyTwoEndReason(onsig));
     exit(onsig);
 }
 
@@ -230,6 +258,7 @@ void Quick_Bye(int onsig)
     free(pTTY);
     if (StartTime)
 	free(StartTime);
+    FortyTwoSessionClose("startup_failed");
     exit(MBERR_OK);
 }
 

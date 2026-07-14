@@ -29,7 +29,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifndef TEST_TIMEOUT_MS
 #define TEST_TIMEOUT_MS 3000
+#endif
 
 typedef struct received_frame {
     ftap_frame_header_t header;
@@ -377,7 +379,7 @@ assert_session_context_result(const received_frame_t *frame,
     ftap_tlv_reader_t reader;
     ftap_tlv_t field;
     ftap_status_t status;
-    bool seen[9] = {false};
+    bool seen[10] = {false};
     uint8_t expected_user_id[FTAP_UUID_SIZE];
     uint8_t expected_session_id[FTAP_UUID_SIZE];
     size_t index;
@@ -435,38 +437,45 @@ assert_session_context_result(const received_frame_t *frame,
             assert(memcmp(text, "Test alice", text_length) == 0);
             seen[3] = true;
             break;
+        case FTAP_FIELD_LEGACY_NAME:
+            assert(ftap_tlv_get_text(&field, &text, &text_length,
+                                     FTAP_LEGACY_NAME_MAX) == FTAP_STATUS_OK);
+            assert(text_length == strlen("alice"));
+            assert(memcmp(text, "alice", text_length) == 0);
+            seen[4] = true;
+            break;
         case FTAP_FIELD_PROTOCOL:
             assert(ftap_tlv_get_text(&field, &text, &text_length,
                                      FTAP_PROTOCOL_NAME_MAX) == FTAP_STATUS_OK);
             assert(text_length == strlen(FTAP_PROTOCOL_SSH));
             assert(memcmp(text, FTAP_PROTOCOL_SSH, text_length) == 0);
-            seen[4] = true;
+            seen[5] = true;
             break;
         case FTAP_FIELD_AUTH_METHOD:
             assert(ftap_tlv_get_text(&field, &text, &text_length,
                                      FTAP_AUTH_METHOD_MAX) == FTAP_STATUS_OK);
             assert(text_length == strlen(FTAP_AUTH_METHOD_PASSWORD));
             assert(memcmp(text, FTAP_AUTH_METHOD_PASSWORD, text_length) == 0);
-            seen[5] = true;
+            seen[6] = true;
             break;
         case FTAP_FIELD_AUTH_EPOCH:
             assert(ftap_tlv_get_u64(&field, &number) == FTAP_STATUS_OK);
             assert(number == UINT64_C(7));
-            seen[6] = true;
+            seen[7] = true;
             break;
         case FTAP_FIELD_AUTHZ_REVISION:
             assert(ftap_tlv_get_u64(&field, &number) == FTAP_STATUS_OK);
             assert(number == UINT64_C(11));
-            seen[7] = true;
+            seen[8] = true;
             break;
         case FTAP_FIELD_CAPABILITY:
-            seen[8] = true;
+            seen[9] = true;
             break;
         default:
             assert(false);
         }
     }
-    for (index = 0U; index < 8U; ++index) {
+    for (index = 0U; index < 9U; ++index) {
         assert(seen[index]);
     }
 }
@@ -481,6 +490,7 @@ assert_authentication_result(const received_frame_t *frame,
     ftap_status_t status;
     bool user_id_seen = false;
     bool session_id_seen = false;
+    bool legacy_name_seen = false;
 
     assert(frame->header.message_type == FTAP_MSG_AUTH_PASSWORD_RESULT);
     assert(frame->header.request_id == request_id);
@@ -497,8 +507,17 @@ assert_authentication_result(const received_frame_t *frame,
             break;
         }
         assert(status == FTAP_STATUS_OK);
-        if (field.type == FTAP_FIELD_USER_ID ||
-            field.type == FTAP_FIELD_SESSION_ID) {
+        if (field.type == FTAP_FIELD_LEGACY_NAME) {
+            const uint8_t *text = NULL;
+            size_t text_length = 0U;
+
+            assert(ftap_tlv_get_text(&field, &text, &text_length,
+                                     FTAP_LEGACY_NAME_MAX) == FTAP_STATUS_OK);
+            assert(text_length == strlen("alice"));
+            assert(memcmp(text, "alice", text_length) == 0);
+            legacy_name_seen = true;
+        } else if (field.type == FTAP_FIELD_USER_ID ||
+                   field.type == FTAP_FIELD_SESSION_ID) {
             uint8_t uuid[FTAP_UUID_SIZE];
             size_t index;
             bool nonzero = false;
@@ -514,7 +533,7 @@ assert_authentication_result(const received_frame_t *frame,
             }
         }
     }
-    assert(user_id_seen && session_id_seen);
+    assert(user_id_seen && session_id_seen && legacy_name_seen);
 }
 
 static int
@@ -1404,6 +1423,23 @@ run_login_adapter_pty(const char *login_path,
     assert(close(master_fd) == 0);
 }
 
+static void
+wait_for_regular_file(const char *path)
+{
+    int elapsed;
+
+    for (elapsed = 0; elapsed < TEST_TIMEOUT_MS; elapsed += 10) {
+        struct stat status;
+
+        if (stat(path, &status) == 0 && S_ISREG(status.st_mode)) {
+            return;
+        }
+        assert(errno == ENOENT);
+        sleep_milliseconds(10);
+    }
+    assert(false);
+}
+
 /* A terminating terminal signal must never leave password echo disabled. */
 static void
 test_login_adapter_signal_restores_echo(const char *login_path,
@@ -1494,6 +1530,79 @@ test_login_adapter_fd_handoff(const char *daemon_path,
 }
 
 static void
+test_same_legacy_user_is_serialized(const char *daemon_path,
+                                    const char *login_path,
+                                    const char *session_child_path,
+                                    const char *directory)
+{
+    login_fixture_t fixture;
+    login_pty_result_t second_result;
+    char hold_path[256];
+    char ready_path[256];
+    char release_path[256];
+    pid_t first_runner;
+    int status;
+    int fd;
+
+    assert(snprintf(hold_path, sizeof(hold_path), "%s/hold-session",
+                    directory) > 0);
+    assert(snprintf(ready_path, sizeof(ready_path), "%s/session-ready",
+                    directory) > 0);
+    assert(snprintf(release_path, sizeof(release_path), "%s/release-session",
+                    directory) > 0);
+    fd = open(hold_path, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    assert(fd >= 0);
+    assert(close(fd) == 0);
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "20", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "same-user-lock");
+
+    first_runner = fork();
+    assert(first_runner >= 0);
+    if (first_runner == 0) {
+        login_pty_result_t first_result;
+
+        run_login_adapter_pty(login_path, fixture.socket_path, directory,
+                              session_child_path, "Alice", "secret",
+                              &first_result);
+        assert(WIFEXITED(first_result.wait_status));
+        assert(WEXITSTATUS(first_result.wait_status) == 0);
+        assert(output_contains(first_result.output, first_result.output_length,
+                               "FORTYTWO_SESSION_CHILD_OK"));
+        _exit(0);
+    }
+
+    wait_for_regular_file(ready_path);
+    run_login_adapter_pty(login_path, fixture.socket_path, directory,
+                          session_child_path, "Alice", "secret",
+                          &second_result);
+    assert(WIFEXITED(second_result.wait_status));
+    assert(WEXITSTATUS(second_result.wait_status) == 2);
+    assert(output_contains(second_result.output, second_result.output_length,
+                           "FORTYTWO_SESSION_DUPLICATE"));
+
+    fd = open(release_path, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    assert(fd >= 0);
+    assert(close(fd) == 0);
+    assert(waitpid(first_runner, &status, 0) == first_runner);
+    assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+
+    sleep_milliseconds(300);
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:alice") == 2U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_close:duplicate_login") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_close:normal_logout") == 1U);
+    finish_login_fixture(&fixture, false);
+
+    assert(unlink(hold_path) == 0);
+    assert(unlink(ready_path) == 0);
+    assert(unlink(release_path) == 0);
+}
+
+static void
 test_login_adapter_uniform_failure(const char *daemon_path,
                                    const char *login_path,
                                    const char *session_child_path,
@@ -1581,6 +1690,7 @@ main(int argc, char *argv[])
     test_failed_authentication_response_closes_session(argv[1], directory);
     test_login_adapter_signal_restores_echo(argv[2], argv[3], directory);
     test_login_adapter_fd_handoff(argv[1], argv[2], argv[3], directory);
+    test_same_legacy_user_is_serialized(argv[1], argv[2], argv[3], directory);
     test_login_adapter_uniform_failure(argv[1], argv[2], argv[3], directory);
     test_login_adapter_exec_failure(argv[1], argv[2], directory);
 
@@ -1594,6 +1704,22 @@ main(int argc, char *argv[])
             char path[256];
             (void)snprintf(path, sizeof(path), "%s/%s", directory, logs[index]);
             assert(unlink(path) == 0);
+        }
+        {
+            char path[256];
+
+            (void)snprintf(path, sizeof(path),
+                           "%s/tmp/fortytwo-sessions/locks/alice.lock",
+                           directory);
+            assert(unlink(path) == 0);
+            (void)snprintf(path, sizeof(path),
+                           "%s/tmp/fortytwo-sessions/locks", directory);
+            assert(rmdir(path) == 0);
+            (void)snprintf(path, sizeof(path),
+                           "%s/tmp/fortytwo-sessions", directory);
+            assert(rmdir(path) == 0);
+            (void)snprintf(path, sizeof(path), "%s/tmp", directory);
+            assert(rmdir(path) == 0);
         }
         assert(rmdir(directory) == 0);
     }

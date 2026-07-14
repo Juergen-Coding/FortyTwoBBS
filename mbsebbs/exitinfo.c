@@ -40,100 +40,121 @@
 #include "timeout.h"
 #include "timecheck.h"
 #include "exitinfo.h"
+#include "fortytwo_session.h"
 
 
 
 /*
- * Copy usersrecord into ~/home/unixname/exitinfo
+ * Copy the selected users.data record into this session's private state file.
+ * The file is keyed by the authenticated session UUID, not by the legacy user
+ * name, so a later multi-session implementation cannot overwrite another
+ * process's in-memory snapshot.
  */
 int InitExitinfo()
 {
-    FILE    *pUsrConfig, *pExitinfo;
-    char    *temp;
-    int	    offset;
+    FILE        *pUsrConfig, *pExitinfo;
+    const char  *state_path;
+    char        *temp;
+    int         offset;
+
+    state_path = FortyTwoSessionExitinfoPath();
+    if (state_path == NULL) {
+        WriteError("$FortyTwo session state is not prepared");
+        return FALSE;
+    }
 
     temp = calloc(PATH_MAX, sizeof(char));
     snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
 
-    if ((pUsrConfig = fopen(temp,"r+b")) == NULL) {
-	WriteError("$Can't open %s for writing", temp);
-	free(temp);
-	return FALSE;
+    if ((pUsrConfig = fopen(temp, "r+b")) == NULL) {
+        WriteError("$Can't open %s for writing", temp);
+        free(temp);
+        return FALSE;
     }
 
-    fread(&usrconfighdr, sizeof(usrconfighdr), 1, pUsrConfig);
+    if (fread(&usrconfighdr, sizeof(usrconfighdr), 1, pUsrConfig) != 1) {
+        WriteError("$Can't read user header from %s", temp);
+        fclose(pUsrConfig);
+        free(temp);
+        return FALSE;
+    }
     offset = usrconfighdr.hdrsize + (grecno * usrconfighdr.recsize);
-    if (fseek(pUsrConfig, offset, 0) != 0) {
-	WriteError("$Can't move pointer in %s", temp);
-	free(temp);
-	return FALSE;
+    if (fseek(pUsrConfig, offset, SEEK_SET) != 0) {
+        WriteError("$Can't move pointer in %s", temp);
+        fclose(pUsrConfig);
+        free(temp);
+        return FALSE;
     }
-
-    fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig);
+    if (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) != 1) {
+        WriteError("$Can't read user record from %s", temp);
+        fclose(pUsrConfig);
+        free(temp);
+        return FALSE;
+    }
 
     exitinfo = usrconfig;
     fclose(pUsrConfig);
 
-    snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, usrconfig.Name);
-    if ((pExitinfo = fopen(temp, "w+b")) == NULL) {
-	WriteError("$Can't open %s for writing", temp);
-	free(temp);
-	return FALSE;
-    } else {
-	fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo);
-	fclose(pExitinfo);
-	if (chmod(temp, 0600))
-	    WriteError("$Can't chmod 0600 %s", temp);
+    if ((pExitinfo = fopen(state_path, "w+b")) == NULL) {
+        WriteError("$Can't open %s for writing", state_path);
+        free(temp);
+        return FALSE;
     }
+    if (fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+        WriteError("$Can't write %s", state_path);
+        fclose(pExitinfo);
+        free(temp);
+        return FALSE;
+    }
+    fclose(pExitinfo);
+    if (chmod(state_path, 0600))
+        WriteError("$Can't chmod 0600 %s", state_path);
+
     free(temp);
     return TRUE;
 }
 
 
-
-/*
- * Function will re-read users file in memory, so the latest information
- * is available to other functions
- */
+/* Re-read only this process's session snapshot. */
 void ReadExitinfo()
 {
-    FILE *pExitinfo;
-    char *temp;
+    FILE        *pExitinfo;
+    const char  *state_path;
 
-    temp = calloc(PATH_MAX, sizeof(char));
-    snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, sUnixName);
-    mkdirs(temp, 0770);
-    if ((pExitinfo = fopen(temp,"r+b")) == NULL)
-	InitExitinfo();
-    else {
-	fflush(stdin);
-	fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo);
-	fclose(pExitinfo);
+    state_path = FortyTwoSessionExitinfoPath();
+    if (state_path == NULL) {
+        WriteError("$FortyTwo session state is not prepared");
+        return;
     }
-    free(temp);
+
+    if ((pExitinfo = fopen(state_path, "r+b")) == NULL) {
+        if (!InitExitinfo())
+            WriteError("$Can't initialize %s", state_path);
+        return;
+    }
+    if (fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+        WriteError("$Can't read %s", state_path);
+    fclose(pExitinfo);
 }
 
 
-
-/*
- * Function will rewrite userinfo from memory, so the latest information
- * is available to other functions
- */
+/* Rewrite only this process's session snapshot. */
 void WriteExitinfo()
 {
-    FILE *pExitinfo;
-    char *temp;
+    FILE        *pExitinfo;
+    const char  *state_path;
 
-    temp = calloc(PATH_MAX, sizeof(char));
-
-    snprintf(temp, PATH_MAX, "%s/%s/exitinfo", CFG.bbs_usersdir, sUnixName);
-    if ((pExitinfo = fopen(temp,"w+b")) == NULL)
-	WriteError("$WriteExitinfo() failed");
-    else {
-	fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo);
-	fclose(pExitinfo);
+    state_path = FortyTwoSessionExitinfoPath();
+    if (state_path == NULL) {
+        WriteError("$FortyTwo session state is not prepared");
+        return;
     }
-    free(temp);
+
+    if ((pExitinfo = fopen(state_path, "w+b")) == NULL) {
+        WriteError("$WriteExitinfo() failed for %s", state_path);
+        return;
+    }
+    if (fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+        WriteError("$Can't write %s", state_path);
+    fclose(pExitinfo);
 }
-
-
