@@ -137,6 +137,56 @@ parse_u32_value(const char *text, uint32_t minimum, uint32_t maximum,
 }
 
 static bool
+parse_u16_value(const char *text, uint16_t minimum, uint16_t maximum,
+                uint16_t *value)
+{
+    uintmax_t parsed;
+
+    if (!parse_uintmax_value(text, 10, &parsed) ||
+        parsed < minimum || parsed > maximum || parsed > UINT16_MAX) {
+        return false;
+    }
+
+    *value = (uint16_t)parsed;
+    return true;
+}
+
+static bool
+copy_database_name(char destination[AUTHD_DB_NAME_MAX + 1U],
+                   const char *source)
+{
+    size_t length;
+    size_t index;
+
+    if (destination == NULL || source == NULL) {
+        return false;
+    }
+
+    length = strlen(source);
+    if (length == 0U || length > AUTHD_DB_NAME_MAX) {
+        return false;
+    }
+
+    for (index = 0U; index < length; ++index) {
+        unsigned char character = (unsigned char)source[index];
+        bool valid = (character >= (unsigned char)'A' &&
+                      character <= (unsigned char)'Z') ||
+                     (character >= (unsigned char)'a' &&
+                      character <= (unsigned char)'z') ||
+                     (character >= (unsigned char)'0' &&
+                      character <= (unsigned char)'9') ||
+                     character == (unsigned char)'_' ||
+                     character == (unsigned char)'-';
+        if (!valid) {
+            return false;
+        }
+    }
+
+    memcpy(destination, source, length + 1U);
+    return true;
+}
+
+static bool
 parse_mode_value(const char *text, mode_t *mode)
 {
     uintmax_t parsed;
@@ -165,6 +215,13 @@ authd_config_defaults(authd_config_t *config)
     config->max_clients = 64U;
     config->backlog = 64;
     config->hello_timeout_ms = UINT32_C(5000);
+    (void)snprintf(config->db_host, sizeof(config->db_host), "%s",
+                   "/var/run/postgresql");
+    (void)snprintf(config->db_name, sizeof(config->db_name), "%s",
+                   "fortytwo");
+    config->db_port = UINT16_C(5432);
+    config->db_connect_timeout_seconds = UINT32_C(5);
+    config->db_health_interval_ms = UINT32_C(5000);
 }
 
 bool
@@ -199,7 +256,13 @@ authd_config_parse(authd_config_t *config,
         OPTION_MAX_CLIENTS,
         OPTION_BACKLOG,
         OPTION_HELLO_TIMEOUT,
+        OPTION_DB_HOST,
+        OPTION_DB_PORT,
+        OPTION_DB_NAME,
+        OPTION_DB_CONNECT_TIMEOUT,
+        OPTION_DB_HEALTH_INTERVAL,
         OPTION_CHECK_CONFIG,
+        OPTION_CHECK_DATABASE,
         OPTION_VERBOSE,
         OPTION_VERSION
     };
@@ -211,7 +274,15 @@ authd_config_parse(authd_config_t *config,
         {"max-clients", required_argument, NULL, OPTION_MAX_CLIENTS},
         {"backlog", required_argument, NULL, OPTION_BACKLOG},
         {"hello-timeout-ms", required_argument, NULL, OPTION_HELLO_TIMEOUT},
+        {"db-host", required_argument, NULL, OPTION_DB_HOST},
+        {"db-port", required_argument, NULL, OPTION_DB_PORT},
+        {"db-name", required_argument, NULL, OPTION_DB_NAME},
+        {"db-connect-timeout-seconds", required_argument, NULL,
+         OPTION_DB_CONNECT_TIMEOUT},
+        {"db-health-interval-ms", required_argument, NULL,
+         OPTION_DB_HEALTH_INTERVAL},
         {"check-config", no_argument, NULL, OPTION_CHECK_CONFIG},
+        {"check-database", no_argument, NULL, OPTION_CHECK_DATABASE},
         {"verbose", no_argument, NULL, OPTION_VERBOSE},
         {"version", no_argument, NULL, OPTION_VERSION},
         {"help", no_argument, NULL, 'h'},
@@ -322,8 +393,71 @@ authd_config_parse(authd_config_t *config,
                 return AUTHD_CONFIG_ERROR;
             }
             break;
+        case OPTION_DB_HOST: {
+            size_t length = strlen(optarg);
+            if (length == 0U || length > AUTHD_DB_HOST_MAX) {
+                set_error(error, error_size,
+                          "--db-host must contain 1..%u bytes",
+                          AUTHD_DB_HOST_MAX);
+                return AUTHD_CONFIG_ERROR;
+            }
+            if (optarg[0] != '/') {
+                set_error(error, error_size,
+                          "--db-host must be an absolute Unix-socket directory");
+                return AUTHD_CONFIG_ERROR;
+            }
+            memcpy(config->db_host, optarg, length + 1U);
+            break;
+        }
+        case OPTION_DB_PORT:
+            if (!parse_u16_value(optarg, AUTHD_DB_MIN_PORT,
+                                 AUTHD_DB_MAX_PORT, &config->db_port)) {
+                set_error(error, error_size,
+                          "--db-port must be between %u and %u",
+                          AUTHD_DB_MIN_PORT, AUTHD_DB_MAX_PORT);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_DB_NAME:
+            if (!copy_database_name(config->db_name, optarg)) {
+                set_error(error, error_size,
+                          "--db-name must contain 1..%u ASCII letters, digits, '_' or '-'",
+                          AUTHD_DB_NAME_MAX);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_DB_CONNECT_TIMEOUT:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_DB_MIN_CONNECT_TIMEOUT_SECONDS,
+                    AUTHD_DB_MAX_CONNECT_TIMEOUT_SECONDS,
+                    &config->db_connect_timeout_seconds)) {
+                set_error(error, error_size,
+                          "--db-connect-timeout-seconds must be between %" PRIu32
+                          " and %" PRIu32,
+                          AUTHD_DB_MIN_CONNECT_TIMEOUT_SECONDS,
+                          AUTHD_DB_MAX_CONNECT_TIMEOUT_SECONDS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_DB_HEALTH_INTERVAL:
+            if (!parse_u32_value(optarg,
+                                 AUTHD_DB_MIN_HEALTH_INTERVAL_MS,
+                                 AUTHD_DB_MAX_HEALTH_INTERVAL_MS,
+                                 &config->db_health_interval_ms)) {
+                set_error(error, error_size,
+                          "--db-health-interval-ms must be between %" PRIu32
+                          " and %" PRIu32,
+                          AUTHD_DB_MIN_HEALTH_INTERVAL_MS,
+                          AUTHD_DB_MAX_HEALTH_INTERVAL_MS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
         case OPTION_CHECK_CONFIG:
             config->check_config = true;
+            break;
+        case OPTION_CHECK_DATABASE:
+            config->check_database = true;
             break;
         case OPTION_VERBOSE:
             config->verbose = true;

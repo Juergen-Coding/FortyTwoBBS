@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-#define AUTHD_VERSION "0.1.0"
+#define AUTHD_VERSION "0.2.0"
 #define AUTHD_MAX_ALLOWED_UIDS 32U
 #define AUTHD_MIN_CLIENTS 1U
 #define AUTHD_MAX_CLIENTS 256U
@@ -22,6 +22,15 @@
 #define AUTHD_MAX_BACKLOG 4096U
 #define AUTHD_MIN_HELLO_TIMEOUT_MS UINT32_C(100)
 #define AUTHD_MAX_HELLO_TIMEOUT_MS UINT32_C(300000)
+
+#define AUTHD_DB_HOST_MAX 255U
+#define AUTHD_DB_NAME_MAX 63U
+#define AUTHD_DB_MIN_PORT 1U
+#define AUTHD_DB_MAX_PORT 65535U
+#define AUTHD_DB_MIN_CONNECT_TIMEOUT_SECONDS UINT32_C(1)
+#define AUTHD_DB_MAX_CONNECT_TIMEOUT_SECONDS UINT32_C(60)
+#define AUTHD_DB_MIN_HEALTH_INTERVAL_MS UINT32_C(100)
+#define AUTHD_DB_MAX_HEALTH_INTERVAL_MS UINT32_C(300000)
 
 /* The path array matches sockaddr_un.sun_path including its trailing NUL. */
 typedef struct authd_config {
@@ -34,8 +43,14 @@ typedef struct authd_config {
     size_t max_clients;
     int backlog;
     uint32_t hello_timeout_ms;
+    char db_host[AUTHD_DB_HOST_MAX + 1U];
+    char db_name[AUTHD_DB_NAME_MAX + 1U];
+    uint16_t db_port;
+    uint32_t db_connect_timeout_seconds;
+    uint32_t db_health_interval_ms;
     bool verbose;
     bool check_config;
+    bool check_database;
 } authd_config_t;
 
 typedef enum authd_config_result {

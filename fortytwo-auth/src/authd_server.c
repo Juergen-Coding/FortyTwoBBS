@@ -1,13 +1,15 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Phase B1 server: secure local listener, peer checks, partial-frame I/O,
+ * Phase B2 server: secure local listener, peer checks, database health,
+ * partial-frame I/O,
  * HELLO/HELLO_OK, HELLO timeout and controlled shutdown.
  */
 
 #include "authd_server.h"
 
 #include "authd_peer.h"
+#include "authd_database.h"
 #include "ftap_codec.h"
 #include "ftap_schema.h"
 
@@ -863,7 +865,7 @@ drain_signal_pipe(int fd)
 }
 
 int
-authd_server_run(const authd_config_t *config)
+authd_server_run(const authd_config_t *config, authd_database_t *database)
 {
     authd_signal_state_t signals;
     authd_socket_identity_t socket_identity;
@@ -874,11 +876,15 @@ authd_server_run(const authd_config_t *config)
     int result = -1;
     int failure_errno = 0;
     bool stopping = false;
+    uint64_t next_database_health_ms = 0U;
     size_t index;
 
     errno = 0;
-    if (config == NULL || config->max_clients < AUTHD_MIN_CLIENTS ||
-        config->max_clients > AUTHD_MAX_CLIENTS) {
+    if (config == NULL || database == NULL ||
+        config->max_clients < AUTHD_MIN_CLIENTS ||
+        config->max_clients > AUTHD_MAX_CLIENTS ||
+        config->db_health_interval_ms < AUTHD_DB_MIN_HEALTH_INTERVAL_MS ||
+        config->db_health_interval_ms > AUTHD_DB_MAX_HEALTH_INTERVAL_MS) {
         errno = EINVAL;
         return -1;
     }
@@ -912,6 +918,17 @@ authd_server_run(const authd_config_t *config)
         goto cleanup;
     }
 
+    if (monotonic_milliseconds(&next_database_health_ms) != 0) {
+        failure_errno = errno != 0 ? errno : EIO;
+        goto cleanup;
+    }
+    if (UINT64_MAX - next_database_health_ms <
+        (uint64_t)config->db_health_interval_ms) {
+        failure_errno = EOVERFLOW;
+        goto cleanup;
+    }
+    next_database_health_ms += (uint64_t)config->db_health_interval_ms;
+
     (void)fprintf(stderr, "fortytwo-authd: listening on %s\n",
                   config->socket_path);
 
@@ -924,6 +941,25 @@ authd_server_run(const authd_config_t *config)
         if (monotonic_milliseconds(&now_ms) != 0) {
             failure_errno = errno != 0 ? errno : EIO;
             goto cleanup;
+        }
+        if (now_ms >= next_database_health_ms) {
+            char database_error[AUTHD_DATABASE_ERROR_MAX];
+            if (authd_database_health_check(database,
+                                            database_error,
+                                            sizeof(database_error)) != 0) {
+                (void)fprintf(stderr,
+                              "fortytwo-authd: database unavailable: %s\n",
+                              database_error);
+                failure_errno = EIO;
+                goto cleanup;
+            }
+            if (UINT64_MAX - now_ms <
+                (uint64_t)config->db_health_interval_ms) {
+                failure_errno = EOVERFLOW;
+                goto cleanup;
+            }
+            next_database_health_ms =
+                now_ms + (uint64_t)config->db_health_interval_ms;
         }
         expire_hello_deadlines(clients, config->max_clients,
                                now_ms, config);
@@ -955,6 +991,11 @@ authd_server_run(const authd_config_t *config)
         }
 
         timeout = compute_poll_timeout(clients, config->max_clients, now_ms);
+        if (next_database_health_ms <= now_ms) {
+            timeout = 0;
+        } else if (next_database_health_ms - now_ms < (uint64_t)timeout) {
+            timeout = (int)(next_database_health_ms - now_ms);
+        }
         poll_result = poll(poll_fds, (nfds_t)poll_count, timeout);
         if (poll_result < 0) {
             if (errno == EINTR) {

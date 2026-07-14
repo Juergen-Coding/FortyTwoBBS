@@ -28,6 +28,12 @@ test_defaults(void)
     assert(config.max_clients == 64U);
     assert(config.backlog == 64);
     assert(config.hello_timeout_ms == 5000U);
+    assert(strcmp(config.db_host, "/var/run/postgresql") == 0);
+    assert(strcmp(config.db_name, "fortytwo") == 0);
+    assert(config.db_port == 5432U);
+    assert(config.db_connect_timeout_seconds == 5U);
+    assert(config.db_health_interval_ms == 5000U);
+    assert(!config.check_database);
 }
 
 static void
@@ -46,8 +52,14 @@ test_complete_configuration(void)
         (char *)"--max-clients", (char *)"12",
         (char *)"--backlog", (char *)"13",
         (char *)"--hello-timeout-ms", (char *)"750",
+        (char *)"--db-host", (char *)"/run/postgresql-test",
+        (char *)"--db-port", (char *)"5544",
+        (char *)"--db-name", (char *)"fortytwo_test",
+        (char *)"--db-connect-timeout-seconds", (char *)"7",
+        (char *)"--db-health-interval-ms", (char *)"900",
         (char *)"--verbose",
-        (char *)"--check-config"
+        (char *)"--check-config",
+        (char *)"--check-database"
     };
 
     assert(parse_arguments(&config,
@@ -63,8 +75,14 @@ test_complete_configuration(void)
     assert(config.max_clients == 12U);
     assert(config.backlog == 13);
     assert(config.hello_timeout_ms == 750U);
+    assert(strcmp(config.db_host, "/run/postgresql-test") == 0);
+    assert(config.db_port == 5544U);
+    assert(strcmp(config.db_name, "fortytwo_test") == 0);
+    assert(config.db_connect_timeout_seconds == 7U);
+    assert(config.db_health_interval_ms == 900U);
     assert(config.verbose);
     assert(config.check_config);
+    assert(config.check_database);
     assert(authd_config_uid_is_allowed(&config, (uid_t)1001));
     assert(!authd_config_uid_is_allowed(&config, (uid_t)1002));
 }
@@ -87,6 +105,11 @@ test_invalid_values(void)
     char *uid[] = {(char *)"authd", (char *)"--allow-uid", (char *)"-1"};
     char *clients[] = {(char *)"authd", (char *)"--max-clients", (char *)"0"};
     char *timeout[] = {(char *)"authd", (char *)"--hello-timeout-ms", (char *)"99"};
+    char *db_host[] = {(char *)"authd", (char *)"--db-host", (char *)"localhost"};
+    char *db_port[] = {(char *)"authd", (char *)"--db-port", (char *)"0"};
+    char *db_name[] = {(char *)"authd", (char *)"--db-name", (char *)"bad name"};
+    char *db_connect[] = {(char *)"authd", (char *)"--db-connect-timeout-seconds", (char *)"0"};
+    char *db_health[] = {(char *)"authd", (char *)"--db-health-interval-ms", (char *)"99"};
     char *positional[] = {(char *)"authd", (char *)"unexpected"};
 
     expect_error(3, relative, "absolute");
@@ -94,6 +117,11 @@ test_invalid_values(void)
     expect_error(3, uid, "numeric UID");
     expect_error(3, clients, "between");
     expect_error(3, timeout, "between");
+    expect_error(3, db_host, "absolute Unix-socket");
+    expect_error(3, db_port, "between");
+    expect_error(3, db_name, "ASCII letters");
+    expect_error(3, db_connect, "between");
+    expect_error(3, db_health, "between");
     expect_error(2, positional, "positional");
 }
 

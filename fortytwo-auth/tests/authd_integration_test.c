@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Integration tests for the phase-B1 daemon executable.
+ * Integration tests for the phase-B2 daemon executable.
  */
 
 #include "ftap_codec.h"
@@ -255,7 +255,9 @@ start_daemon(const char *daemon_path,
              const char *socket_path,
              uid_t allowed_uid,
              const char *log_path,
-             const char *hello_timeout)
+             const char *hello_timeout,
+             bool database_open_failure,
+             const char *database_health_fail_after)
 {
     pid_t child;
     char uid_text[32];
@@ -270,6 +272,13 @@ start_daemon(const char *daemon_path,
             (void)dup2(log_fd, STDERR_FILENO);
             (void)close(log_fd);
         }
+        if (database_open_failure) {
+            assert(setenv("FORTYTWO_TEST_DB_OPEN_FAIL", "1", 1) == 0);
+        }
+        if (database_health_fail_after != NULL) {
+            assert(setenv("FORTYTWO_TEST_DB_HEALTH_FAIL_AFTER",
+                          database_health_fail_after, 1) == 0);
+        }
         execl(daemon_path, daemon_path,
               "--socket", socket_path,
               "--socket-mode", "0600",
@@ -277,6 +286,7 @@ start_daemon(const char *daemon_path,
               "--max-clients", "8",
               "--backlog", "8",
               "--hello-timeout-ms", hello_timeout,
+              "--db-health-interval-ms", "100",
               (char *)NULL);
         _exit(127);
     }
@@ -438,7 +448,7 @@ test_hello_and_protocol_errors(const char *daemon_path,
 
     (void)snprintf(socket_path, sizeof(socket_path), "%s/auth.sock", directory);
     (void)snprintf(log_path, sizeof(log_path), "%s/auth.log", directory);
-    daemon = start_daemon(daemon_path, socket_path, geteuid(), log_path, "300");
+    daemon = start_daemon(daemon_path, socket_path, geteuid(), log_path, "300", false, NULL);
     assert(wait_for_socket(socket_path, daemon) == 0);
 
     client = connect_unix_socket(socket_path);
@@ -497,7 +507,7 @@ test_unauthorized_peer(const char *daemon_path, const char *directory)
 
     (void)snprintf(socket_path, sizeof(socket_path), "%s/denied.sock", directory);
     (void)snprintf(log_path, sizeof(log_path), "%s/denied.log", directory);
-    daemon = start_daemon(daemon_path, socket_path, denied_uid, log_path, "300");
+    daemon = start_daemon(daemon_path, socket_path, denied_uid, log_path, "300", false, NULL);
     assert(wait_for_socket(socket_path, daemon) == 0);
 
     client = connect_unix_socket(socket_path);
@@ -531,7 +541,7 @@ test_existing_non_socket_is_refused(const char *daemon_path,
     assert(close(target_fd) == 0);
     assert(symlink(target_path, socket_path) == 0);
 
-    daemon = start_daemon(daemon_path, socket_path, geteuid(), log_path, "300");
+    daemon = start_daemon(daemon_path, socket_path, geteuid(), log_path, "300", false, NULL);
     assert(wait_for_exit(daemon, TEST_TIMEOUT_MS, &status) == 0);
     assert(WIFEXITED(status));
     assert(WEXITSTATUS(status) != 0);
@@ -539,6 +549,56 @@ test_existing_non_socket_is_refused(const char *daemon_path,
     assert(S_ISLNK(link_status.st_mode));
     assert(unlink(socket_path) == 0);
     assert(unlink(target_path) == 0);
+}
+
+
+static void
+test_database_open_failure_is_fail_closed(const char *daemon_path,
+                                          const char *directory)
+{
+    char socket_path[256];
+    char log_path[256];
+    int status = 0;
+    pid_t daemon;
+
+    (void)snprintf(socket_path, sizeof(socket_path), "%s/db-open.sock",
+                   directory);
+    (void)snprintf(log_path, sizeof(log_path), "%s/db-open.log", directory);
+
+    daemon = start_daemon(daemon_path, socket_path, geteuid(), log_path,
+                          "300", true, NULL);
+    assert(wait_for_exit(daemon, TEST_TIMEOUT_MS, &status) == 0);
+    assert(WIFEXITED(status));
+    assert(WEXITSTATUS(status) != 0);
+    assert(access(socket_path, F_OK) != 0 && errno == ENOENT);
+}
+
+static void
+test_database_health_failure_stops_daemon(const char *daemon_path,
+                                          const char *directory)
+{
+    char socket_path[256];
+    char log_path[256];
+    int status = 0;
+    pid_t daemon;
+    int client;
+
+    (void)snprintf(socket_path, sizeof(socket_path), "%s/db-health.sock",
+                   directory);
+    (void)snprintf(log_path, sizeof(log_path), "%s/db-health.log", directory);
+
+    daemon = start_daemon(daemon_path, socket_path, geteuid(), log_path,
+                          "1000", false, "1");
+    assert(wait_for_socket(socket_path, daemon) == 0);
+
+    client = connect_unix_socket(socket_path);
+    assert(client >= 0);
+    assert(wait_for_exit(daemon, TEST_TIMEOUT_MS, &status) == 0);
+    assert(WIFEXITED(status));
+    assert(WEXITSTATUS(status) != 0);
+    expect_connection_closed(client, TEST_TIMEOUT_MS);
+    assert(close(client) == 0);
+    assert(access(socket_path, F_OK) != 0 && errno == ENOENT);
 }
 
 int
@@ -554,10 +614,13 @@ main(int argc, char *argv[])
     test_hello_and_protocol_errors(argv[1], directory);
     test_unauthorized_peer(argv[1], directory);
     test_existing_non_socket_is_refused(argv[1], directory);
+    test_database_open_failure_is_fail_closed(argv[1], directory);
+    test_database_health_failure_stops_daemon(argv[1], directory);
 
     {
         static const char *const logs[] = {
-            "auth.log", "denied.log", "link.log"
+            "auth.log", "denied.log", "link.log",
+            "db-open.log", "db-health.log"
         };
         size_t index;
         for (index = 0U; index < sizeof(logs) / sizeof(logs[0]); ++index) {

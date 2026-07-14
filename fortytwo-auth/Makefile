@@ -1,6 +1,28 @@
 CC ?= cc
+PKG_CONFIG ?= pkg-config
 
-CPPFLAGS := -D_GNU_SOURCE -Iinclude
+LIBPQ_CFLAGS := $(shell $(PKG_CONFIG) --cflags libpq 2>/dev/null)
+LIBPQ_LIBS := $(shell $(PKG_CONFIG) --libs libpq 2>/dev/null)
+
+CPPFLAGS := -D_GNU_SOURCE -Iinclude $(LIBPQ_CFLAGS)
+LIBPQ_WRAP_FLAGS := \
+	-Wl,--wrap=PQconnectdbParams \
+	-Wl,--wrap=PQsetNoticeProcessor \
+	-Wl,--wrap=PQstatus \
+	-Wl,--wrap=PQprotocolVersion \
+	-Wl,--wrap=PQconnectionUsedPassword \
+	-Wl,--wrap=PQsetClientEncoding \
+	-Wl,--wrap=PQexec \
+	-Wl,--wrap=PQresultStatus \
+	-Wl,--wrap=PQntuples \
+	-Wl,--wrap=PQnfields \
+	-Wl,--wrap=PQgetisnull \
+	-Wl,--wrap=PQgetvalue \
+	-Wl,--wrap=PQresultErrorMessage \
+	-Wl,--wrap=PQerrorMessage \
+	-Wl,--wrap=PQclear \
+	-Wl,--wrap=PQfinish
+
 BASE_CFLAGS := -std=c11 -O2 -g \
 	-Wall -Wextra -Wpedantic -Werror \
 	-Wformat=2 -Wshadow -Wstrict-prototypes -Wmissing-prototypes
@@ -10,11 +32,15 @@ NORMAL_DIR := build/normal
 SANITIZER_DIR := build/sanitize
 
 PROTOCOL_SOURCES := src/ftap_codec.c src/ftap_schema.c
-AUTHD_SOURCES := \
+DATABASE_VALIDATION_SOURCE := src/authd_database_validation.c
+DATABASE_SOURCE := src/authd_database.c $(DATABASE_VALIDATION_SOURCE)
+AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
 	src/authd_peer.c \
 	src/authd_server.c
+AUTHD_PRODUCTION_SOURCES := $(AUTHD_COMMON_SOURCES) $(DATABASE_SOURCE)
+AUTHD_TEST_SOURCES := $(AUTHD_COMMON_SOURCES) tests/authd_database_stub.c
 
 NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_protocol_compile_test \
@@ -22,21 +48,34 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_schema_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_peer_test \
+	$(NORMAL_DIR)/authd_database_validation_test \
+	$(NORMAL_DIR)/authd_database_mock_test \
+	$(NORMAL_DIR)/authd_database_connection_test \
 	$(NORMAL_DIR)/authd_integration_test
 
-.PHONY: all authd test sanitize-test clean
+.PHONY: all authd test sanitize-test analyze check-libpq clean
 
 all: authd test
 
-authd: $(NORMAL_DIR)/fortytwo-authd
+authd: check-libpq $(NORMAL_DIR)/fortytwo-authd
 
-test: $(NORMAL_DIR)/fortytwo-authd $(NORMAL_TESTS)
+test: check-libpq $(NORMAL_DIR)/fortytwo-authd \
+	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_TESTS)
 	$(NORMAL_DIR)/ftap_protocol_compile_test
 	$(NORMAL_DIR)/ftap_codec_test
 	$(NORMAL_DIR)/ftap_schema_test
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_peer_test
-	$(NORMAL_DIR)/authd_integration_test $(NORMAL_DIR)/fortytwo-authd
+	$(NORMAL_DIR)/authd_database_validation_test
+	$(NORMAL_DIR)/authd_database_mock_test
+	$(NORMAL_DIR)/authd_database_connection_test
+	$(NORMAL_DIR)/authd_integration_test $(NORMAL_DIR)/fortytwo-authd-test
+
+check-libpq:
+	@test -n "$(LIBPQ_CFLAGS)" -o -n "$(LIBPQ_LIBS)" || { \
+		echo "libpq development files not found (install libpq-dev)" >&2; \
+		exit 1; \
+	}
 
 $(NORMAL_DIR):
 	mkdir -p $@
@@ -50,8 +89,13 @@ $(NORMAL_DIR)/ftap_codec_test: tests/ftap_codec_test.c src/ftap_codec.c | $(NORM
 $(NORMAL_DIR)/ftap_schema_test: tests/ftap_schema_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
 
-$(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_SOURCES) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(AUTHD_SOURCES) src/fortytwo_authd.c -o $@
+$(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(AUTHD_PRODUCTION_SOURCES) \
+		src/fortytwo_authd.c $(LIBPQ_LIBS) -o $@
+
+$(NORMAL_DIR)/fortytwo-authd-test: src/fortytwo_authd.c $(AUTHD_TEST_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(AUTHD_TEST_SOURCES) \
+		src/fortytwo_authd.c -o $@
 
 $(NORMAL_DIR)/authd_config_test: tests/authd_config_test.c src/authd_config.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $< -o $@
@@ -59,10 +103,21 @@ $(NORMAL_DIR)/authd_config_test: tests/authd_config_test.c src/authd_config.c | 
 $(NORMAL_DIR)/authd_peer_test: tests/authd_peer_test.c src/authd_config.c src/authd_peer.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c src/authd_peer.c $< -o $@
 
+$(NORMAL_DIR)/authd_database_validation_test: tests/authd_database_validation_test.c $(DATABASE_VALIDATION_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(DATABASE_VALIDATION_SOURCE) $< -o $@
+
+$(NORMAL_DIR)/authd_database_mock_test: tests/authd_database_mock_test.c src/authd_config.c $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(DATABASE_SOURCE) \
+		$< $(LIBPQ_WRAP_FLAGS) -o $@
+
+$(NORMAL_DIR)/authd_database_connection_test: tests/authd_database_connection_test.c src/authd_config.c $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(DATABASE_SOURCE) \
+		$< $(LIBPQ_LIBS) -o $@
+
 $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
 
-sanitize-test:
+sanitize-test: check-libpq
 	mkdir -p $(SANITIZER_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		tests/ftap_protocol_compile_test.c \
@@ -74,14 +129,28 @@ sanitize-test:
 		$(PROTOCOL_SOURCES) tests/ftap_schema_test.c \
 		-o $(SANITIZER_DIR)/ftap_schema_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
-		$(AUTHD_SOURCES) src/fortytwo_authd.c \
-		-o $(SANITIZER_DIR)/fortytwo-authd
+		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
+		$(LIBPQ_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(AUTHD_TEST_SOURCES) src/fortytwo_authd.c \
+		-o $(SANITIZER_DIR)/fortytwo-authd-test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		src/authd_config.c tests/authd_config_test.c \
 		-o $(SANITIZER_DIR)/authd_config_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		src/authd_config.c src/authd_peer.c tests/authd_peer_test.c \
 		-o $(SANITIZER_DIR)/authd_peer_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(DATABASE_VALIDATION_SOURCE) tests/authd_database_validation_test.c \
+		-o $(SANITIZER_DIR)/authd_database_validation_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		src/authd_config.c $(DATABASE_SOURCE) \
+		tests/authd_database_mock_test.c $(LIBPQ_WRAP_FLAGS) \
+		-o $(SANITIZER_DIR)/authd_database_mock_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		src/authd_config.c $(DATABASE_SOURCE) \
+		tests/authd_database_connection_test.c $(LIBPQ_LIBS) \
+		-o $(SANITIZER_DIR)/authd_database_connection_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(PROTOCOL_SOURCES) tests/authd_integration_test.c \
 		-o $(SANITIZER_DIR)/authd_integration_test
@@ -102,7 +171,24 @@ sanitize-test:
 		$(SANITIZER_DIR)/authd_peer_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
-		$(SANITIZER_DIR)/authd_integration_test $(SANITIZER_DIR)/fortytwo-authd
+		$(SANITIZER_DIR)/authd_database_validation_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_database_mock_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_database_connection_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_integration_test \
+		$(SANITIZER_DIR)/fortytwo-authd-test
+
+analyze: check-libpq
+	@set -e; \
+	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c; do \
+		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) "$$source" \
+			-o /dev/null; \
+	done
 
 clean:
 	rm -rf build
