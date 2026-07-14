@@ -3,8 +3,10 @@ PKG_CONFIG ?= pkg-config
 
 LIBPQ_CFLAGS := $(shell $(PKG_CONFIG) --cflags libpq 2>/dev/null)
 LIBPQ_LIBS := $(shell $(PKG_CONFIG) --libs libpq 2>/dev/null)
+SODIUM_CFLAGS := $(shell $(PKG_CONFIG) --cflags libsodium 2>/dev/null)
+SODIUM_LIBS := $(shell $(PKG_CONFIG) --libs libsodium 2>/dev/null)
 
-CPPFLAGS := -D_GNU_SOURCE -Iinclude $(LIBPQ_CFLAGS)
+CPPFLAGS := -D_GNU_SOURCE -Iinclude $(LIBPQ_CFLAGS) $(SODIUM_CFLAGS)
 LIBPQ_WRAP_FLAGS := \
 	-Wl,--wrap=PQconnectdbParams \
 	-Wl,--wrap=PQsetNoticeProcessor \
@@ -34,6 +36,7 @@ SANITIZER_DIR := build/sanitize
 PROTOCOL_SOURCES := src/ftap_codec.c src/ftap_schema.c
 DATABASE_VALIDATION_SOURCE := src/authd_database_validation.c
 DATABASE_SOURCE := src/authd_database.c $(DATABASE_VALIDATION_SOURCE)
+PASSWORD_SOURCE := src/authd_password.c
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -47,24 +50,26 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_codec_test \
 	$(NORMAL_DIR)/ftap_schema_test \
 	$(NORMAL_DIR)/authd_config_test \
+	$(NORMAL_DIR)/authd_password_test \
 	$(NORMAL_DIR)/authd_peer_test \
 	$(NORMAL_DIR)/authd_database_validation_test \
 	$(NORMAL_DIR)/authd_database_mock_test \
 	$(NORMAL_DIR)/authd_database_connection_test \
 	$(NORMAL_DIR)/authd_integration_test
 
-.PHONY: all authd test sanitize-test analyze check-libpq clean
+.PHONY: all authd test sanitize-test analyze check-libpq check-libsodium clean
 
 all: authd test
 
 authd: check-libpq $(NORMAL_DIR)/fortytwo-authd
 
-test: check-libpq $(NORMAL_DIR)/fortytwo-authd \
+test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_TESTS)
 	$(NORMAL_DIR)/ftap_protocol_compile_test
 	$(NORMAL_DIR)/ftap_codec_test
 	$(NORMAL_DIR)/ftap_schema_test
 	$(NORMAL_DIR)/authd_config_test
+	$(NORMAL_DIR)/authd_password_test
 	$(NORMAL_DIR)/authd_peer_test
 	$(NORMAL_DIR)/authd_database_validation_test
 	$(NORMAL_DIR)/authd_database_mock_test
@@ -74,6 +79,12 @@ test: check-libpq $(NORMAL_DIR)/fortytwo-authd \
 check-libpq:
 	@test -n "$(LIBPQ_CFLAGS)" -o -n "$(LIBPQ_LIBS)" || { \
 		echo "libpq development files not found (install libpq-dev)" >&2; \
+		exit 1; \
+	}
+
+check-libsodium:
+	@test -n "$(SODIUM_CFLAGS)" -o -n "$(SODIUM_LIBS)" || { \
+		echo "libsodium development files not found (install libsodium-dev)" >&2; \
 		exit 1; \
 	}
 
@@ -100,6 +111,9 @@ $(NORMAL_DIR)/fortytwo-authd-test: src/fortytwo_authd.c $(AUTHD_TEST_SOURCES) | 
 $(NORMAL_DIR)/authd_config_test: tests/authd_config_test.c src/authd_config.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $< -o $@
 
+$(NORMAL_DIR)/authd_password_test: tests/authd_password_test.c $(PASSWORD_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PASSWORD_SOURCE) $< $(SODIUM_LIBS) -o $@
+
 $(NORMAL_DIR)/authd_peer_test: tests/authd_peer_test.c src/authd_config.c src/authd_peer.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c src/authd_peer.c $< -o $@
 
@@ -117,7 +131,7 @@ $(NORMAL_DIR)/authd_database_connection_test: tests/authd_database_connection_te
 $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
 
-sanitize-test: check-libpq
+sanitize-test: check-libpq check-libsodium
 	mkdir -p $(SANITIZER_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		tests/ftap_protocol_compile_test.c \
@@ -137,6 +151,9 @@ sanitize-test: check-libpq
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		src/authd_config.c tests/authd_config_test.c \
 		-o $(SANITIZER_DIR)/authd_config_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(PASSWORD_SOURCE) tests/authd_password_test.c $(SODIUM_LIBS) \
+		-o $(SANITIZER_DIR)/authd_password_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		src/authd_config.c src/authd_peer.c tests/authd_peer_test.c \
 		-o $(SANITIZER_DIR)/authd_peer_test
@@ -168,6 +185,9 @@ sanitize-test: check-libpq
 		$(SANITIZER_DIR)/authd_config_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_password_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_peer_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
@@ -183,9 +203,9 @@ sanitize-test: check-libpq
 		$(SANITIZER_DIR)/authd_integration_test \
 		$(SANITIZER_DIR)/fortytwo-authd-test
 
-analyze: check-libpq
+analyze: check-libpq check-libsodium
 	@set -e; \
-	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c; do \
+	for source in $(AUTHD_PRODUCTION_SOURCES) $(PASSWORD_SOURCE) src/fortytwo_authd.c; do \
 		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) "$$source" \
 			-o /dev/null; \
 	done
