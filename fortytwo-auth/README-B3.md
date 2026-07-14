@@ -40,3 +40,55 @@ available, the buffer is still overwritten with `sodium_memzero()`.
 The password module is not yet called from the socket event loop. A later B3
 step will place verification jobs in a bounded worker pool and return results
 to the event loop without performing Argon2 work there.
+
+## B3.2 canonical identity and PostgreSQL login snapshot
+
+The second B3 step adds two isolated building blocks without connecting them to
+FTAP yet:
+
+- `authd_login_name_canonicalize()` accepts the conservative pre-alpha ASCII
+  syntax, converts ASCII uppercase letters to lowercase, and rejects embedded
+  NUL bytes, non-ASCII input, leading punctuation, and names longer than 32
+  bytes.
+- `authd_database_lookup_login()` uses exactly one `PQexecParams()` parameter;
+  the login name is never concatenated into SQL.
+
+The lookup returns a bounded snapshot containing:
+
+- binary 16-byte user UUID
+- canonical login name and display name
+- account state and deletion marker
+- active throttle state and bounded retry delay
+- `auth_epoch`
+- Argon2id hash
+- `must_change`, `failed_count`, and optional `last_failed_at`
+
+Profile and password rows are loaded with `LEFT JOIN`. A user that exists but
+has no profile or password credential is therefore reported internally as an
+invalid record rather than being confused with an unknown login.
+
+`authd_login_record_availability()` performs no I/O and classifies the snapshot
+as available, pending, disabled, locked, deleted, throttled, password-change
+required, or invalid. Administrative `locked` remains separate from temporary
+`throttled_until` protection.
+
+An unknown login is deliberately still distinguishable inside the daemon so it
+can be audited correctly. The later authentication coordinator must map unknown
+users and wrong passwords to the same external FTAP error and must perform a
+bounded dummy Argon2id verification for unknown users to avoid a trivial timing
+oracle.
+
+### Real PostgreSQL lookup integration test
+
+The normal and sanitizer suites mock libpq so they remain deterministic and do
+not modify a developer database. A separate target verifies the same lookup
+against the local PostgreSQL service and peer-authenticated runtime role:
+
+```sh
+make database-login-integration-test
+```
+
+The test installs a uniquely named fixture with a fixed UUID, runs the lookup
+binary as `fortytwo_authd`, verifies the full returned snapshot and the
+not-found path, and removes the fixture through an EXIT trap. It refuses to
+replace an unrelated account that happens to use the fixture login name.

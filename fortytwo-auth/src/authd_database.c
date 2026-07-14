@@ -7,6 +7,7 @@
 #include "authd_database.h"
 
 #include "authd_database_validation.h"
+#include "authd_identity.h"
 
 #include <libpq-fe.h>
 
@@ -114,6 +115,150 @@ parse_u32_strict(const char *text, uint32_t *value)
     }
 
     *value = (uint32_t)parsed;
+    return true;
+}
+
+static bool
+parse_u64_strict(const char *text, uint64_t *value)
+{
+    char *end = NULL;
+    unsigned long long parsed;
+
+    if (text == NULL || text[0] == '\0' || value == NULL || text[0] == '-') {
+        return false;
+    }
+
+    errno = 0;
+    parsed = strtoull(text, &end, 10);
+    if (errno != 0 || end == text || *end != '\0' || parsed > UINT64_MAX) {
+        return false;
+    }
+
+    *value = (uint64_t)parsed;
+    return true;
+}
+
+static bool
+parse_i64_strict(const char *text, int64_t *value)
+{
+    char *end = NULL;
+    long long parsed;
+
+    if (text == NULL || text[0] == '\0' || value == NULL) {
+        return false;
+    }
+
+    errno = 0;
+    parsed = strtoll(text, &end, 10);
+    if (errno != 0 || end == text || *end != '\0' ||
+        parsed < INT64_MIN || parsed > INT64_MAX) {
+        return false;
+    }
+
+    *value = (int64_t)parsed;
+    return true;
+}
+
+static bool
+parse_boolean_digit(const char *text, bool *value)
+{
+    if (text == NULL || value == NULL) {
+        return false;
+    }
+    if (strcmp(text, "0") == 0) {
+        *value = false;
+        return true;
+    }
+    if (strcmp(text, "1") == 0) {
+        *value = true;
+        return true;
+    }
+    return false;
+}
+
+static bool
+copy_bounded_text(char *destination,
+                  size_t destination_size,
+                  const char *source,
+                  size_t maximum_length)
+{
+    size_t length;
+
+    if (destination == NULL || destination_size == 0U || source == NULL) {
+        return false;
+    }
+    length = strlen(source);
+    if (length == 0U || length > maximum_length ||
+        length >= destination_size) {
+        return false;
+    }
+    memcpy(destination, source, length + 1U);
+    return true;
+}
+
+static bool
+hex_nibble(unsigned char character, uint8_t *value)
+{
+    if (character >= (unsigned char)'0' &&
+        character <= (unsigned char)'9') {
+        *value = (uint8_t)(character - (unsigned char)'0');
+        return true;
+    }
+    if (character >= (unsigned char)'a' &&
+        character <= (unsigned char)'f') {
+        *value = (uint8_t)(character - (unsigned char)'a' + 10U);
+        return true;
+    }
+    if (character >= (unsigned char)'A' &&
+        character <= (unsigned char)'F') {
+        *value = (uint8_t)(character - (unsigned char)'A' + 10U);
+        return true;
+    }
+    return false;
+}
+
+static bool
+parse_uuid_hex(const char *text, uint8_t output[FTAP_UUID_SIZE])
+{
+    size_t index;
+
+    if (text == NULL || output == NULL ||
+        strlen(text) != AUTHD_DATABASE_UUID_HEX_SIZE) {
+        return false;
+    }
+    for (index = 0U; index < (size_t)FTAP_UUID_SIZE; ++index) {
+        uint8_t high;
+        uint8_t low;
+
+        if (!hex_nibble((unsigned char)text[index * 2U], &high) ||
+            !hex_nibble((unsigned char)text[index * 2U + 1U], &low)) {
+            memset(output, 0, FTAP_UUID_SIZE);
+            return false;
+        }
+        output[index] = (uint8_t)((high << 4) | low);
+    }
+    return true;
+}
+
+static bool
+parse_account_state(const char *text, authd_account_state_t *state)
+{
+    if (text == NULL || state == NULL) {
+        return false;
+    }
+    if (strcmp(text, "pending") == 0) {
+        *state = AUTHD_ACCOUNT_STATE_PENDING;
+    } else if (strcmp(text, "active") == 0) {
+        *state = AUTHD_ACCOUNT_STATE_ACTIVE;
+    } else if (strcmp(text, "disabled") == 0) {
+        *state = AUTHD_ACCOUNT_STATE_DISABLED;
+    } else if (strcmp(text, "locked") == 0) {
+        *state = AUTHD_ACCOUNT_STATE_LOCKED;
+    } else if (strcmp(text, "deleted") == 0) {
+        *state = AUTHD_ACCOUNT_STATE_DELETED;
+    } else {
+        return false;
+    }
     return true;
 }
 
@@ -476,6 +621,284 @@ authd_database_health_check(authd_database_t *database,
 
     PQclear(result);
     return 0;
+}
+
+authd_database_lookup_result_t
+authd_database_lookup_login(authd_database_t *database,
+                            const char *canonical_login_name,
+                            authd_login_record_t *record,
+                            char *error,
+                            size_t error_size)
+{
+    static const char sql[] =
+        "SELECT "
+        "pg_catalog.encode(pg_catalog.uuid_send(u.user_id), 'hex'), "
+        "u.login_name, u.account_state, "
+        "CASE WHEN u.throttled_until > CURRENT_TIMESTAMP "
+        "THEN '1' ELSE '0' END, "
+        "CASE WHEN u.throttled_until > CURRENT_TIMESTAMP THEN "
+        "GREATEST(1, pg_catalog.ceil(pg_catalog.date_part('epoch', "
+        "u.throttled_until - CURRENT_TIMESTAMP) * 1000.0)"
+        "::pg_catalog.int8)::pg_catalog.text ELSE '0' END, "
+        "u.auth_epoch::pg_catalog.text, "
+        "CASE WHEN u.deleted_at IS NULL THEN '0' ELSE '1' END, "
+        "p.display_name, c.password_hash, "
+        "CASE WHEN c.must_change THEN '1' ELSE '0' END, "
+        "c.failed_count::pg_catalog.text, "
+        "CASE WHEN c.last_failed_at IS NULL THEN NULL ELSE "
+        "pg_catalog.floor(pg_catalog.date_part('epoch', c.last_failed_at) "
+        "* 1000.0)::pg_catalog.int8::pg_catalog.text END "
+        "FROM public.bbs_users AS u "
+        "LEFT JOIN public.bbs_user_profiles AS p ON p.user_id = u.user_id "
+        "LEFT JOIN public.bbs_password_credentials AS c "
+        "ON c.user_id = u.user_id "
+        "WHERE u.login_name = $1 COLLATE \"C\"";
+    const char *parameter_values[1];
+    PGresult *result;
+    int rows;
+    uint64_t auth_epoch;
+    uint64_t retry_after_ms;
+    uint32_t failed_count;
+    bool deleted;
+    bool throttled;
+    bool must_change;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (record != NULL) {
+        memset(record, 0, sizeof(*record));
+    }
+    if (database == NULL || database->connection == NULL ||
+        canonical_login_name == NULL || record == NULL ||
+        !authd_login_name_is_canonical(canonical_login_name)) {
+        set_error(error, error_size, "invalid login lookup arguments");
+        return AUTHD_DATABASE_LOOKUP_ERROR;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_LOOKUP_ERROR;
+    }
+
+    parameter_values[0] = canonical_login_name;
+    result = PQexecParams(database->connection,
+                          sql,
+                          1,
+                          NULL,
+                          parameter_values,
+                          NULL,
+                          NULL,
+                          0);
+    if (result == NULL) {
+        copy_libpq_error(error, error_size,
+                         "login lookup failed", database->connection);
+        return AUTHD_DATABASE_LOOKUP_ERROR;
+    }
+    if (PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 12) {
+        const char *message = PQresultErrorMessage(result);
+        if (message != NULL && message[0] != '\0') {
+            size_t length = strlen(message);
+            while (length > 0U &&
+                   (message[length - 1U] == '\n' ||
+                    message[length - 1U] == '\r')) {
+                --length;
+            }
+            set_error(error, error_size, "login lookup failed: %.*s",
+                      precision_from_length(length), message);
+        } else {
+            set_error(error, error_size,
+                      "login lookup returned an invalid result");
+        }
+        PQclear(result);
+        return AUTHD_DATABASE_LOOKUP_ERROR;
+    }
+
+    rows = PQntuples(result);
+    if (rows == 0) {
+        PQclear(result);
+        return AUTHD_DATABASE_LOOKUP_NOT_FOUND;
+    }
+    if (rows != 1) {
+        set_error(error, error_size,
+                  "login lookup returned %d rows", rows);
+        PQclear(result);
+        return AUTHD_DATABASE_LOOKUP_INVALID_RECORD;
+    }
+
+    if (PQgetisnull(result, 0, 0) ||
+        PQgetisnull(result, 0, 1) ||
+        PQgetisnull(result, 0, 2) ||
+        PQgetisnull(result, 0, 3) ||
+        PQgetisnull(result, 0, 4) ||
+        PQgetisnull(result, 0, 5) ||
+        PQgetisnull(result, 0, 6) ||
+        PQgetisnull(result, 0, 7) ||
+        PQgetisnull(result, 0, 8) ||
+        PQgetisnull(result, 0, 9) ||
+        PQgetisnull(result, 0, 10)) {
+        set_error(error, error_size,
+                  "login record is missing a required field");
+        PQclear(result);
+        return AUTHD_DATABASE_LOOKUP_INVALID_RECORD;
+    }
+
+    if (!parse_uuid_hex(PQgetvalue(result, 0, 0), record->user_id) ||
+        !copy_bounded_text(record->login_name,
+                           sizeof(record->login_name),
+                           PQgetvalue(result, 0, 1),
+                           FTAP_LOGIN_NAME_MAX) ||
+        !authd_login_name_is_canonical(record->login_name) ||
+        strcmp(record->login_name, canonical_login_name) != 0 ||
+        !parse_account_state(PQgetvalue(result, 0, 2),
+                             &record->account_state) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 3), &throttled) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 4), &retry_after_ms) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 5), &auth_epoch) ||
+        auth_epoch == 0U ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 6), &deleted) ||
+        !copy_bounded_text(record->display_name,
+                           sizeof(record->display_name),
+                           PQgetvalue(result, 0, 7),
+                           FTAP_DISPLAY_NAME_MAX) ||
+        !copy_bounded_text(record->password_hash,
+                           sizeof(record->password_hash),
+                           PQgetvalue(result, 0, 8),
+                           AUTHD_DATABASE_PASSWORD_HASH_MAX) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 9), &must_change) ||
+        !parse_u32_strict(PQgetvalue(result, 0, 10), &failed_count) ||
+        (throttled && retry_after_ms == 0U) ||
+        (!throttled && retry_after_ms != 0U)) {
+        memset(record, 0, sizeof(*record));
+        set_error(error, error_size,
+                  "login record contains an invalid field");
+        PQclear(result);
+        return AUTHD_DATABASE_LOOKUP_INVALID_RECORD;
+    }
+
+    record->auth_epoch = auth_epoch;
+    record->deleted = deleted;
+    record->throttled = throttled;
+    record->retry_after_ms = retry_after_ms;
+    record->must_change = must_change;
+    record->failed_count = failed_count;
+
+    if (PQgetisnull(result, 0, 11)) {
+        record->last_failed_at_set = false;
+        record->last_failed_at_epoch_ms = 0;
+    } else if (!parse_i64_strict(PQgetvalue(result, 0, 11),
+                                 &record->last_failed_at_epoch_ms)) {
+        memset(record, 0, sizeof(*record));
+        set_error(error, error_size,
+                  "login record contains an invalid failure timestamp");
+        PQclear(result);
+        return AUTHD_DATABASE_LOOKUP_INVALID_RECORD;
+    } else {
+        record->last_failed_at_set = true;
+    }
+
+    PQclear(result);
+    return AUTHD_DATABASE_LOOKUP_OK;
+}
+
+authd_login_availability_t
+authd_login_record_availability(const authd_login_record_t *record)
+{
+    if (record == NULL || record->auth_epoch == 0U ||
+        record->login_name[0] == '\0' || record->display_name[0] == '\0' ||
+        record->password_hash[0] == '\0' ||
+        (record->throttled && record->retry_after_ms == 0U) ||
+        (!record->throttled && record->retry_after_ms != 0U)) {
+        return AUTHD_LOGIN_INVALID_RECORD;
+    }
+    if (record->deleted ||
+        record->account_state == AUTHD_ACCOUNT_STATE_DELETED) {
+        return AUTHD_LOGIN_DELETED;
+    }
+    switch (record->account_state) {
+    case AUTHD_ACCOUNT_STATE_PENDING:
+        return AUTHD_LOGIN_PENDING;
+    case AUTHD_ACCOUNT_STATE_DISABLED:
+        return AUTHD_LOGIN_DISABLED;
+    case AUTHD_ACCOUNT_STATE_LOCKED:
+        return AUTHD_LOGIN_LOCKED;
+    case AUTHD_ACCOUNT_STATE_DELETED:
+        return AUTHD_LOGIN_DELETED;
+    case AUTHD_ACCOUNT_STATE_ACTIVE:
+        break;
+    default:
+        return AUTHD_LOGIN_INVALID_RECORD;
+    }
+    if (record->throttled) {
+        return AUTHD_LOGIN_THROTTLED;
+    }
+    if (record->must_change) {
+        return AUTHD_LOGIN_PASSWORD_CHANGE_REQUIRED;
+    }
+    return AUTHD_LOGIN_AVAILABLE;
+}
+
+const char *
+authd_account_state_name(authd_account_state_t state)
+{
+    switch (state) {
+    case AUTHD_ACCOUNT_STATE_PENDING:
+        return "pending";
+    case AUTHD_ACCOUNT_STATE_ACTIVE:
+        return "active";
+    case AUTHD_ACCOUNT_STATE_DISABLED:
+        return "disabled";
+    case AUTHD_ACCOUNT_STATE_LOCKED:
+        return "locked";
+    case AUTHD_ACCOUNT_STATE_DELETED:
+        return "deleted";
+    default:
+        return "invalid";
+    }
+}
+
+const char *
+authd_database_lookup_result_name(authd_database_lookup_result_t result)
+{
+    switch (result) {
+    case AUTHD_DATABASE_LOOKUP_OK:
+        return "ok";
+    case AUTHD_DATABASE_LOOKUP_NOT_FOUND:
+        return "not_found";
+    case AUTHD_DATABASE_LOOKUP_INVALID_RECORD:
+        return "invalid_record";
+    case AUTHD_DATABASE_LOOKUP_ERROR:
+        return "error";
+    default:
+        return "invalid";
+    }
+}
+
+const char *
+authd_login_availability_name(authd_login_availability_t availability)
+{
+    switch (availability) {
+    case AUTHD_LOGIN_AVAILABLE:
+        return "available";
+    case AUTHD_LOGIN_PENDING:
+        return "pending";
+    case AUTHD_LOGIN_DISABLED:
+        return "disabled";
+    case AUTHD_LOGIN_LOCKED:
+        return "locked";
+    case AUTHD_LOGIN_DELETED:
+        return "deleted";
+    case AUTHD_LOGIN_THROTTLED:
+        return "throttled";
+    case AUTHD_LOGIN_PASSWORD_CHANGE_REQUIRED:
+        return "password_change_required";
+    case AUTHD_LOGIN_INVALID_RECORD:
+        return "invalid_record";
+    default:
+        return "invalid";
+    }
 }
 
 void

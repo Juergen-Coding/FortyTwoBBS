@@ -24,6 +24,7 @@ typedef enum fake_result_kind {
     FAKE_RESULT_SESSION,
     FAKE_RESULT_IDENTITY,
     FAKE_RESULT_MIGRATIONS,
+    FAKE_RESULT_LOGIN,
     FAKE_RESULT_HEALTH,
     FAKE_RESULT_ERROR
 } fake_result_kind_t;
@@ -43,6 +44,10 @@ typedef struct fake_scenario {
     const char *read_only;
     size_t migration_count;
     bool migration_checksum_bad;
+    bool login_found;
+    bool login_query_error;
+    int login_null_column;
+    const char *login_values[12];
     bool health_ok;
 } fake_scenario_t;
 
@@ -61,6 +66,14 @@ int __wrap_PQprotocolVersion(const PGconn *connection);
 int __wrap_PQconnectionUsedPassword(const PGconn *connection);
 int __wrap_PQsetClientEncoding(PGconn *connection, const char *encoding);
 PGresult *__wrap_PQexec(PGconn *connection, const char *sql);
+PGresult *__wrap_PQexecParams(PGconn *connection,
+                              const char *command,
+                              int parameter_count,
+                              const Oid *parameter_types,
+                              const char *const *parameter_values,
+                              const int *parameter_lengths,
+                              const int *parameter_formats,
+                              int result_format);
 ExecStatusType __wrap_PQresultStatus(const PGresult *result);
 int __wrap_PQntuples(const PGresult *result);
 int __wrap_PQnfields(const PGresult *result);
@@ -84,6 +97,21 @@ reset_scenario(void)
     scenario.server_version = "170010";
     scenario.read_only = "off";
     scenario.migration_count = AUTHD_DATABASE_REQUIRED_MIGRATION_COUNT;
+    scenario.login_found = true;
+    scenario.login_null_column = -1;
+    scenario.login_values[0] = "00112233445566778899aabbccddeeff";
+    scenario.login_values[1] = "neo67";
+    scenario.login_values[2] = "active";
+    scenario.login_values[3] = "0";
+    scenario.login_values[4] = "0";
+    scenario.login_values[5] = "7";
+    scenario.login_values[6] = "0";
+    scenario.login_values[7] = "Neo 67";
+    scenario.login_values[8] =
+        "$argon2id$v=19$m=262144,t=3,p=1$test$test";
+    scenario.login_values[9] = "0";
+    scenario.login_values[10] = "2";
+    scenario.login_values[11] = "1720000000000";
     scenario.health_ok = true;
 
     for (index = 0U; index < AUTHD_DATABASE_REQUIRED_MIGRATION_COUNT; ++index) {
@@ -193,6 +221,38 @@ __wrap_PQexec(PGconn *connection, const char *sql)
     return (PGresult *)result;
 }
 
+PGresult *
+__wrap_PQexecParams(PGconn *connection,
+                    const char *command,
+                    int parameter_count,
+                    const Oid *parameter_types,
+                    const char *const *parameter_values,
+                    const int *parameter_lengths,
+                    const int *parameter_formats,
+                    int result_format)
+{
+    struct fake_result *result;
+
+    assert(connection == (PGconn *)&fake_connection);
+    assert(command != NULL);
+    assert(strstr(command, "FROM public.bbs_users AS u") != NULL);
+    assert(strstr(command, "WHERE u.login_name = $1") != NULL);
+    assert(strstr(command, "neo67") == NULL);
+    assert(parameter_count == 1);
+    assert(parameter_types == NULL);
+    assert(parameter_values != NULL);
+    assert(strcmp(parameter_values[0], "neo67") == 0);
+    assert(parameter_lengths == NULL);
+    assert(parameter_formats == NULL);
+    assert(result_format == 0);
+
+    result = calloc(1U, sizeof(*result));
+    assert(result != NULL);
+    result->kind = scenario.login_query_error ? FAKE_RESULT_ERROR :
+                                                FAKE_RESULT_LOGIN;
+    return (PGresult *)result;
+}
+
 ExecStatusType
 __wrap_PQresultStatus(const PGresult *result)
 {
@@ -219,6 +279,8 @@ __wrap_PQntuples(const PGresult *result)
         return 1;
     case FAKE_RESULT_MIGRATIONS:
         return (int)scenario.migration_count;
+    case FAKE_RESULT_LOGIN:
+        return scenario.login_found ? 1 : 0;
     case FAKE_RESULT_HEALTH:
         return 1;
     case FAKE_RESULT_ERROR:
@@ -241,6 +303,8 @@ __wrap_PQnfields(const PGresult *result)
         return 4;
     case FAKE_RESULT_MIGRATIONS:
         return 3;
+    case FAKE_RESULT_LOGIN:
+        return 12;
     case FAKE_RESULT_HEALTH:
         return 1;
     case FAKE_RESULT_ERROR:
@@ -254,9 +318,13 @@ __wrap_PQnfields(const PGresult *result)
 int
 __wrap_PQgetisnull(const PGresult *result, int row, int column)
 {
-    (void)result;
+    const struct fake_result *fake = (const struct fake_result *)result;
+
     (void)row;
-    (void)column;
+    if (fake->kind == FAKE_RESULT_LOGIN &&
+        column == scenario.login_null_column) {
+        return 1;
+    }
     return 0;
 }
 
@@ -300,6 +368,12 @@ __wrap_PQgetvalue(const PGresult *result, int row, int column)
         default:
             assert(!"invalid migration column");
         }
+    }
+
+    if (fake->kind == FAKE_RESULT_LOGIN) {
+        assert(row == 0);
+        assert(column >= 0 && column < 12);
+        return (char *)scenario.login_values[column];
     }
 
     if (fake->kind == FAKE_RESULT_HEALTH) {
@@ -381,6 +455,136 @@ test_success_and_health(void)
 }
 
 static void
+test_login_lookup(void)
+{
+    authd_config_t config;
+    authd_database_t *database = NULL;
+    authd_database_info_t info;
+    authd_login_record_t record;
+    char error[AUTHD_DATABASE_ERROR_MAX];
+
+    reset_scenario();
+    authd_config_defaults(&config);
+    assert(authd_database_open(&config, &database, &info,
+                               error, sizeof(error)) == 0);
+
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_OK);
+    assert(record.user_id[0] == 0x00U);
+    assert(record.user_id[1] == 0x11U);
+    assert(record.user_id[15] == 0xffU);
+    assert(strcmp(record.login_name, "neo67") == 0);
+    assert(strcmp(record.display_name, "Neo 67") == 0);
+    assert(record.account_state == AUTHD_ACCOUNT_STATE_ACTIVE);
+    assert(record.auth_epoch == 7U);
+    assert(!record.deleted);
+    assert(!record.throttled);
+    assert(record.retry_after_ms == 0U);
+    assert(!record.must_change);
+    assert(record.failed_count == 2U);
+    assert(record.last_failed_at_set);
+    assert(record.last_failed_at_epoch_ms == INT64_C(1720000000000));
+    assert(authd_login_record_availability(&record) ==
+           AUTHD_LOGIN_AVAILABLE);
+
+    scenario.login_found = false;
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_NOT_FOUND);
+
+    scenario.login_found = true;
+    scenario.login_values[2] = "locked";
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_OK);
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_LOCKED);
+
+    scenario.login_values[2] = "active";
+    scenario.login_values[3] = "1";
+    scenario.login_values[4] = "1200";
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_OK);
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_THROTTLED);
+    assert(record.retry_after_ms == 1200U);
+
+    scenario.login_values[3] = "0";
+    scenario.login_values[4] = "0";
+    scenario.login_values[9] = "1";
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_OK);
+    assert(authd_login_record_availability(&record) ==
+           AUTHD_LOGIN_PASSWORD_CHANGE_REQUIRED);
+
+    scenario.login_values[9] = "0";
+    scenario.login_null_column = 8;
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_INVALID_RECORD);
+    assert(strstr(error, "required field") != NULL);
+
+    scenario.login_null_column = -1;
+    scenario.login_query_error = true;
+    assert(authd_database_lookup_login(database, "neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_ERROR);
+    assert(strstr(error, "lookup failed") != NULL);
+
+    scenario.login_query_error = false;
+    assert(authd_database_lookup_login(database, "Neo67", &record,
+                                       error, sizeof(error)) ==
+           AUTHD_DATABASE_LOOKUP_ERROR);
+    assert(strstr(error, "arguments") != NULL);
+
+    authd_database_close(database);
+}
+
+static void
+test_login_availability(void)
+{
+    authd_login_record_t record;
+
+    memset(&record, 0, sizeof(record));
+    record.auth_epoch = 1U;
+    (void)snprintf(record.login_name, sizeof(record.login_name), "%s",
+                   "neo67");
+    (void)snprintf(record.display_name, sizeof(record.display_name), "%s",
+                   "Neo 67");
+    (void)snprintf(record.password_hash, sizeof(record.password_hash), "%s",
+                   "$argon2id$v=19$m=262144,t=3,p=1$test$test");
+
+    record.account_state = AUTHD_ACCOUNT_STATE_PENDING;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_PENDING);
+    record.account_state = AUTHD_ACCOUNT_STATE_DISABLED;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_DISABLED);
+    record.account_state = AUTHD_ACCOUNT_STATE_LOCKED;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_LOCKED);
+    record.account_state = AUTHD_ACCOUNT_STATE_DELETED;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_DELETED);
+
+    record.account_state = AUTHD_ACCOUNT_STATE_ACTIVE;
+    record.deleted = true;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_DELETED);
+    record.deleted = false;
+    record.throttled = true;
+    record.retry_after_ms = 1U;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_THROTTLED);
+    record.throttled = false;
+    record.retry_after_ms = 0U;
+    record.must_change = true;
+    assert(authd_login_record_availability(&record) ==
+           AUTHD_LOGIN_PASSWORD_CHANGE_REQUIRED);
+    record.must_change = false;
+    assert(authd_login_record_availability(&record) == AUTHD_LOGIN_AVAILABLE);
+
+    record.auth_epoch = 0U;
+    assert(authd_login_record_availability(&record) ==
+           AUTHD_LOGIN_INVALID_RECORD);
+}
+
+static void
 test_rejections(void)
 {
     reset_scenario();
@@ -408,6 +612,8 @@ int
 main(void)
 {
     test_success_and_health();
+    test_login_lookup();
+    test_login_availability();
     test_rejections();
     (void)puts("authd database libpq-wrapper tests: OK");
     return 0;
