@@ -37,9 +37,9 @@ password buffer and overwrite its entire declared capacity on every return
 path. They attempt to lock the buffer with `sodium_mlock()`; if locking is not
 available, the buffer is still overwritten with `sodium_memzero()`.
 
-The password module is not yet called from the socket event loop. A later B3
-step will place verification jobs in a bounded worker pool and return results
-to the event loop without performing Argon2 work there.
+The password module is not called from the socket event loop yet. B3.4 now
+provides the bounded worker pool; the remaining integration step will submit
+FTAP login jobs and consume their results in the event loop.
 
 ## B3.2 canonical identity and PostgreSQL login snapshot
 
@@ -92,3 +92,59 @@ The test installs a uniquely named fixture with a fixed UUID, runs the lookup
 binary as `fortytwo_authd`, verifies the full returned snapshot and the
 not-found path, and removes the fixture through an EXIT trap. It refuses to
 replace an unrelated account that happens to use the fixture login name.
+
+## B3.4 bounded Argon2id worker pool
+
+The fourth B3 step moves expensive password verification behind a fixed,
+bounded pthread pool without connecting it to FTAP yet:
+
+- `include/authd_worker_pool.h`
+- `src/authd_worker_pool.c`
+- `tests/authd_worker_pool_test.c`
+- `tests/authd_worker_pool_password_integration_test.c`
+
+Pre-alpha defaults are exposed through daemon configuration:
+
+- `--password-workers 2`
+- `--password-queue-capacity 16`
+
+The capacity covers the complete lifecycle of a job: waiting, running, or
+completed but not yet consumed by the event loop. This prevents completed jobs
+from becoming an unbounded second queue when the event loop is busy.
+
+Each submission copies the bounded password into pool-owned memory and wipes
+the caller's complete declared buffer on both acceptance and rejection. Worker
+threads call `authd_password_verify()` without holding the queue mutex. After
+verification, only a result structure is returned; no worker retains a pointer
+to a socket client or FTAP connection object.
+
+A completion carries:
+
+- a pool-generated nonzero job ID
+- event-loop-owned connection ID
+- connection generation
+- FTAP request ID
+- password result and `needs_rehash`
+
+The connection generation lets the later FTAP integration discard a result if
+the corresponding client slot was closed and reused while Argon2id was still
+running. The pool exposes a nonblocking semaphore-style `eventfd`, so the main
+`poll()` loop can receive exactly one readiness token per completion.
+
+Shutdown is deliberately fail closed. New work is rejected, queued passwords
+are wiped without verification, already-running Argon2id calls are joined, and
+unclaimed completions are discarded. Running Argon2id calls are never cancelled
+inside libsodium.
+
+Test coverage includes bounded capacity, two-way parallelism, completion
+notification, generation-token preservation, rejected-password wiping,
+shutdown with pending jobs, a real libsodium verification through the pool,
+ASan/UBSan, leak checks, and a dedicated ThreadSanitizer target:
+
+```sh
+make thread-sanitize-test
+```
+
+The worker pool is linked into the production binary but is not instantiated by
+the socket server yet. B3 integration will create it at startup and add its
+completion descriptor to the existing event loop.

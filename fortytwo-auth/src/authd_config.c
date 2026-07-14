@@ -215,6 +215,11 @@ authd_config_defaults(authd_config_t *config)
     config->max_clients = 64U;
     config->backlog = 64;
     config->hello_timeout_ms = UINT32_C(5000);
+
+    /* Bound expensive Argon2id work independently of socket client count. */
+    config->password_workers = AUTHD_DEFAULT_PASSWORD_WORKERS;
+    config->password_queue_capacity =
+        AUTHD_DEFAULT_PASSWORD_QUEUE_CAPACITY;
     (void)snprintf(config->db_host, sizeof(config->db_host), "%s",
                    "/var/run/postgresql");
     (void)snprintf(config->db_name, sizeof(config->db_name), "%s",
@@ -256,6 +261,8 @@ authd_config_parse(authd_config_t *config,
         OPTION_MAX_CLIENTS,
         OPTION_BACKLOG,
         OPTION_HELLO_TIMEOUT,
+        OPTION_PASSWORD_WORKERS,
+        OPTION_PASSWORD_QUEUE_CAPACITY,
         OPTION_DB_HOST,
         OPTION_DB_PORT,
         OPTION_DB_NAME,
@@ -274,6 +281,9 @@ authd_config_parse(authd_config_t *config,
         {"max-clients", required_argument, NULL, OPTION_MAX_CLIENTS},
         {"backlog", required_argument, NULL, OPTION_BACKLOG},
         {"hello-timeout-ms", required_argument, NULL, OPTION_HELLO_TIMEOUT},
+        {"password-workers", required_argument, NULL, OPTION_PASSWORD_WORKERS},
+        {"password-queue-capacity", required_argument, NULL,
+         OPTION_PASSWORD_QUEUE_CAPACITY},
         {"db-host", required_argument, NULL, OPTION_DB_HOST},
         {"db-port", required_argument, NULL, OPTION_DB_PORT},
         {"db-name", required_argument, NULL, OPTION_DB_NAME},
@@ -393,6 +403,30 @@ authd_config_parse(authd_config_t *config,
                 return AUTHD_CONFIG_ERROR;
             }
             break;
+        case OPTION_PASSWORD_WORKERS:
+            if (!parse_size_value(optarg, AUTHD_MIN_PASSWORD_WORKERS,
+                                  AUTHD_MAX_PASSWORD_WORKERS,
+                                  &config->password_workers)) {
+                set_error(error, error_size,
+                          "--password-workers must be between %u and %u",
+                          AUTHD_MIN_PASSWORD_WORKERS,
+                          AUTHD_MAX_PASSWORD_WORKERS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_PASSWORD_QUEUE_CAPACITY:
+            if (!parse_size_value(
+                    optarg,
+                    AUTHD_MIN_PASSWORD_QUEUE_CAPACITY,
+                    AUTHD_MAX_PASSWORD_QUEUE_CAPACITY,
+                    &config->password_queue_capacity)) {
+                set_error(error, error_size,
+                          "--password-queue-capacity must be between %u and %u",
+                          AUTHD_MIN_PASSWORD_QUEUE_CAPACITY,
+                          AUTHD_MAX_PASSWORD_QUEUE_CAPACITY);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
         case OPTION_DB_HOST: {
             size_t length = strlen(optarg);
             if (length == 0U || length > AUTHD_DB_HOST_MAX) {
@@ -487,6 +521,14 @@ authd_config_parse(authd_config_t *config,
         return AUTHD_CONFIG_ERROR;
     }
 
+    /* Every worker must have room for at least one outstanding job. */
+    if (config->password_queue_capacity < config->password_workers) {
+        set_error(error, error_size,
+                  "--password-queue-capacity must be at least "
+                  "--password-workers");
+        return AUTHD_CONFIG_ERROR;
+    }
+
     return AUTHD_CONFIG_OK;
 }
 
@@ -510,6 +552,9 @@ authd_config_print_usage(FILE *stream, const char *program_name)
         "      --max-clients N        Concurrent clients (1..256)\n"
         "      --backlog N            Listen backlog (1..4096)\n"
         "      --hello-timeout-ms N   HELLO deadline (100..300000)\n"
+        "      --password-workers N   Argon2id workers (1..8; default: 2)\n"
+        "      --password-queue-capacity N\n"
+        "                             Open password jobs (1..64; default: 16)\n"
         "      --db-host PATH         PostgreSQL Unix-socket directory\n"
         "      --db-port N            PostgreSQL port (1..65535)\n"
         "      --db-name NAME         PostgreSQL database name\n"
@@ -558,6 +603,10 @@ authd_config_print_effective(FILE *stream, const authd_config_t *config)
     (void)fprintf(stream, "backlog=%d\n", config->backlog);
     (void)fprintf(stream, "hello_timeout_ms=%" PRIu32 "\n",
                   config->hello_timeout_ms);
+    (void)fprintf(stream, "password_workers=%zu\n",
+                  config->password_workers);
+    (void)fprintf(stream, "password_queue_capacity=%zu\n",
+                  config->password_queue_capacity);
     (void)fprintf(stream, "db_host=%s\n", config->db_host);
     (void)fprintf(stream, "db_port=%" PRIu16 "\n", config->db_port);
     (void)fprintf(stream, "db_name=%s\n", config->db_name);

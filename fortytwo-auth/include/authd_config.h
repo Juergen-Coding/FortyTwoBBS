@@ -22,6 +22,12 @@
 #define AUTHD_MAX_BACKLOG 4096U
 #define AUTHD_MIN_HELLO_TIMEOUT_MS UINT32_C(100)
 #define AUTHD_MAX_HELLO_TIMEOUT_MS UINT32_C(300000)
+#define AUTHD_MIN_PASSWORD_WORKERS 1U
+#define AUTHD_MAX_PASSWORD_WORKERS 8U
+#define AUTHD_DEFAULT_PASSWORD_WORKERS 2U
+#define AUTHD_MIN_PASSWORD_QUEUE_CAPACITY 1U
+#define AUTHD_MAX_PASSWORD_QUEUE_CAPACITY 64U
+#define AUTHD_DEFAULT_PASSWORD_QUEUE_CAPACITY 16U
 
 #define AUTHD_DB_HOST_MAX 255U
 #define AUTHD_DB_NAME_MAX 63U
@@ -43,6 +49,8 @@ typedef struct authd_config {
     size_t max_clients;
     int backlog;
     uint32_t hello_timeout_ms;
+    size_t password_workers;
+    size_t password_queue_capacity;
     char db_host[AUTHD_DB_HOST_MAX + 1U];
     char db_name[AUTHD_DB_NAME_MAX + 1U];
     uint16_t db_port;

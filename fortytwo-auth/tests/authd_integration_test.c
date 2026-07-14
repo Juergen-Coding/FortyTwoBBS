@@ -229,25 +229,41 @@ static int
 connect_unix_socket(const char *path)
 {
     struct sockaddr_un address;
-    int fd;
+    int elapsed;
 
     memset(&address, 0, sizeof(address));
     address.sun_family = AF_UNIX;
     assert(strlen(path) < sizeof(address.sun_path));
     (void)snprintf(address.sun_path, sizeof(address.sun_path), "%s", path);
 
-    fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (fd < 0) {
-        return -1;
-    }
-    if (connect(fd, (const struct sockaddr *)&address,
-                (socklen_t)sizeof(address)) != 0) {
-        int saved_errno = errno;
+    /*
+     * bind() creates the pathname before listen() makes the socket ready.
+     * Retry that narrow startup window instead of making integration tests
+     * depend on scheduler timing under sanitizer or thread-heavy builds.
+     */
+    for (elapsed = 0; elapsed < TEST_TIMEOUT_MS; elapsed += 10) {
+        int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+
+        if (fd < 0) {
+            return -1;
+        }
+        if (connect(fd, (const struct sockaddr *)&address,
+                    (socklen_t)sizeof(address)) == 0) {
+            return fd;
+        }
+
+        if (errno != ENOENT && errno != ECONNREFUSED && errno != EINTR) {
+            int saved_errno = errno;
+            (void)close(fd);
+            errno = saved_errno;
+            return -1;
+        }
         (void)close(fd);
-        errno = saved_errno;
-        return -1;
+        sleep_milliseconds(10);
     }
-    return fd;
+
+    errno = ETIMEDOUT;
+    return -1;
 }
 
 static pid_t
