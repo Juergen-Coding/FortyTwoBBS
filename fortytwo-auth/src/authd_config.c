@@ -220,6 +220,14 @@ authd_config_defaults(authd_config_t *config)
     config->password_workers = AUTHD_DEFAULT_PASSWORD_WORKERS;
     config->password_queue_capacity =
         AUTHD_DEFAULT_PASSWORD_QUEUE_CAPACITY;
+
+    /* Keep persistent user throttling independent from IP rate limiting. */
+    config->password_failure_threshold =
+        AUTHD_THROTTLE_DEFAULT_FAILURE_THRESHOLD;
+    config->password_failure_window_seconds =
+        AUTHD_THROTTLE_DEFAULT_WINDOW_SECONDS;
+    config->password_throttle_seconds =
+        AUTHD_THROTTLE_DEFAULT_DURATION_SECONDS;
     (void)snprintf(config->db_host, sizeof(config->db_host), "%s",
                    "/var/run/postgresql");
     (void)snprintf(config->db_name, sizeof(config->db_name), "%s",
@@ -263,6 +271,9 @@ authd_config_parse(authd_config_t *config,
         OPTION_HELLO_TIMEOUT,
         OPTION_PASSWORD_WORKERS,
         OPTION_PASSWORD_QUEUE_CAPACITY,
+        OPTION_PASSWORD_FAILURE_THRESHOLD,
+        OPTION_PASSWORD_FAILURE_WINDOW,
+        OPTION_PASSWORD_THROTTLE_SECONDS,
         OPTION_DB_HOST,
         OPTION_DB_PORT,
         OPTION_DB_NAME,
@@ -284,6 +295,12 @@ authd_config_parse(authd_config_t *config,
         {"password-workers", required_argument, NULL, OPTION_PASSWORD_WORKERS},
         {"password-queue-capacity", required_argument, NULL,
          OPTION_PASSWORD_QUEUE_CAPACITY},
+        {"password-failure-threshold", required_argument, NULL,
+         OPTION_PASSWORD_FAILURE_THRESHOLD},
+        {"password-failure-window-seconds", required_argument, NULL,
+         OPTION_PASSWORD_FAILURE_WINDOW},
+        {"password-throttle-seconds", required_argument, NULL,
+         OPTION_PASSWORD_THROTTLE_SECONDS},
         {"db-host", required_argument, NULL, OPTION_DB_HOST},
         {"db-port", required_argument, NULL, OPTION_DB_PORT},
         {"db-name", required_argument, NULL, OPTION_DB_NAME},
@@ -427,6 +444,48 @@ authd_config_parse(authd_config_t *config,
                 return AUTHD_CONFIG_ERROR;
             }
             break;
+        case OPTION_PASSWORD_FAILURE_THRESHOLD:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_THROTTLE_MIN_FAILURE_THRESHOLD,
+                    AUTHD_THROTTLE_MAX_FAILURE_THRESHOLD,
+                    &config->password_failure_threshold)) {
+                set_error(error, error_size,
+                          "--password-failure-threshold must be between %" PRIu32
+                          " and %" PRIu32,
+                          AUTHD_THROTTLE_MIN_FAILURE_THRESHOLD,
+                          AUTHD_THROTTLE_MAX_FAILURE_THRESHOLD);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_PASSWORD_FAILURE_WINDOW:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_THROTTLE_MIN_WINDOW_SECONDS,
+                    AUTHD_THROTTLE_MAX_WINDOW_SECONDS,
+                    &config->password_failure_window_seconds)) {
+                set_error(error, error_size,
+                          "--password-failure-window-seconds must be between %" PRIu32
+                          " and %" PRIu32,
+                          AUTHD_THROTTLE_MIN_WINDOW_SECONDS,
+                          AUTHD_THROTTLE_MAX_WINDOW_SECONDS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_PASSWORD_THROTTLE_SECONDS:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_THROTTLE_MIN_DURATION_SECONDS,
+                    AUTHD_THROTTLE_MAX_DURATION_SECONDS,
+                    &config->password_throttle_seconds)) {
+                set_error(error, error_size,
+                          "--password-throttle-seconds must be between %" PRIu32
+                          " and %" PRIu32,
+                          AUTHD_THROTTLE_MIN_DURATION_SECONDS,
+                          AUTHD_THROTTLE_MAX_DURATION_SECONDS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
         case OPTION_DB_HOST: {
             size_t length = strlen(optarg);
             if (length == 0U || length > AUTHD_DB_HOST_MAX) {
@@ -555,6 +614,12 @@ authd_config_print_usage(FILE *stream, const char *program_name)
         "      --password-workers N   Argon2id workers (1..8; default: 2)\n"
         "      --password-queue-capacity N\n"
         "                             Open password jobs (1..64; default: 16)\n"
+        "      --password-failure-threshold N\n"
+        "                             Failures before throttle (1..100; default: 5)\n"
+        "      --password-failure-window-seconds N\n"
+        "                             Failure window (1..86400; default: 900)\n"
+        "      --password-throttle-seconds N\n"
+        "                             Temporary throttle (1..86400; default: 900)\n"
         "      --db-host PATH         PostgreSQL Unix-socket directory\n"
         "      --db-port N            PostgreSQL port (1..65535)\n"
         "      --db-name NAME         PostgreSQL database name\n"
@@ -607,6 +672,12 @@ authd_config_print_effective(FILE *stream, const authd_config_t *config)
                   config->password_workers);
     (void)fprintf(stream, "password_queue_capacity=%zu\n",
                   config->password_queue_capacity);
+    (void)fprintf(stream, "password_failure_threshold=%" PRIu32 "\n",
+                  config->password_failure_threshold);
+    (void)fprintf(stream, "password_failure_window_seconds=%" PRIu32 "\n",
+                  config->password_failure_window_seconds);
+    (void)fprintf(stream, "password_throttle_seconds=%" PRIu32 "\n",
+                  config->password_throttle_seconds);
     (void)fprintf(stream, "db_host=%s\n", config->db_host);
     (void)fprintf(stream, "db_port=%" PRIu16 "\n", config->db_port);
     (void)fprintf(stream, "db_name=%s\n", config->db_name);

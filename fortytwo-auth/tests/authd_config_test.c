@@ -31,6 +31,9 @@ test_defaults(void)
     assert(config.hello_timeout_ms == 5000U);
     assert(config.password_workers == 2U);
     assert(config.password_queue_capacity == 16U);
+    assert(config.password_failure_threshold == 5U);
+    assert(config.password_failure_window_seconds == 900U);
+    assert(config.password_throttle_seconds == 900U);
     assert(strcmp(config.db_host, "/var/run/postgresql") == 0);
     assert(strcmp(config.db_name, "fortytwo") == 0);
     assert(config.db_port == 5432U);
@@ -57,6 +60,9 @@ test_complete_configuration(void)
         (char *)"--hello-timeout-ms", (char *)"750",
         (char *)"--password-workers", (char *)"3",
         (char *)"--password-queue-capacity", (char *)"19",
+        (char *)"--password-failure-threshold", (char *)"6",
+        (char *)"--password-failure-window-seconds", (char *)"1200",
+        (char *)"--password-throttle-seconds", (char *)"1800",
         (char *)"--db-host", (char *)"/run/postgresql-test",
         (char *)"--db-port", (char *)"5544",
         (char *)"--db-name", (char *)"fortytwo_test",
@@ -82,6 +88,9 @@ test_complete_configuration(void)
     assert(config.hello_timeout_ms == 750U);
     assert(config.password_workers == 3U);
     assert(config.password_queue_capacity == 19U);
+    assert(config.password_failure_threshold == 6U);
+    assert(config.password_failure_window_seconds == 1200U);
+    assert(config.password_throttle_seconds == 1800U);
     assert(strcmp(config.db_host, "/run/postgresql-test") == 0);
     assert(config.db_port == 5544U);
     assert(strcmp(config.db_name, "fortytwo_test") == 0);
@@ -119,6 +128,15 @@ test_invalid_values(void)
         (char *)"--password-workers", (char *)"4",
         (char *)"--password-queue-capacity", (char *)"3"
     };
+    char *failure_threshold[] = {
+        (char *)"authd", (char *)"--password-failure-threshold", (char *)"0"
+    };
+    char *failure_window[] = {
+        (char *)"authd", (char *)"--password-failure-window-seconds", (char *)"0"
+    };
+    char *throttle_seconds[] = {
+        (char *)"authd", (char *)"--password-throttle-seconds", (char *)"86401"
+    };
     char *db_host[] = {(char *)"authd", (char *)"--db-host", (char *)"localhost"};
     char *db_port[] = {(char *)"authd", (char *)"--db-port", (char *)"0"};
     char *db_name[] = {(char *)"authd", (char *)"--db-name", (char *)"bad name"};
@@ -134,6 +152,9 @@ test_invalid_values(void)
     expect_error(3, workers, "between");
     expect_error(3, queue, "between");
     expect_error(5, queue_too_small, "at least");
+    expect_error(3, failure_threshold, "between");
+    expect_error(3, failure_window, "between");
+    expect_error(3, throttle_seconds, "between");
     expect_error(3, db_host, "absolute Unix-socket");
     expect_error(3, db_port, "between");
     expect_error(3, db_name, "ASCII letters");
@@ -164,6 +185,9 @@ test_printed_configuration(void)
     assert(usage_size > 0U);
     assert(strstr(usage, "--password-workers") != NULL);
     assert(strstr(usage, "--password-queue-capacity") != NULL);
+    assert(strstr(usage, "--password-failure-threshold") != NULL);
+    assert(strstr(usage, "--password-failure-window-seconds") != NULL);
+    assert(strstr(usage, "--password-throttle-seconds") != NULL);
     assert(strstr(usage, "--db-host") != NULL);
     assert(strstr(usage, "--check-database") != NULL);
 
@@ -175,6 +199,9 @@ test_printed_configuration(void)
     assert(effective_size > 0U);
     assert(strstr(effective, "password_workers=2") != NULL);
     assert(strstr(effective, "password_queue_capacity=16") != NULL);
+    assert(strstr(effective, "password_failure_threshold=5") != NULL);
+    assert(strstr(effective, "password_failure_window_seconds=900") != NULL);
+    assert(strstr(effective, "password_throttle_seconds=900") != NULL);
     assert(strstr(effective, "db_host=/var/run/postgresql") != NULL);
     assert(strstr(effective, "db_port=5432") != NULL);
     assert(strstr(effective, "db_name=fortytwo") != NULL);

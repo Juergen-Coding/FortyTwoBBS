@@ -148,3 +148,61 @@ make thread-sanitize-test
 The worker pool is linked into the production binary but is not instantiated by
 the socket server yet. B3 integration will create it at startup and add its
 completion descriptor to the existing event loop.
+
+## B3.5 persistent failure window, temporary throttle, and audit
+
+The fifth B3 step adds persistent user-level protection without yet wiring the
+full FTAP authentication coordinator:
+
+- `include/authd_throttle.h`
+- `src/authd_throttle.c`
+- `tests/authd_throttle_test.c`
+- `authd_database_record_password_failure()`
+- `authd_database_audit_login_rejection()`
+
+Pre-alpha defaults are configurable through the daemon parser:
+
+- `--password-failure-threshold 5`
+- `--password-failure-window-seconds 900`
+- `--password-throttle-seconds 900`
+
+A wrong password for a known user is recorded by one data-modifying PostgreSQL
+statement. It updates `failed_count` and `last_failed_at`, sets or preserves
+`throttled_until` when the threshold is reached, inserts the detailed audit
+event, and returns the new count and retry delay. PostgreSQL statement
+atomicity means an audit failure also rolls back the counter and throttle
+updates.
+
+Failures older than the configured window reset the counter to one. Concurrent
+failures serialize on the credential row, and the integer counter saturates
+instead of overflowing. Administrative `account_state = 'locked'` remains
+completely separate from the temporary `throttled_until` value.
+
+Audit-only denials cover unknown users, account-state rejection, an already
+active throttle, worker overload, and internal failure. The audit JSON contains
+machine-readable reason, canonical login name where needed, protocol, count,
+and throttle state. No API accepts or stores a plaintext password. Wrong
+password audit must use the atomic counter function rather than the audit-only
+function.
+
+IPv4 and IPv6 text is validated before PostgreSQL casts it to `inet`, and only
+FTAP 1.1 protocol names (`telnet`, `ssh`, and `local`) are accepted. The
+in-memory per-IP short-window limiter remains a later integration component;
+this step implements the persistent per-user half of the documented hybrid
+model.
+
+The successful-login reset is intentionally deferred to B3.6, where it must be
+committed in the same transaction as terminal-session creation and the success
+audit. A standalone reset here could otherwise leave partially authenticated
+state after a later session-insert failure.
+
+### Real PostgreSQL throttle integration test
+
+The separate integration target creates an isolated fixture whose four old
+failures are outside the 15-minute window. It verifies reset-to-one, five new
+atomic failure updates, the stored temporary throttle, five audit events, an
+unknown-user audit with no subject UUID, and complete cleanup:
+
+```sh
+make database-throttle-integration-test
+```

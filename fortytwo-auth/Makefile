@@ -42,6 +42,7 @@ DATABASE_SOURCE := src/authd_database.c $(DATABASE_VALIDATION_SOURCE)
 PASSWORD_SOURCE := src/authd_password.c
 WORKER_POOL_SOURCE := src/authd_worker_pool.c
 IDENTITY_SOURCE := src/authd_identity.c
+THROTTLE_SOURCE := src/authd_throttle.c
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -50,6 +51,7 @@ AUTHD_COMMON_SOURCES := \
 AUTHD_PRODUCTION_SOURCES := \
 	$(AUTHD_COMMON_SOURCES) \
 	$(IDENTITY_SOURCE) \
+	$(THROTTLE_SOURCE) \
 	$(DATABASE_SOURCE) \
 	$(PASSWORD_SOURCE) \
 	$(WORKER_POOL_SOURCE)
@@ -61,6 +63,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_schema_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
+	$(NORMAL_DIR)/authd_throttle_test \
 	$(NORMAL_DIR)/authd_password_test \
 	$(NORMAL_DIR)/authd_worker_pool_test \
 	$(NORMAL_DIR)/authd_worker_pool_password_integration_test \
@@ -70,7 +73,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/authd_database_connection_test \
 	$(NORMAL_DIR)/authd_integration_test
 
-.PHONY: all authd test database-login-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
+.PHONY: all authd test database-login-integration-test database-throttle-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
 
 all: authd test
 
@@ -83,6 +86,7 @@ test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/ftap_schema_test
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
+	$(NORMAL_DIR)/authd_throttle_test
 	$(NORMAL_DIR)/authd_password_test
 	$(NORMAL_DIR)/authd_worker_pool_test
 	$(NORMAL_DIR)/authd_worker_pool_password_integration_test
@@ -131,6 +135,9 @@ $(NORMAL_DIR)/authd_config_test: tests/authd_config_test.c src/authd_config.c | 
 $(NORMAL_DIR)/authd_identity_test: tests/authd_identity_test.c $(IDENTITY_SOURCE) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(IDENTITY_SOURCE) $< -o $@
 
+$(NORMAL_DIR)/authd_throttle_test: tests/authd_throttle_test.c $(THROTTLE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THROTTLE_SOURCE) $< -o $@
+
 $(NORMAL_DIR)/authd_password_test: tests/authd_password_test.c $(PASSWORD_SOURCE) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PASSWORD_SOURCE) $< $(SODIUM_LIBS) -o $@
 
@@ -148,21 +155,29 @@ $(NORMAL_DIR)/authd_peer_test: tests/authd_peer_test.c src/authd_config.c src/au
 $(NORMAL_DIR)/authd_database_validation_test: tests/authd_database_validation_test.c $(DATABASE_VALIDATION_SOURCE) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(DATABASE_VALIDATION_SOURCE) $< -o $@
 
-$(NORMAL_DIR)/authd_database_mock_test: tests/authd_database_mock_test.c src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) \
+$(NORMAL_DIR)/authd_database_mock_test: tests/authd_database_mock_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		$< $(LIBPQ_WRAP_FLAGS) -o $@
 
-$(NORMAL_DIR)/authd_database_connection_test: tests/authd_database_connection_test.c src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) \
+$(NORMAL_DIR)/authd_database_connection_test: tests/authd_database_connection_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		$< $(LIBPQ_LIBS) -o $@
 
-$(NORMAL_DIR)/authd_database_login_integration_test: tests/authd_database_login_integration_test.c src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) \
+$(NORMAL_DIR)/authd_database_login_integration_test: tests/authd_database_login_integration_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		$< $(LIBPQ_LIBS) -o $@
 
 database-login-integration-test: check-libpq $(NORMAL_DIR)/authd_database_login_integration_test
 	tests/run_authd_database_login_integration.sh \
 		$(NORMAL_DIR)/authd_database_login_integration_test
+
+$(NORMAL_DIR)/authd_database_throttle_integration_test: tests/authd_database_throttle_integration_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
+		$< $(LIBPQ_LIBS) -o $@
+
+database-throttle-integration-test: check-libpq $(NORMAL_DIR)/authd_database_throttle_integration_test
+	tests/run_authd_database_throttle_integration.sh \
+		$(NORMAL_DIR)/authd_database_throttle_integration_test
 
 $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
@@ -191,6 +206,9 @@ sanitize-test: check-libpq check-libsodium
 		$(IDENTITY_SOURCE) tests/authd_identity_test.c \
 		-o $(SANITIZER_DIR)/authd_identity_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(THROTTLE_SOURCE) tests/authd_throttle_test.c \
+		-o $(SANITIZER_DIR)/authd_throttle_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(PASSWORD_SOURCE) tests/authd_password_test.c $(SODIUM_LIBS) \
 		-o $(SANITIZER_DIR)/authd_password_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
@@ -208,11 +226,11 @@ sanitize-test: check-libpq check-libsodium
 		$(DATABASE_VALIDATION_SOURCE) tests/authd_database_validation_test.c \
 		-o $(SANITIZER_DIR)/authd_database_validation_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
-		src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) \
+		src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		tests/authd_database_mock_test.c $(LIBPQ_WRAP_FLAGS) \
 		-o $(SANITIZER_DIR)/authd_database_mock_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
-		src/authd_config.c $(IDENTITY_SOURCE) $(DATABASE_SOURCE) \
+		src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		tests/authd_database_connection_test.c $(LIBPQ_LIBS) \
 		-o $(SANITIZER_DIR)/authd_database_connection_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
@@ -233,6 +251,9 @@ sanitize-test: check-libpq check-libsodium
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_identity_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_throttle_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_password_test

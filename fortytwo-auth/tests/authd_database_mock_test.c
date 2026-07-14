@@ -25,6 +25,8 @@ typedef enum fake_result_kind {
     FAKE_RESULT_IDENTITY,
     FAKE_RESULT_MIGRATIONS,
     FAKE_RESULT_LOGIN,
+    FAKE_RESULT_PASSWORD_FAILURE,
+    FAKE_RESULT_AUDIT,
     FAKE_RESULT_HEALTH,
     FAKE_RESULT_ERROR
 } fake_result_kind_t;
@@ -48,6 +50,11 @@ typedef struct fake_scenario {
     bool login_query_error;
     int login_null_column;
     const char *login_values[12];
+    bool failure_found;
+    bool failure_query_error;
+    int failure_null_column;
+    const char *failure_values[3];
+    bool audit_query_error;
     bool health_ok;
 } fake_scenario_t;
 
@@ -112,6 +119,11 @@ reset_scenario(void)
     scenario.login_values[9] = "0";
     scenario.login_values[10] = "2";
     scenario.login_values[11] = "1720000000000";
+    scenario.failure_found = true;
+    scenario.failure_null_column = -1;
+    scenario.failure_values[0] = "3";
+    scenario.failure_values[1] = "0";
+    scenario.failure_values[2] = "0";
     scenario.health_ok = true;
 
     for (index = 0U; index < AUTHD_DATABASE_REQUIRED_MIGRATION_COUNT; ++index) {
@@ -235,21 +247,49 @@ __wrap_PQexecParams(PGconn *connection,
 
     assert(connection == (PGconn *)&fake_connection);
     assert(command != NULL);
-    assert(strstr(command, "FROM public.bbs_users AS u") != NULL);
-    assert(strstr(command, "WHERE u.login_name = $1") != NULL);
-    assert(strstr(command, "neo67") == NULL);
-    assert(parameter_count == 1);
     assert(parameter_types == NULL);
     assert(parameter_values != NULL);
-    assert(strcmp(parameter_values[0], "neo67") == 0);
     assert(parameter_lengths == NULL);
     assert(parameter_formats == NULL);
     assert(result_format == 0);
 
     result = calloc(1U, sizeof(*result));
     assert(result != NULL);
-    result->kind = scenario.login_query_error ? FAKE_RESULT_ERROR :
-                                                FAKE_RESULT_LOGIN;
+
+    if (strstr(command, "FROM public.bbs_users AS u") != NULL) {
+        assert(strstr(command, "WHERE u.login_name = $1") != NULL);
+        assert(strstr(command, "neo67") == NULL);
+        assert(parameter_count == 1);
+        assert(strcmp(parameter_values[0], "neo67") == 0);
+        result->kind = scenario.login_query_error ? FAKE_RESULT_ERROR :
+                                                    FAKE_RESULT_LOGIN;
+    } else if (strstr(command, "auth.password_failed") != NULL) {
+        assert(strstr(command, "credential_update") != NULL);
+        assert(strstr(command, "audit_insert") != NULL);
+        assert(parameter_count == 6);
+        assert(strcmp(parameter_values[0],
+                      "00112233-4455-6677-8899-aabbccddeeff") == 0);
+        assert(strcmp(parameter_values[1], "900") == 0);
+        assert(strcmp(parameter_values[2], "5") == 0);
+        assert(strcmp(parameter_values[3], "900") == 0);
+        assert(strcmp(parameter_values[4], "192.0.2.42") == 0);
+        assert(strcmp(parameter_values[5], "ssh") == 0);
+        result->kind = scenario.failure_query_error ? FAKE_RESULT_ERROR :
+                                                      FAKE_RESULT_PASSWORD_FAILURE;
+    } else if (strstr(command, "auth.login_rejected") != NULL) {
+        assert(parameter_count == 5);
+        assert(parameter_values[2] != NULL);
+        assert(strcmp(parameter_values[3], "neo67") == 0);
+        assert(strcmp(parameter_values[4], "telnet") == 0);
+        if (strcmp(parameter_values[2], "unknown_user") == 0) {
+            assert(parameter_values[0] == NULL);
+        }
+        result->kind = scenario.audit_query_error ? FAKE_RESULT_ERROR :
+                                                    FAKE_RESULT_AUDIT;
+    } else {
+        assert(!"unexpected parameterized SQL in database module");
+    }
+
     return (PGresult *)result;
 }
 
@@ -281,6 +321,10 @@ __wrap_PQntuples(const PGresult *result)
         return (int)scenario.migration_count;
     case FAKE_RESULT_LOGIN:
         return scenario.login_found ? 1 : 0;
+    case FAKE_RESULT_PASSWORD_FAILURE:
+        return scenario.failure_found ? 1 : 0;
+    case FAKE_RESULT_AUDIT:
+        return 1;
     case FAKE_RESULT_HEALTH:
         return 1;
     case FAKE_RESULT_ERROR:
@@ -305,6 +349,10 @@ __wrap_PQnfields(const PGresult *result)
         return 3;
     case FAKE_RESULT_LOGIN:
         return 12;
+    case FAKE_RESULT_PASSWORD_FAILURE:
+        return 3;
+    case FAKE_RESULT_AUDIT:
+        return 1;
     case FAKE_RESULT_HEALTH:
         return 1;
     case FAKE_RESULT_ERROR:
@@ -323,6 +371,10 @@ __wrap_PQgetisnull(const PGresult *result, int row, int column)
     (void)row;
     if (fake->kind == FAKE_RESULT_LOGIN &&
         column == scenario.login_null_column) {
+        return 1;
+    }
+    if (fake->kind == FAKE_RESULT_PASSWORD_FAILURE &&
+        column == scenario.failure_null_column) {
         return 1;
     }
     return 0;
@@ -374,6 +426,17 @@ __wrap_PQgetvalue(const PGresult *result, int row, int column)
         assert(row == 0);
         assert(column >= 0 && column < 12);
         return (char *)scenario.login_values[column];
+    }
+
+    if (fake->kind == FAKE_RESULT_PASSWORD_FAILURE) {
+        assert(row == 0);
+        assert(column >= 0 && column < 3);
+        return (char *)scenario.failure_values[column];
+    }
+
+    if (fake->kind == FAKE_RESULT_AUDIT) {
+        assert(row == 0 && column == 0);
+        return (char *)"42";
     }
 
     if (fake->kind == FAKE_RESULT_HEALTH) {
@@ -542,6 +605,97 @@ test_login_lookup(void)
 }
 
 static void
+test_password_failure_and_audit(void)
+{
+    static const uint8_t user_id[FTAP_UUID_SIZE] = {
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+    };
+    authd_config_t config;
+    authd_database_t *database = NULL;
+    authd_database_info_t info;
+    authd_throttle_policy_t policy;
+    authd_password_failure_update_t update;
+    char error[AUTHD_DATABASE_ERROR_MAX];
+
+    reset_scenario();
+    authd_config_defaults(&config);
+    authd_throttle_policy_defaults(&policy);
+    assert(authd_database_open(&config, &database, &info,
+                               error, sizeof(error)) == 0);
+
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_OK);
+    assert(update.failed_count == 3U);
+    assert(!update.throttled);
+    assert(update.retry_after_ms == 0U);
+
+    scenario.failure_values[0] = "5";
+    scenario.failure_values[1] = "1";
+    scenario.failure_values[2] = "900000";
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_OK);
+    assert(update.failed_count == 5U);
+    assert(update.throttled);
+    assert(update.retry_after_ms == 900000U);
+
+    scenario.failure_found = false;
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_NOT_FOUND);
+    scenario.failure_found = true;
+
+    scenario.failure_null_column = 0;
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
+    scenario.failure_null_column = -1;
+
+    scenario.failure_query_error = true;
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_ERROR);
+    scenario.failure_query_error = false;
+
+    policy.failure_threshold = 0U;
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    authd_throttle_policy_defaults(&policy);
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "invalid-ip", "ssh", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    assert(authd_database_record_password_failure(
+        database, user_id, &policy, "192.0.2.42", "SSH", &update,
+        error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+
+    assert(authd_database_audit_login_rejection(
+        database, NULL, "neo67", AUTHD_LOGIN_REJECTION_UNKNOWN_USER,
+        NULL, "telnet", error, sizeof(error)) == AUTHD_DATABASE_WRITE_OK);
+    assert(authd_database_audit_login_rejection(
+        database, user_id, "neo67", AUTHD_LOGIN_REJECTION_LOCKED,
+        "192.0.2.42", "telnet", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_OK);
+    assert(authd_database_audit_login_rejection(
+        database, user_id, "neo67", AUTHD_LOGIN_REJECTION_WRONG_PASSWORD,
+        "192.0.2.42", "telnet", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+
+    scenario.audit_query_error = true;
+    assert(authd_database_audit_login_rejection(
+        database, NULL, "neo67", AUTHD_LOGIN_REJECTION_UNKNOWN_USER,
+        NULL, "telnet", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_ERROR);
+
+    assert(strcmp(authd_database_write_result_name(
+                      AUTHD_DATABASE_WRITE_INVALID_RECORD),
+                  "invalid_record") == 0);
+    authd_database_close(database);
+}
+
+static void
 test_login_availability(void)
 {
     authd_login_record_t record;
@@ -613,6 +767,7 @@ main(void)
 {
     test_success_and_health();
     test_login_lookup();
+    test_password_failure_and_audit();
     test_login_availability();
     test_rejections();
     (void)puts("authd database libpq-wrapper tests: OK");

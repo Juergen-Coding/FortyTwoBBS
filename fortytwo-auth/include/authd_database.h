@@ -57,6 +57,20 @@ typedef enum authd_database_lookup_result {
     AUTHD_DATABASE_LOOKUP_ERROR
 } authd_database_lookup_result_t;
 
+typedef enum authd_database_write_result {
+    AUTHD_DATABASE_WRITE_OK = 0,
+    AUTHD_DATABASE_WRITE_NOT_FOUND,
+    AUTHD_DATABASE_WRITE_INVALID_ARGUMENT,
+    AUTHD_DATABASE_WRITE_INVALID_RECORD,
+    AUTHD_DATABASE_WRITE_ERROR
+} authd_database_write_result_t;
+
+typedef struct authd_password_failure_update {
+    uint32_t failed_count;
+    bool throttled;
+    uint64_t retry_after_ms;
+} authd_password_failure_update_t;
+
 typedef enum authd_login_availability {
     AUTHD_LOGIN_AVAILABLE = 0,
     AUTHD_LOGIN_PENDING,
@@ -85,6 +99,26 @@ authd_database_lookup_result_t authd_database_lookup_login(
     char *error,
     size_t error_size);
 
+authd_database_write_result_t authd_database_record_password_failure(
+    authd_database_t *database,
+    const uint8_t user_id[FTAP_UUID_SIZE],
+    const authd_throttle_policy_t *policy,
+    const char *source_ip,
+    const char *protocol,
+    authd_password_failure_update_t *update,
+    char *error,
+    size_t error_size);
+
+authd_database_write_result_t authd_database_audit_login_rejection(
+    authd_database_t *database,
+    const uint8_t *user_id,
+    const char *canonical_login_name,
+    authd_login_rejection_reason_t reason,
+    const char *source_ip,
+    const char *protocol,
+    char *error,
+    size_t error_size);
+
 authd_login_availability_t authd_login_record_availability(
     const authd_login_record_t *record);
 
@@ -93,6 +127,8 @@ const char *authd_database_lookup_result_name(
     authd_database_lookup_result_t result);
 const char *authd_login_availability_name(
     authd_login_availability_t availability);
+const char *authd_database_write_result_name(
+    authd_database_write_result_t result);
 
 void authd_database_close(authd_database_t *database);
 

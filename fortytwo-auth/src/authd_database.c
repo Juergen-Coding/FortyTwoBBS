@@ -12,6 +12,7 @@
 #include <libpq-fe.h>
 
 #include <errno.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -803,6 +804,303 @@ authd_database_lookup_login(authd_database_t *database,
     return AUTHD_DATABASE_LOOKUP_OK;
 }
 
+/* Reject the all-zero UUID, which is never a valid FortyTwo identity. */
+static bool
+user_id_is_valid(const uint8_t user_id[FTAP_UUID_SIZE])
+{
+    size_t index;
+
+    if (user_id == NULL) {
+        return false;
+    }
+    for (index = 0U; index < (size_t)FTAP_UUID_SIZE; ++index) {
+        if (user_id[index] != 0U) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Convert the binary FTAP UUID into PostgreSQL's canonical text form. */
+static void
+format_uuid_text(const uint8_t user_id[FTAP_UUID_SIZE], char output[37])
+{
+    (void)snprintf(
+        output,
+        37U,
+        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-"
+        "%02x%02x%02x%02x%02x%02x",
+        (unsigned int)user_id[0], (unsigned int)user_id[1],
+        (unsigned int)user_id[2], (unsigned int)user_id[3],
+        (unsigned int)user_id[4], (unsigned int)user_id[5],
+        (unsigned int)user_id[6], (unsigned int)user_id[7],
+        (unsigned int)user_id[8], (unsigned int)user_id[9],
+        (unsigned int)user_id[10], (unsigned int)user_id[11],
+        (unsigned int)user_id[12], (unsigned int)user_id[13],
+        (unsigned int)user_id[14], (unsigned int)user_id[15]);
+}
+
+/* Copy a libpq result error while trimming its trailing newline. */
+static void
+copy_result_error(char *error,
+                  size_t error_size,
+                  const char *prefix,
+                  const PGresult *result)
+{
+    const char *message = result != NULL ? PQresultErrorMessage(result) : NULL;
+    size_t length;
+
+    if (message == NULL || message[0] == '\0') {
+        set_error(error, error_size, "%s", prefix);
+        return;
+    }
+
+    length = strlen(message);
+    while (length > 0U &&
+           (message[length - 1U] == '\n' || message[length - 1U] == '\r')) {
+        --length;
+    }
+    set_error(error, error_size, "%s: %.*s", prefix,
+              precision_from_length(length), message);
+}
+
+/*
+ * Update one known user's persistent failure window and append its audit event
+ * in the same PostgreSQL statement. If the audit insert fails, PostgreSQL rolls
+ * back the counter and throttle updates with the rest of the statement.
+ */
+authd_database_write_result_t
+authd_database_record_password_failure(
+    authd_database_t *database,
+    const uint8_t user_id[FTAP_UUID_SIZE],
+    const authd_throttle_policy_t *policy,
+    const char *source_ip,
+    const char *protocol,
+    authd_password_failure_update_t *update,
+    char *error,
+    size_t error_size)
+{
+    static const char sql[] =
+        "WITH credential_update AS ("
+        "UPDATE public.bbs_password_credentials AS c SET "
+        "failed_count = CASE WHEN c.last_failed_at IS NULL OR "
+        "c.last_failed_at < CURRENT_TIMESTAMP - "
+        "($2::pg_catalog.int4 * INTERVAL '1 second') THEN 1 ELSE "
+        "LEAST(c.failed_count::pg_catalog.int8 + 1, 2147483647)"
+        "::pg_catalog.int4 END, "
+        "last_failed_at = CURRENT_TIMESTAMP "
+        "WHERE c.user_id = $1::pg_catalog.uuid "
+        "RETURNING c.failed_count"
+        "), user_update AS ("
+        "UPDATE public.bbs_users AS u SET "
+        "throttled_until = CASE "
+        "WHEN cu.failed_count >= $3::pg_catalog.int4 THEN "
+        "GREATEST(COALESCE(u.throttled_until, CURRENT_TIMESTAMP), "
+        "CURRENT_TIMESTAMP + ($4::pg_catalog.int4 * INTERVAL '1 second')) "
+        "WHEN u.throttled_until <= CURRENT_TIMESTAMP THEN NULL "
+        "ELSE u.throttled_until END, "
+        "updated_at = CURRENT_TIMESTAMP "
+        "FROM credential_update AS cu "
+        "WHERE u.user_id = $1::pg_catalog.uuid "
+        "RETURNING u.user_id, cu.failed_count, u.throttled_until"
+        "), audit_insert AS ("
+        "INSERT INTO public.bbs_audit_events "
+        "(subject_user_id, event_type, source_ip, detail) "
+        "SELECT uu.user_id, 'auth.password_failed', $5::pg_catalog.inet, "
+        "pg_catalog.jsonb_build_object("
+        "'reason', 'wrong_password', "
+        "'protocol', $6::pg_catalog.text, "
+        "'failed_count', uu.failed_count, "
+        "'throttled', uu.throttled_until > CURRENT_TIMESTAMP) "
+        "FROM user_update AS uu RETURNING event_id"
+        ") SELECT uu.failed_count::pg_catalog.text, "
+        "CASE WHEN uu.throttled_until > CURRENT_TIMESTAMP "
+        "THEN '1' ELSE '0' END, "
+        "CASE WHEN uu.throttled_until > CURRENT_TIMESTAMP THEN "
+        "GREATEST(1, pg_catalog.ceil(pg_catalog.date_part('epoch', "
+        "uu.throttled_until - CURRENT_TIMESTAMP) * 1000.0)"
+        "::pg_catalog.int8)::pg_catalog.text ELSE '0' END "
+        "FROM user_update AS uu CROSS JOIN audit_insert AS ai";
+    const char *parameter_values[6];
+    char uuid_text[37];
+    char window_text[16];
+    char threshold_text[16];
+    char throttle_text[16];
+    PGresult *result;
+    int rows;
+    uint32_t failed_count;
+    uint64_t retry_after_ms;
+    bool throttled;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (update != NULL) {
+        memset(update, 0, sizeof(*update));
+    }
+
+    if (database == NULL || database->connection == NULL ||
+        !user_id_is_valid(user_id) ||
+        !authd_throttle_policy_is_valid(policy) ||
+        !authd_source_ip_is_valid(source_ip) ||
+        !authd_login_protocol_is_valid(protocol) || update == NULL) {
+        set_error(error, error_size,
+                  "invalid password failure update arguments");
+        return AUTHD_DATABASE_WRITE_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    format_uuid_text(user_id, uuid_text);
+    (void)snprintf(window_text, sizeof(window_text), "%" PRIu32,
+                   policy->failure_window_seconds);
+    (void)snprintf(threshold_text, sizeof(threshold_text), "%" PRIu32,
+                   policy->failure_threshold);
+    (void)snprintf(throttle_text, sizeof(throttle_text), "%" PRIu32,
+                   policy->throttle_seconds);
+
+    parameter_values[0] = uuid_text;
+    parameter_values[1] = window_text;
+    parameter_values[2] = threshold_text;
+    parameter_values[3] = throttle_text;
+    parameter_values[4] = source_ip;
+    parameter_values[5] = protocol;
+
+    result = PQexecParams(database->connection, sql, 6, NULL,
+                          parameter_values, NULL, NULL, 0);
+    if (result == NULL) {
+        copy_libpq_error(error, error_size,
+                         "password failure update failed",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+    if (PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 3) {
+        copy_result_error(error, error_size,
+                          "password failure update failed", result);
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    rows = PQntuples(result);
+    if (rows == 0) {
+        set_error(error, error_size,
+                  "password failure target no longer exists");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_NOT_FOUND;
+    }
+    if (rows != 1 || PQgetisnull(result, 0, 0) ||
+        PQgetisnull(result, 0, 1) || PQgetisnull(result, 0, 2) ||
+        !parse_u32_strict(PQgetvalue(result, 0, 0), &failed_count) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 1), &throttled) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 2), &retry_after_ms) ||
+        failed_count == 0U ||
+        (throttled && retry_after_ms == 0U) ||
+        (!throttled && retry_after_ms != 0U)) {
+        set_error(error, error_size,
+                  "password failure update returned an invalid record");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_INVALID_RECORD;
+    }
+
+    update->failed_count = failed_count;
+    update->throttled = throttled;
+    update->retry_after_ms = retry_after_ms;
+    PQclear(result);
+    return AUTHD_DATABASE_WRITE_OK;
+}
+
+/*
+ * Append an audit-only rejection for unknown users, account-state denials,
+ * overload, or internal failure. Wrong passwords must use the atomic counter
+ * function above so audit and throttling cannot diverge.
+ */
+authd_database_write_result_t
+authd_database_audit_login_rejection(
+    authd_database_t *database,
+    const uint8_t *user_id,
+    const char *canonical_login_name,
+    authd_login_rejection_reason_t reason,
+    const char *source_ip,
+    const char *protocol,
+    char *error,
+    size_t error_size)
+{
+    static const char sql[] =
+        "INSERT INTO public.bbs_audit_events "
+        "(subject_user_id, event_type, source_ip, detail) VALUES ("
+        "$1::pg_catalog.uuid, 'auth.login_rejected', "
+        "$2::pg_catalog.inet, pg_catalog.jsonb_build_object("
+        "'reason', $3::pg_catalog.text, "
+        "'login_name', $4::pg_catalog.text, "
+        "'protocol', $5::pg_catalog.text)) "
+        "RETURNING event_id::pg_catalog.text";
+    const char *parameter_values[5];
+    char uuid_text[37];
+    const char *reason_name;
+    PGresult *result;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+
+    reason_name = authd_login_rejection_reason_name(reason);
+    if (database == NULL || database->connection == NULL ||
+        canonical_login_name == NULL ||
+        !authd_login_name_is_canonical(canonical_login_name) ||
+        strcmp(reason_name, "invalid") == 0 ||
+        reason == AUTHD_LOGIN_REJECTION_WRONG_PASSWORD ||
+        !authd_source_ip_is_valid(source_ip) ||
+        !authd_login_protocol_is_valid(protocol) ||
+        (user_id != NULL && !user_id_is_valid(user_id)) ||
+        (reason == AUTHD_LOGIN_REJECTION_UNKNOWN_USER && user_id != NULL)) {
+        set_error(error, error_size,
+                  "invalid login rejection audit arguments");
+        return AUTHD_DATABASE_WRITE_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    if (user_id != NULL) {
+        format_uuid_text(user_id, uuid_text);
+        parameter_values[0] = uuid_text;
+    } else {
+        parameter_values[0] = NULL;
+    }
+    parameter_values[1] = source_ip;
+    parameter_values[2] = reason_name;
+    parameter_values[3] = canonical_login_name;
+    parameter_values[4] = protocol;
+
+    result = PQexecParams(database->connection, sql, 5, NULL,
+                          parameter_values, NULL, NULL, 0);
+    if (result == NULL) {
+        copy_libpq_error(error, error_size,
+                         "login rejection audit failed",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+    if (PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0)) {
+        copy_result_error(error, error_size,
+                          "login rejection audit failed", result);
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    PQclear(result);
+    return AUTHD_DATABASE_WRITE_OK;
+}
+
 authd_login_availability_t
 authd_login_record_availability(const authd_login_record_t *record)
 {
@@ -896,6 +1194,26 @@ authd_login_availability_name(authd_login_availability_t availability)
         return "password_change_required";
     case AUTHD_LOGIN_INVALID_RECORD:
         return "invalid_record";
+    default:
+        return "invalid";
+    }
+}
+
+/* Return stable diagnostic names for database mutation outcomes. */
+const char *
+authd_database_write_result_name(authd_database_write_result_t result)
+{
+    switch (result) {
+    case AUTHD_DATABASE_WRITE_OK:
+        return "ok";
+    case AUTHD_DATABASE_WRITE_NOT_FOUND:
+        return "not_found";
+    case AUTHD_DATABASE_WRITE_INVALID_ARGUMENT:
+        return "invalid_argument";
+    case AUTHD_DATABASE_WRITE_INVALID_RECORD:
+        return "invalid_record";
+    case AUTHD_DATABASE_WRITE_ERROR:
+        return "error";
     default:
         return "invalid";
     }

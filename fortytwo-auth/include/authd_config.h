@@ -7,6 +7,8 @@
 #ifndef FORTYTWO_AUTHD_CONFIG_H
 #define FORTYTWO_AUTHD_CONFIG_H
 
+#include "authd_throttle.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -51,6 +53,9 @@ typedef struct authd_config {
     uint32_t hello_timeout_ms;
     size_t password_workers;
     size_t password_queue_capacity;
+    uint32_t password_failure_threshold;
+    uint32_t password_failure_window_seconds;
+    uint32_t password_throttle_seconds;
     char db_host[AUTHD_DB_HOST_MAX + 1U];
     char db_name[AUTHD_DB_NAME_MAX + 1U];
     uint16_t db_port;
