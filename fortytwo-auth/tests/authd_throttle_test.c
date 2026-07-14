@@ -64,6 +64,9 @@ test_reason_names(void)
                       AUTHD_LOGIN_REJECTION_THROTTLED),
                   "temporarily_throttled") == 0);
     assert(strcmp(authd_login_rejection_reason_name(
+                      AUTHD_LOGIN_REJECTION_STALE_STATE),
+                  "stale_login_state") == 0);
+    assert(strcmp(authd_login_rejection_reason_name(
                       (authd_login_rejection_reason_t)999),
                   "invalid") == 0);
 }

@@ -37,9 +37,9 @@ password buffer and overwrite its entire declared capacity on every return
 path. They attempt to lock the buffer with `sodium_mlock()`; if locking is not
 available, the buffer is still overwritten with `sodium_memzero()`.
 
-The password module is not called from the socket event loop yet. B3.4 now
-provides the bounded worker pool; the remaining integration step will submit
-FTAP login jobs and consume their results in the event loop.
+B3.7 now calls the password module only through the bounded worker pool. The
+socket event loop never performs Argon2id itself and receives completed jobs
+through the pool's `eventfd`.
 
 ## B3.2 canonical identity and PostgreSQL login snapshot
 
@@ -145,9 +145,9 @@ ASan/UBSan, leak checks, and a dedicated ThreadSanitizer target:
 make thread-sanitize-test
 ```
 
-The worker pool is linked into the production binary but is not instantiated by
-the socket server yet. B3 integration will create it at startup and add its
-completion descriptor to the existing event loop.
+B3.7 instantiates the worker pool during daemon startup, adds its completion
+descriptor to the existing `poll()` loop, and joins or wipes all remaining work
+during controlled shutdown.
 
 ## B3.5 persistent failure window, temporary throttle, and audit
 
@@ -256,3 +256,117 @@ stale epoch and confirms that no second session is created:
 ```sh
 make database-session-integration-test
 ```
+
+
+## B3.7 FTAP login coordinator and connection binding
+
+The seventh B3 step connects the previously isolated components in the real
+`fortytwo-authd` event loop:
+
+- canonical FTAP login-name parsing;
+- parameterized PostgreSQL snapshot lookup;
+- account-state and temporary-throttle classification;
+- asynchronous Argon2id submission;
+- `eventfd` completion handling;
+- snapshot revalidation and atomic session creation;
+- FTAP success or deliberately uniform credential failure;
+- database session closure when the bound socket ends.
+
+Each client slot owns a stable nonzero connection ID and a generation that is
+incremented every time the slot is reused. A running login additionally stores
+the FTAP request ID and worker-generated job ID. A completion is accepted only
+when all four values still match the live client:
+
+```text
+connection ID
+connection generation
+request ID
+worker job ID
+```
+
+Workers never receive a pointer to a client structure. A result from a closed
+connection, a reused slot, or a superseded request is discarded without a
+response or database session. Socket close/error events are processed before
+ready worker completions from the same `poll()` iteration.
+
+### Dummy verification and external failures
+
+At daemon startup, 32 random bytes are generated with the operating-system
+random source and hashed with the same bounded Argon2id policy as normal
+credentials. The resulting process-local dummy hash contains no user identity.
+Unknown, pending, disabled, locked, deleted, password-change-required, and
+otherwise unavailable accounts run through that dummy verification before the
+client receives the same external result as a wrong password:
+
+```text
+FTAP_ERR_INVALID_CREDENTIALS
+authentication failed
+```
+
+Exact reasons remain in the internal audit log. The deterministic daemon test
+records the selected hash class and proves that unknown, locked, and disabled
+fixtures reached the dummy worker path.
+
+Temporary protection through `throttled_until` is intentionally visible in
+FTAP 1.1 as `FTAP_ERR_RATE_LIMITED` with a bounded `RETRY_AFTER_MS`. This avoids
+encouraging a client to retry expensive authentication immediately. Technical
+database or worker failures remain separate from credential failures.
+
+### Password and connection lifetime
+
+The mutable password copy is wiped by worker submission on every acceptance or
+rejection path. After a complete password frame is parsed, the corresponding
+bytes are also wiped from the client's FTAP input buffer before pipelined data
+is compacted. A connection reset overwrites the complete allocated input
+buffer, pending login snapshot, response buffer, and stored session context.
+
+The PostgreSQL terminal session is bound to exactly one authenticated FTAP
+socket. `authd_database_close_terminal_session()` atomically closes an open
+session and inserts `auth.terminal_session_closed`; a second cleanup attempt is
+harmless and returns `not_found`. The daemon records distinct lifecycle reasons
+such as:
+
+```text
+normal_logout
+peer_disconnected
+auth_response_failed
+protocol_error
+authd_shutdown
+authd_failure
+```
+
+`SESSION_CLOSE` has no response in FTAP 1.1. The daemon first stores the
+optional machine-readable `ENDED_REASON` (default `normal_logout`) and then
+closes the socket. If PostgreSQL session creation succeeds but the FTAP success
+frame cannot be queued or sent, the new session is immediately closed as
+`auth_response_failed`; no open ghost session is left behind.
+
+### Integration coverage
+
+The test-only daemon uses deterministic database and password modules but the
+production server state machine. End-to-end coverage includes:
+
+- successful password login and ordered `SESSION_CLOSE`;
+- wrong password;
+- unknown user through the dummy hash;
+- locked and disabled accounts through the dummy hash;
+- active throttle and `RETRY_AFTER_MS`;
+- stale login snapshot after password verification;
+- invalid stored hash and session-creation failure;
+- disconnect during a running password job;
+- reuse of the same client slot with a new generation;
+- a second login request while one is already running;
+- full worker capacity;
+- shutdown with a running job;
+- forced failure while sending a successful authentication result;
+- no second response or session from a late worker completion.
+
+The production libpq wrapper test separately verifies the exact parameterized
+SQL and lifecycle return values for terminal-session closure. The real
+PostgreSQL session integration test now closes the created fixture session,
+verifies the close audit, and verifies idempotent repeated cleanup.
+
+No migration is added by B3.7. Migration 0002 already grants the runtime role
+the required `SELECT`/`UPDATE` rights on `bbs_terminal_sessions` and
+`SELECT`/`INSERT` rights on `bbs_audit_events`. Applied migration files remain
+unchanged.

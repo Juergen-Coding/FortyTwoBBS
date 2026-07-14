@@ -139,6 +139,13 @@ authd_database_write_result_t authd_database_create_password_session(
     char *error,
     size_t error_size);
 
+authd_database_write_result_t authd_database_close_terminal_session(
+    authd_database_t *database,
+    const uint8_t session_id[FTAP_UUID_SIZE],
+    const char *ended_reason,
+    char *error,
+    size_t error_size);
+
 authd_login_availability_t authd_login_record_availability(
     const authd_login_record_t *record);
 

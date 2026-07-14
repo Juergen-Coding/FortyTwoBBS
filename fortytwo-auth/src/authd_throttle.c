@@ -98,6 +98,8 @@ authd_login_rejection_reason_name(authd_login_rejection_reason_t reason)
         return "invalid_account_record";
     case AUTHD_LOGIN_REJECTION_OVERLOADED:
         return "password_worker_overloaded";
+    case AUTHD_LOGIN_REJECTION_STALE_STATE:
+        return "stale_login_state";
     case AUTHD_LOGIN_REJECTION_INTERNAL_ERROR:
         return "internal_error";
     default:

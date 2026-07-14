@@ -27,6 +27,7 @@ main(void)
     authd_database_info_t info;
     authd_login_record_t record;
     authd_terminal_session_result_t session;
+    authd_terminal_session_result_t created_session;
     char canonical[AUTHD_LOGIN_NAME_BUFFER_SIZE];
     char error[AUTHD_DATABASE_ERROR_MAX];
 
@@ -83,6 +84,7 @@ main(void)
                   sizeof(expected_user_id)) == 0);
     assert(session.auth_epoch == UINT64_C(42));
     assert(session.authz_revision == UINT64_C(7));
+    created_session = session;
 
     /* A stale post-Argon2 snapshot must not create a second session. */
     ++record.auth_epoch;
@@ -100,6 +102,27 @@ main(void)
             authd_database_close(database);
             return 1;
         }
+    }
+
+    /* The runtime role must also close and audit the bound socket lifecycle. */
+    {
+        authd_database_write_result_t write_result;
+
+        write_result = authd_database_close_terminal_session(
+            database, created_session.session_id, "integration_test_complete",
+            error, sizeof(error));
+        if (write_result != AUTHD_DATABASE_WRITE_OK) {
+            (void)fprintf(stderr,
+                          "real session close failed: %s: %s\n",
+                          authd_database_write_result_name(write_result),
+                          error[0] != '\0' ? error : "no detail");
+            authd_database_close(database);
+            return 1;
+        }
+        assert(authd_database_close_terminal_session(
+                   database, created_session.session_id,
+                   "integration_test_complete", error, sizeof(error)) ==
+               AUTHD_DATABASE_WRITE_NOT_FOUND);
     }
 
     authd_database_close(database);

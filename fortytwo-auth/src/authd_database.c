@@ -1298,6 +1298,119 @@ authd_database_create_password_session(
     return AUTHD_DATABASE_WRITE_OK;
 }
 
+/* Keep persisted session-end reasons inside the FTAP reason namespace. */
+static bool
+ended_reason_is_valid(const char *reason)
+{
+    size_t index;
+    size_t length;
+
+    if (reason == NULL) {
+        return false;
+    }
+    length = strlen(reason);
+    if (length == 0U || length > FTAP_ENDED_REASON_MAX ||
+        reason[0] < 'a' || reason[0] > 'z') {
+        return false;
+    }
+    for (index = 1U; index < length; ++index) {
+        char character = reason[index];
+        if (!((character >= 'a' && character <= 'z') ||
+              (character >= '0' && character <= '9') ||
+              character == '.' || character == '-' || character == '_')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+ * Close an open terminal session and append its lifecycle audit atomically.
+ * Repeated cleanup is harmless: an already closed or unknown session returns
+ * NOT_FOUND and cannot overwrite its original end reason.
+ */
+authd_database_write_result_t
+authd_database_close_terminal_session(
+    authd_database_t *database,
+    const uint8_t session_id[FTAP_UUID_SIZE],
+    const char *ended_reason,
+    char *error,
+    size_t error_size)
+{
+    static const char sql[] =
+        "WITH closed_session AS ("
+        "UPDATE public.bbs_terminal_sessions "
+        "SET closed_at = CURRENT_TIMESTAMP, ended_reason = $2::pg_catalog.text "
+        "WHERE session_id = $1::pg_catalog.uuid AND closed_at IS NULL "
+        "RETURNING session_id, user_id), "
+        "audit_insert AS ("
+        "INSERT INTO public.bbs_audit_events "
+        "(actor_user_id, subject_user_id, session_id, event_type, detail) "
+        "SELECT c.user_id, c.user_id, c.session_id, "
+        "'auth.terminal_session_closed', "
+        "pg_catalog.jsonb_build_object('ended_reason', $2::pg_catalog.text) "
+        "FROM closed_session AS c RETURNING event_id) "
+        "SELECT event_id::pg_catalog.text FROM audit_insert";
+    const char *parameter_values[2];
+    char session_id_text[37];
+    PGresult *result;
+    uint64_t event_id;
+    int rows;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (database == NULL || database->connection == NULL ||
+        !uuid_is_valid(session_id) || !ended_reason_is_valid(ended_reason)) {
+        set_error(error, error_size,
+                  "invalid terminal session close arguments");
+        return AUTHD_DATABASE_WRITE_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    format_uuid_text(session_id, session_id_text);
+    parameter_values[0] = session_id_text;
+    parameter_values[1] = ended_reason;
+
+    result = PQexecParams(database->connection, sql, 2, NULL,
+                          parameter_values, NULL, NULL, 0);
+    if (result == NULL) {
+        copy_libpq_error(error, error_size,
+                         "terminal session close failed",
+                         database->connection);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+    if (PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 1) {
+        copy_result_error(error, error_size,
+                          "terminal session close failed", result);
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_ERROR;
+    }
+
+    rows = PQntuples(result);
+    if (rows == 0) {
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_NOT_FOUND;
+    }
+    if (rows != 1 || PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &event_id) ||
+        event_id == 0U) {
+        set_error(error, error_size,
+                  "terminal session close returned an invalid record");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_INVALID_RECORD;
+    }
+
+    PQclear(result);
+    return AUTHD_DATABASE_WRITE_OK;
+}
+
 authd_login_availability_t
 authd_login_record_availability(const authd_login_record_t *record)
 {

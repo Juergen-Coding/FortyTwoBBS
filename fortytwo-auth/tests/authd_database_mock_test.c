@@ -26,6 +26,7 @@ typedef enum fake_result_kind {
     FAKE_RESULT_MIGRATIONS,
     FAKE_RESULT_LOGIN,
     FAKE_RESULT_SESSION_CREATE,
+    FAKE_RESULT_SESSION_CLOSE,
     FAKE_RESULT_PASSWORD_FAILURE,
     FAKE_RESULT_AUDIT,
     FAKE_RESULT_HEALTH,
@@ -55,6 +56,10 @@ typedef struct fake_scenario {
     bool session_create_query_error;
     int session_create_null_column;
     const char *session_create_values[5];
+    bool session_close_found;
+    bool session_close_query_error;
+    bool session_close_null;
+    const char *session_close_event_id;
     bool failure_found;
     bool failure_query_error;
     int failure_null_column;
@@ -134,6 +139,8 @@ reset_scenario(void)
     scenario.session_create_values[2] = "7";
     scenario.session_create_values[3] = "9";
     scenario.session_create_values[4] = "42";
+    scenario.session_close_found = true;
+    scenario.session_close_event_id = "43";
     scenario.failure_found = true;
     scenario.failure_null_column = -1;
     scenario.failure_values[0] = "3";
@@ -301,6 +308,17 @@ __wrap_PQexecParams(PGconn *connection,
         assert(strncmp(parameter_values[8], "$argon2id$", 10U) == 0);
         result->kind = scenario.session_create_query_error ?
             FAKE_RESULT_ERROR : FAKE_RESULT_SESSION_CREATE;
+    } else if (strstr(command, "auth.terminal_session_closed") != NULL) {
+        assert(strstr(command, "closed_at = CURRENT_TIMESTAMP") != NULL);
+        assert(strstr(command, "closed_at IS NULL") != NULL);
+        assert(strstr(command, "audit_insert") != NULL);
+        assert(parameter_count == 2);
+        assert(strcmp(parameter_values[0],
+                      "ffeeddcc-bbaa-9988-7766-554433221100") == 0);
+        assert(strcmp(parameter_values[1], "peer_disconnected") == 0);
+        result->kind = scenario.session_close_query_error
+                           ? FAKE_RESULT_ERROR
+                           : FAKE_RESULT_SESSION_CLOSE;
     } else if (strstr(command, "auth.password_failed") != NULL) {
         assert(strstr(command, "credential_update") != NULL);
         assert(strstr(command, "audit_insert") != NULL);
@@ -361,6 +379,8 @@ __wrap_PQntuples(const PGresult *result)
         return scenario.login_found ? 1 : 0;
     case FAKE_RESULT_SESSION_CREATE:
         return scenario.session_create_found ? 1 : 0;
+    case FAKE_RESULT_SESSION_CLOSE:
+        return scenario.session_close_found ? 1 : 0;
     case FAKE_RESULT_PASSWORD_FAILURE:
         return scenario.failure_found ? 1 : 0;
     case FAKE_RESULT_AUDIT:
@@ -391,6 +411,8 @@ __wrap_PQnfields(const PGresult *result)
         return 13;
     case FAKE_RESULT_SESSION_CREATE:
         return 5;
+    case FAKE_RESULT_SESSION_CLOSE:
+        return 1;
     case FAKE_RESULT_PASSWORD_FAILURE:
         return 3;
     case FAKE_RESULT_AUDIT:
@@ -417,6 +439,10 @@ __wrap_PQgetisnull(const PGresult *result, int row, int column)
     }
     if (fake->kind == FAKE_RESULT_SESSION_CREATE &&
         column == scenario.session_create_null_column) {
+        return 1;
+    }
+    if (fake->kind == FAKE_RESULT_SESSION_CLOSE &&
+        scenario.session_close_null) {
         return 1;
     }
     if (fake->kind == FAKE_RESULT_PASSWORD_FAILURE &&
@@ -478,6 +504,11 @@ __wrap_PQgetvalue(const PGresult *result, int row, int column)
         assert(row == 0);
         assert(column >= 0 && column < 5);
         return (char *)scenario.session_create_values[column];
+    }
+
+    if (fake->kind == FAKE_RESULT_SESSION_CLOSE) {
+        assert(row == 0 && column == 0);
+        return (char *)scenario.session_close_event_id;
     }
 
     if (fake->kind == FAKE_RESULT_PASSWORD_FAILURE) {
@@ -749,6 +780,65 @@ test_password_session_creation(void)
 }
 
 static void
+test_terminal_session_close(void)
+{
+    static const uint8_t session_id[FTAP_UUID_SIZE] = {
+        0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88,
+        0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00
+    };
+    static const uint8_t zero_session_id[FTAP_UUID_SIZE] = {0};
+    authd_config_t config;
+    authd_database_t *database = NULL;
+    authd_database_info_t info;
+    char error[AUTHD_DATABASE_ERROR_MAX];
+
+    reset_scenario();
+    authd_config_defaults(&config);
+    assert(authd_database_open(&config, &database, &info,
+                               error, sizeof(error)) == 0);
+
+    assert(authd_database_close_terminal_session(
+        database, session_id, "peer_disconnected", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_OK);
+
+    scenario.session_close_found = false;
+    assert(authd_database_close_terminal_session(
+        database, session_id, "peer_disconnected", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_NOT_FOUND);
+    scenario.session_close_found = true;
+
+    scenario.session_close_null = true;
+    assert(authd_database_close_terminal_session(
+        database, session_id, "peer_disconnected", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_RECORD);
+    scenario.session_close_null = false;
+
+    scenario.session_close_event_id = "not-a-number";
+    assert(authd_database_close_terminal_session(
+        database, session_id, "peer_disconnected", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_RECORD);
+    scenario.session_close_event_id = "43";
+
+    scenario.session_close_query_error = true;
+    assert(authd_database_close_terminal_session(
+        database, session_id, "peer_disconnected", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_ERROR);
+    scenario.session_close_query_error = false;
+
+    assert(authd_database_close_terminal_session(
+        database, zero_session_id, "peer_disconnected", error,
+        sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    assert(authd_database_close_terminal_session(
+        database, session_id, "Peer Disconnected", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+    assert(authd_database_close_terminal_session(
+        database, session_id, "", error, sizeof(error)) ==
+        AUTHD_DATABASE_WRITE_INVALID_ARGUMENT);
+
+    authd_database_close(database);
+}
+
+static void
 test_password_failure_and_audit(void)
 {
     static const uint8_t user_id[FTAP_UUID_SIZE] = {
@@ -917,6 +1007,7 @@ main(void)
     test_success_and_health();
     test_login_lookup();
     test_password_session_creation();
+    test_terminal_session_close();
     test_password_failure_and_audit();
     test_login_availability();
     test_rejections();

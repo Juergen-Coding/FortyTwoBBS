@@ -55,7 +55,13 @@ AUTHD_PRODUCTION_SOURCES := \
 	$(DATABASE_SOURCE) \
 	$(PASSWORD_SOURCE) \
 	$(WORKER_POOL_SOURCE)
-AUTHD_TEST_SOURCES := $(AUTHD_COMMON_SOURCES) tests/authd_database_stub.c
+AUTHD_TEST_SOURCES := \
+	$(AUTHD_COMMON_SOURCES) \
+	$(IDENTITY_SOURCE) \
+	$(THROTTLE_SOURCE) \
+	$(WORKER_POOL_SOURCE) \
+	tests/authd_password_worker_stub.c \
+	tests/authd_database_stub.c
 
 NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_protocol_compile_test \
@@ -126,7 +132,8 @@ $(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) |
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $@
 
 $(NORMAL_DIR)/fortytwo-authd-test: src/fortytwo_authd.c $(AUTHD_TEST_SOURCES) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(AUTHD_TEST_SOURCES) \
+	$(CC) $(CPPFLAGS) -DAUTHD_TESTING $(BASE_CFLAGS) $(THREAD_FLAGS) \
+		$(AUTHD_TEST_SOURCES) \
 		src/fortytwo_authd.c -o $@
 
 $(NORMAL_DIR)/authd_config_test: tests/authd_config_test.c src/authd_config.c | $(NORMAL_DIR)
@@ -204,7 +211,7 @@ sanitize-test: check-libpq check-libsodium
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+	$(CC) $(CPPFLAGS) -DAUTHD_TESTING $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_TEST_SOURCES) src/fortytwo_authd.c \
 		-o $(SANITIZER_DIR)/fortytwo-authd-test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
@@ -294,8 +301,18 @@ thread-sanitize-test:
 		$(WORKER_POOL_SOURCE) tests/authd_password_worker_stub.c \
 		tests/authd_worker_pool_test.c \
 		-o $(SANITIZER_DIR)/authd_worker_pool_thread_test
+	$(CC) $(CPPFLAGS) -DAUTHD_TESTING $(BASE_CFLAGS) \
+		$(THREAD_SANITIZER_FLAGS) $(THREAD_FLAGS) \
+		$(AUTHD_TEST_SOURCES) src/fortytwo_authd.c \
+		-o $(SANITIZER_DIR)/fortytwo-authd-thread-test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) \
+		$(PROTOCOL_SOURCES) tests/authd_integration_test.c \
+		-o $(SANITIZER_DIR)/authd_integration_thread_driver
 	TSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_worker_pool_thread_test
+	TSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_integration_thread_driver \
+		$(SANITIZER_DIR)/fortytwo-authd-thread-test
 
 analyze: check-libpq check-libsodium
 	@set -e; \

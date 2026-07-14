@@ -23,10 +23,11 @@ BEGIN
       AND tty_device = '/dev/pts/42'
       AND node_id = 'node-session-test'
       AND auth_epoch = 42
-      AND closed_at IS NULL;
+      AND closed_at IS NOT NULL
+      AND ended_reason = 'integration_test_complete';
 
     IF session_count <> 1 THEN
-        RAISE EXCEPTION 'expected one open terminal session, found %',
+        RAISE EXCEPTION 'expected one closed terminal session, found %',
             session_count;
     END IF;
 
@@ -48,6 +49,20 @@ BEGIN
 
     IF audit_count <> 1 THEN
         RAISE EXCEPTION 'expected one matching success audit, found %',
+            audit_count;
+    END IF;
+
+    SELECT COUNT(*) INTO audit_count
+    FROM public.bbs_audit_events AS a
+    JOIN public.bbs_terminal_sessions AS s
+      ON s.session_id = a.session_id
+    WHERE a.actor_user_id = '33333333-4444-4555-8666-777777777777'::uuid
+      AND a.subject_user_id = '33333333-4444-4555-8666-777777777777'::uuid
+      AND a.event_type = 'auth.terminal_session_closed'
+      AND a.detail ->> 'ended_reason' = 'integration_test_complete';
+
+    IF audit_count <> 1 THEN
+        RAISE EXCEPTION 'expected one matching close audit, found %',
             audit_count;
     END IF;
 END

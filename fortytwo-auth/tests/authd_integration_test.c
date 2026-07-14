@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Integration tests for the phase-B2 daemon executable.
+ * End-to-end FTAP tests for the B3.7 daemon login coordinator.
  */
 
 #include "ftap_codec.h"
@@ -201,6 +201,100 @@ build_hello(uint8_t frame[FTAP_MAX_FRAME_SIZE],
     return FTAP_FRAME_HEADER_SIZE + writer.length;
 }
 
+static size_t
+build_password_request(uint8_t frame[FTAP_MAX_FRAME_SIZE],
+                       uint64_t request_id,
+                       const char *login_name,
+                       const char *password)
+{
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_status_t status;
+    uint8_t *payload = frame + FTAP_FRAME_HEADER_SIZE;
+
+    status = ftap_tlv_writer_init(&writer, payload, FTAP_MAX_PAYLOAD_SIZE);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_LOGIN_NAME, 0,
+        (const uint8_t *)login_name, strlen(login_name), FTAP_LOGIN_NAME_MAX);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_PASSWORD, 0,
+        (const uint8_t *)password, strlen(password), FTAP_PASSWORD_MAX);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_PROTOCOL, 0,
+        (const uint8_t *)FTAP_PROTOCOL_SSH, strlen(FTAP_PROTOCOL_SSH),
+        FTAP_PROTOCOL_NAME_MAX);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_SOURCE_IP, 0,
+        (const uint8_t *)"192.0.2.10", strlen("192.0.2.10"),
+        FTAP_IP_ADDRESS_MAX);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_TTY_DEVICE, 0,
+        (const uint8_t *)"pts/42", strlen("pts/42"), FTAP_TTY_DEVICE_MAX);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_NODE_ID, 0,
+        (const uint8_t *)"test-node", strlen("test-node"), FTAP_NODE_ID_MAX);
+    assert(status == FTAP_STATUS_OK);
+    status = ftap_tlv_writer_put_text(
+        &writer, FTAP_FIELD_AUTH_METHOD, 0,
+        (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+        strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX);
+    assert(status == FTAP_STATUS_OK);
+
+    memset(&header, 0, sizeof(header));
+    header.major = FTAP_VERSION_MAJOR;
+    header.minor = FTAP_VERSION_MINOR;
+    header.message_type = FTAP_MSG_AUTH_PASSWORD_REQUEST;
+    header.payload_length = (uint32_t)writer.length;
+    header.request_id = request_id;
+    assert(ftap_frame_header_encode(frame, &header) == FTAP_STATUS_OK);
+    return FTAP_FRAME_HEADER_SIZE + writer.length;
+}
+
+static size_t
+build_session_close(uint8_t frame[FTAP_MAX_FRAME_SIZE],
+                    uint64_t request_id,
+                    const char *ended_reason)
+{
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_status_t status;
+    uint8_t *payload = frame + FTAP_FRAME_HEADER_SIZE;
+
+    status = ftap_tlv_writer_init(&writer, payload, FTAP_MAX_PAYLOAD_SIZE);
+    assert(status == FTAP_STATUS_OK);
+    if (ended_reason != NULL) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_ENDED_REASON, 0,
+            (const uint8_t *)ended_reason, strlen(ended_reason),
+            FTAP_ENDED_REASON_MAX);
+        assert(status == FTAP_STATUS_OK);
+    }
+
+    memset(&header, 0, sizeof(header));
+    header.major = FTAP_VERSION_MAJOR;
+    header.minor = FTAP_VERSION_MINOR;
+    header.message_type = FTAP_MSG_SESSION_CLOSE;
+    header.payload_length = (uint32_t)writer.length;
+    header.request_id = request_id;
+    assert(ftap_frame_header_encode(frame, &header) == FTAP_STATUS_OK);
+    return FTAP_FRAME_HEADER_SIZE + writer.length;
+}
+
+static void
+send_session_close(int fd, uint64_t request_id, const char *ended_reason)
+{
+    uint8_t frame[FTAP_MAX_FRAME_SIZE];
+    size_t length = build_session_close(frame, request_id, ended_reason);
+
+    assert(send_all_chunked(fd, frame, length, length) == 0);
+}
+
 static uint32_t
 error_code_from_frame(const received_frame_t *frame)
 {
@@ -223,6 +317,75 @@ error_code_from_frame(const received_frame_t *frame)
         }
     }
     return code;
+}
+
+static uint32_t
+retry_after_from_frame(const received_frame_t *frame)
+{
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    uint32_t retry_after = 0U;
+
+    assert(ftap_tlv_reader_init(&reader, frame->payload,
+                                frame->payload_length) == FTAP_STATUS_OK);
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        assert(status == FTAP_STATUS_OK);
+        if (field.type == FTAP_FIELD_RETRY_AFTER_MS) {
+            assert(ftap_tlv_get_u32(&field, &retry_after) == FTAP_STATUS_OK);
+        }
+    }
+    return retry_after;
+}
+
+static void
+assert_authentication_result(const received_frame_t *frame,
+                             uint64_t request_id)
+{
+    ftap_validation_error_t validation_error;
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    bool user_id_seen = false;
+    bool session_id_seen = false;
+
+    assert(frame->header.message_type == FTAP_MSG_AUTH_PASSWORD_RESULT);
+    assert(frame->header.request_id == request_id);
+    assert(ftap_validate_message(FTAP_STATE_AUTHENTICATING,
+                                 &frame->header,
+                                 frame->payload,
+                                 frame->payload_length,
+                                 &validation_error) == FTAP_STATUS_OK);
+    assert(ftap_tlv_reader_init(&reader, frame->payload,
+                                frame->payload_length) == FTAP_STATUS_OK);
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        assert(status == FTAP_STATUS_OK);
+        if (field.type == FTAP_FIELD_USER_ID ||
+            field.type == FTAP_FIELD_SESSION_ID) {
+            uint8_t uuid[FTAP_UUID_SIZE];
+            size_t index;
+            bool nonzero = false;
+            assert(ftap_tlv_get_uuid(&field, uuid) == FTAP_STATUS_OK);
+            for (index = 0U; index < sizeof(uuid); ++index) {
+                nonzero = nonzero || uuid[index] != 0U;
+            }
+            assert(nonzero);
+            if (field.type == FTAP_FIELD_USER_ID) {
+                user_id_seen = true;
+            } else {
+                session_id_seen = true;
+            }
+        }
+    }
+    assert(user_id_seen && session_id_seen);
 }
 
 static int
@@ -282,6 +445,9 @@ start_daemon(const char *daemon_path,
     child = fork();
     assert(child >= 0);
     if (child == 0) {
+        const char *max_clients = getenv("FORTYTWO_TEST_MAX_CLIENTS");
+        const char *password_workers = getenv("FORTYTWO_TEST_PASSWORD_WORKERS");
+        const char *password_capacity = getenv("FORTYTWO_TEST_PASSWORD_CAPACITY");
         int log_fd = open(log_path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC,
                           (mode_t)0600);
         if (log_fd >= 0) {
@@ -295,13 +461,24 @@ start_daemon(const char *daemon_path,
             assert(setenv("FORTYTWO_TEST_DB_HEALTH_FAIL_AFTER",
                           database_health_fail_after, 1) == 0);
         }
+        if (max_clients == NULL || max_clients[0] == '\0') {
+            max_clients = "8";
+        }
+        if (password_workers == NULL || password_workers[0] == '\0') {
+            password_workers = "2";
+        }
+        if (password_capacity == NULL || password_capacity[0] == '\0') {
+            password_capacity = "16";
+        }
         execl(daemon_path, daemon_path,
               "--socket", socket_path,
               "--socket-mode", "0600",
               "--allow-uid", uid_text,
-              "--max-clients", "8",
+              "--max-clients", max_clients,
               "--backlog", "8",
               "--hello-timeout-ms", hello_timeout,
+              "--password-workers", password_workers,
+              "--password-queue-capacity", password_capacity,
               "--db-health-interval-ms", "100",
               (char *)NULL);
         _exit(127);
@@ -379,6 +556,72 @@ expect_connection_closed(int fd, int timeout_ms)
     assert(poll(&poll_fd, 1, timeout_ms) > 0);
     received = recv(fd, &byte, sizeof(byte), 0);
     assert(received == 0);
+}
+
+static void
+perform_hello(int client, uint64_t request_id)
+{
+    uint8_t frame[FTAP_MAX_FRAME_SIZE];
+    received_frame_t response;
+    size_t frame_length = build_hello(frame, request_id, false);
+
+    assert(send_all_chunked(client, frame, frame_length, frame_length) == 0);
+    assert(receive_frame(client, &response) == 0);
+    assert(response.header.message_type == FTAP_MSG_HELLO_OK);
+    assert(response.header.request_id == request_id);
+}
+
+static void
+send_password_request(int client,
+                      uint64_t request_id,
+                      const char *login_name,
+                      const char *password)
+{
+    uint8_t frame[FTAP_MAX_FRAME_SIZE];
+    size_t frame_length = build_password_request(
+        frame, request_id, login_name, password);
+
+    assert(send_all_chunked(client, frame, frame_length, frame_length) == 0);
+}
+
+static size_t
+count_text_occurrences(const char *path, const char *needle)
+{
+    FILE *stream = fopen(path, "r");
+    char line[256];
+    size_t count = 0U;
+
+    if (stream == NULL) {
+        return 0U;
+    }
+    while (fgets(line, sizeof(line), stream) != NULL) {
+        if (strstr(line, needle) != NULL) {
+            ++count;
+        }
+    }
+    assert(fclose(stream) == 0);
+    return count;
+}
+
+static void
+prepare_event_log(const char *path)
+{
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC,
+                  (mode_t)0600);
+    assert(fd >= 0);
+    assert(close(fd) == 0);
+    assert(setenv("FORTYTWO_TEST_EVENT_LOG", path, 1) == 0);
+}
+
+static void
+clear_login_test_environment(void)
+{
+    assert(unsetenv("FORTYTWO_TEST_EVENT_LOG") == 0);
+    assert(unsetenv("FORTYTWO_TEST_PASSWORD_DELAY_MS") == 0);
+    assert(unsetenv("FORTYTWO_TEST_PASSWORD_WORKERS") == 0);
+    assert(unsetenv("FORTYTWO_TEST_PASSWORD_CAPACITY") == 0);
+    assert(unsetenv("FORTYTWO_TEST_MAX_CLIENTS") == 0);
+    assert(unsetenv("FORTYTWO_TEST_FAIL_AUTH_RESULT_SEND") == 0);
 }
 
 
@@ -617,6 +860,269 @@ test_database_health_failure_stops_daemon(const char *daemon_path,
     assert(access(socket_path, F_OK) != 0 && errno == ENOENT);
 }
 
+typedef struct login_fixture {
+    char socket_path[256];
+    char log_path[256];
+    char event_path[256];
+    pid_t daemon;
+} login_fixture_t;
+
+static void
+start_login_fixture(login_fixture_t *fixture,
+                    const char *daemon_path,
+                    const char *directory,
+                    const char *name)
+{
+    (void)snprintf(fixture->socket_path, sizeof(fixture->socket_path),
+                   "%s/%s.sock", directory, name);
+    (void)snprintf(fixture->log_path, sizeof(fixture->log_path),
+                   "%s/%s.log", directory, name);
+    (void)snprintf(fixture->event_path, sizeof(fixture->event_path),
+                   "%s/%s.events", directory, name);
+    prepare_event_log(fixture->event_path);
+    fixture->daemon = start_daemon(daemon_path, fixture->socket_path,
+                                   geteuid(), fixture->log_path,
+                                   "1000", false, NULL);
+    assert(wait_for_socket(fixture->socket_path, fixture->daemon) == 0);
+}
+
+static void
+finish_login_fixture(login_fixture_t *fixture, bool daemon_running)
+{
+    if (daemon_running) {
+        stop_daemon(fixture->daemon, true);
+    }
+    assert(access(fixture->socket_path, F_OK) != 0 && errno == ENOENT);
+    assert(unlink(fixture->log_path) == 0);
+    assert(unlink(fixture->event_path) == 0);
+    clear_login_test_environment();
+}
+
+static void
+expect_login_error(const char *socket_path,
+                   uint64_t request_id,
+                   const char *login_name,
+                   const char *password,
+                   uint32_t expected_error)
+{
+    received_frame_t response;
+    int client = connect_unix_socket(socket_path);
+
+    assert(client >= 0);
+    perform_hello(client, request_id - UINT64_C(1));
+    send_password_request(client, request_id, login_name, password);
+    assert(receive_frame(client, &response) == 0);
+    assert(response.header.request_id == request_id);
+    assert(error_code_from_frame(&response) == expected_error);
+    expect_connection_closed(client, TEST_TIMEOUT_MS);
+    assert(close(client) == 0);
+}
+
+static void
+test_password_login_outcomes(const char *daemon_path, const char *directory)
+{
+    login_fixture_t fixture;
+    received_frame_t response;
+    int client;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "20", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "login-outcomes");
+
+    client = connect_unix_socket(fixture.socket_path);
+    assert(client >= 0);
+    perform_hello(client, UINT64_C(1000));
+    send_password_request(client, UINT64_C(1001), "Alice", "secret");
+    assert(receive_frame(client, &response) == 0);
+    assert_authentication_result(&response, UINT64_C(1001));
+    send_session_close(client, UINT64_C(1002), NULL);
+    expect_connection_closed(client, TEST_TIMEOUT_MS);
+    assert(close(client) == 0);
+    sleep_milliseconds(50);
+
+    expect_login_error(fixture.socket_path, UINT64_C(1011),
+                       "alice", "wrong", FTAP_ERR_INVALID_CREDENTIALS);
+    expect_login_error(fixture.socket_path, UINT64_C(1021),
+                       "unknown", "wrong", FTAP_ERR_INVALID_CREDENTIALS);
+    expect_login_error(fixture.socket_path, UINT64_C(1031),
+                       "locked", "wrong", FTAP_ERR_INVALID_CREDENTIALS);
+    expect_login_error(fixture.socket_path, UINT64_C(1041),
+                       "disabled", "wrong", FTAP_ERR_INVALID_CREDENTIALS);
+
+    client = connect_unix_socket(fixture.socket_path);
+    assert(client >= 0);
+    perform_hello(client, UINT64_C(1050));
+    send_password_request(client, UINT64_C(1051), "throttled", "wrong");
+    assert(receive_frame(client, &response) == 0);
+    assert(error_code_from_frame(&response) == FTAP_ERR_RATE_LIMITED);
+    assert(retry_after_from_frame(&response) == UINT32_C(1234));
+    expect_connection_closed(client, TEST_TIMEOUT_MS);
+    assert(close(client) == 0);
+
+    expect_login_error(fixture.socket_path, UINT64_C(1061),
+                       "stale", "secret", FTAP_ERR_INVALID_CREDENTIALS);
+    expect_login_error(fixture.socket_path, UINT64_C(1071),
+                       "sessionerror", "secret",
+                       FTAP_ERR_DATABASE_UNAVAILABLE);
+    expect_login_error(fixture.socket_path, UINT64_C(1081),
+                       "invalidhash", "secret", FTAP_ERR_INTERNAL);
+
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:alice") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_close:normal_logout") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "password_failure:wrong_password") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:unknown_user") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:account_locked") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:account_disabled") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:temporarily_throttled") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:stale_login_state") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "password_verify:dummy") == 3U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "password_verify:real") == 5U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
+test_disconnect_and_slot_generation(const char *daemon_path,
+                                    const char *directory)
+{
+    login_fixture_t fixture;
+    received_frame_t response;
+    int first;
+    int second;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "200", 1) == 0);
+    assert(setenv("FORTYTWO_TEST_MAX_CLIENTS", "1", 1) == 0);
+    assert(setenv("FORTYTWO_TEST_PASSWORD_WORKERS", "2", 1) == 0);
+    assert(setenv("FORTYTWO_TEST_PASSWORD_CAPACITY", "4", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "generation");
+
+    first = connect_unix_socket(fixture.socket_path);
+    assert(first >= 0);
+    perform_hello(first, UINT64_C(2000));
+    send_password_request(first, UINT64_C(2001), "alice", "secret");
+    assert(close(first) == 0);
+    sleep_milliseconds(50);
+
+    second = connect_unix_socket(fixture.socket_path);
+    assert(second >= 0);
+    perform_hello(second, UINT64_C(2010));
+    send_password_request(second, UINT64_C(2011), "alice", "secret");
+    assert(receive_frame(second, &response) == 0);
+    assert_authentication_result(&response, UINT64_C(2011));
+    assert(close(second) == 0);
+    sleep_milliseconds(50);
+
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:alice") == 1U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
+test_duplicate_request_and_worker_overload(const char *daemon_path,
+                                           const char *directory)
+{
+    login_fixture_t fixture;
+    received_frame_t response;
+    int first;
+    int second;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "250", 1) == 0);
+    assert(setenv("FORTYTWO_TEST_PASSWORD_WORKERS", "1", 1) == 0);
+    assert(setenv("FORTYTWO_TEST_PASSWORD_CAPACITY", "1", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "overload");
+
+    first = connect_unix_socket(fixture.socket_path);
+    assert(first >= 0);
+    perform_hello(first, UINT64_C(3000));
+    send_password_request(first, UINT64_C(3001), "alice", "secret");
+    send_password_request(first, UINT64_C(3002), "alice", "secret");
+    assert(receive_frame(first, &response) == 0);
+    assert(response.header.request_id == UINT64_C(3002));
+    assert(error_code_from_frame(&response) == FTAP_ERR_INVALID_STATE);
+    expect_connection_closed(first, TEST_TIMEOUT_MS);
+    assert(close(first) == 0);
+    sleep_milliseconds(300);
+
+    second = connect_unix_socket(fixture.socket_path);
+    assert(second >= 0);
+    perform_hello(second, UINT64_C(3010));
+    send_password_request(second, UINT64_C(3011), "alice", "secret");
+
+    first = connect_unix_socket(fixture.socket_path);
+    assert(first >= 0);
+    perform_hello(first, UINT64_C(3020));
+    send_password_request(first, UINT64_C(3021), "alice", "secret");
+    assert(receive_frame(first, &response) == 0);
+    assert(error_code_from_frame(&response) == FTAP_ERR_INTERNAL);
+    expect_connection_closed(first, TEST_TIMEOUT_MS);
+    assert(close(first) == 0);
+    assert(close(second) == 0);
+    sleep_milliseconds(300);
+
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:password_worker_overloaded") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:") == 0U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
+test_shutdown_with_running_job(const char *daemon_path,
+                               const char *directory)
+{
+    login_fixture_t fixture;
+    int client;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "250", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "shutdown-job");
+    client = connect_unix_socket(fixture.socket_path);
+    assert(client >= 0);
+    perform_hello(client, UINT64_C(4000));
+    send_password_request(client, UINT64_C(4001), "alice", "secret");
+    stop_daemon(fixture.daemon, true);
+    expect_connection_closed(client, TEST_TIMEOUT_MS);
+    assert(close(client) == 0);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:") == 0U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
+test_failed_authentication_response_closes_session(
+    const char *daemon_path,
+    const char *directory)
+{
+    login_fixture_t fixture;
+    int client;
+
+    assert(setenv("FORTYTWO_TEST_FAIL_AUTH_RESULT_SEND", "1", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "send-failure");
+    client = connect_unix_socket(fixture.socket_path);
+    assert(client >= 0);
+    perform_hello(client, UINT64_C(5000));
+    send_password_request(client, UINT64_C(5001), "alice", "secret");
+    expect_connection_closed(client, TEST_TIMEOUT_MS);
+    assert(close(client) == 0);
+    sleep_milliseconds(50);
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:alice") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_close:auth_response_failed") == 1U);
+    finish_login_fixture(&fixture, false);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -632,6 +1138,11 @@ main(int argc, char *argv[])
     test_existing_non_socket_is_refused(argv[1], directory);
     test_database_open_failure_is_fail_closed(argv[1], directory);
     test_database_health_failure_stops_daemon(argv[1], directory);
+    test_password_login_outcomes(argv[1], directory);
+    test_disconnect_and_slot_generation(argv[1], directory);
+    test_duplicate_request_and_worker_overload(argv[1], directory);
+    test_shutdown_with_running_job(argv[1], directory);
+    test_failed_authentication_response_closes_session(argv[1], directory);
 
     {
         static const char *const logs[] = {
