@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <poll.h>
+#include <pty.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -24,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -257,6 +259,31 @@ build_password_request(uint8_t frame[FTAP_MAX_FRAME_SIZE],
 }
 
 static size_t
+build_session_context_request(uint8_t frame[FTAP_MAX_FRAME_SIZE],
+                              uint64_t request_id)
+{
+    ftap_frame_header_t header;
+
+    memset(&header, 0, sizeof(header));
+    header.major = FTAP_VERSION_MAJOR;
+    header.minor = FTAP_VERSION_MINOR;
+    header.message_type = FTAP_MSG_SESSION_CONTEXT_REQUEST;
+    header.payload_length = 0U;
+    header.request_id = request_id;
+    assert(ftap_frame_header_encode(frame, &header) == FTAP_STATUS_OK);
+    return FTAP_FRAME_HEADER_SIZE;
+}
+
+static void
+send_session_context_request(int fd, uint64_t request_id)
+{
+    uint8_t frame[FTAP_MAX_FRAME_SIZE];
+    size_t length = build_session_context_request(frame, request_id);
+
+    assert(send_all_chunked(fd, frame, length, length) == 0);
+}
+
+static size_t
 build_session_close(uint8_t frame[FTAP_MAX_FRAME_SIZE],
                     uint64_t request_id,
                     const char *ended_reason)
@@ -340,6 +367,108 @@ retry_after_from_frame(const received_frame_t *frame)
         }
     }
     return retry_after;
+}
+
+static void
+assert_session_context_result(const received_frame_t *frame,
+                              uint64_t request_id)
+{
+    ftap_validation_error_t validation_error;
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    bool seen[9] = {false};
+    uint8_t expected_user_id[FTAP_UUID_SIZE];
+    uint8_t expected_session_id[FTAP_UUID_SIZE];
+    size_t index;
+
+    for (index = 0U; index < FTAP_UUID_SIZE; ++index) {
+        expected_user_id[index] = (uint8_t)(UINT8_C(1) + (uint8_t)index);
+        expected_session_id[index] = (uint8_t)(UINT8_C(0xa0) +
+                                               (uint8_t)index);
+    }
+
+    assert(frame->header.message_type == FTAP_MSG_SESSION_CONTEXT_RESULT);
+    assert(frame->header.request_id == request_id);
+    assert(ftap_validate_message(FTAP_STATE_SESSION_BOUND,
+                                 &frame->header, frame->payload,
+                                 frame->payload_length,
+                                 &validation_error) == FTAP_STATUS_OK);
+    assert(ftap_tlv_reader_init(&reader, frame->payload,
+                                frame->payload_length) == FTAP_STATUS_OK);
+    for (;;) {
+        const uint8_t *text = NULL;
+        size_t text_length = 0U;
+        uint64_t number = 0U;
+
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        assert(status == FTAP_STATUS_OK);
+        switch (field.type) {
+        case FTAP_FIELD_USER_ID: {
+            uint8_t value[FTAP_UUID_SIZE];
+            assert(ftap_tlv_get_uuid(&field, value) == FTAP_STATUS_OK);
+            assert(memcmp(value, expected_user_id, sizeof(value)) == 0);
+            seen[0] = true;
+            break;
+        }
+        case FTAP_FIELD_SESSION_ID: {
+            uint8_t value[FTAP_UUID_SIZE];
+            assert(ftap_tlv_get_uuid(&field, value) == FTAP_STATUS_OK);
+            assert(memcmp(value, expected_session_id, sizeof(value)) == 0);
+            seen[1] = true;
+            break;
+        }
+        case FTAP_FIELD_LOGIN_NAME:
+            assert(ftap_tlv_get_text(&field, &text, &text_length,
+                                     FTAP_LOGIN_NAME_MAX) == FTAP_STATUS_OK);
+            assert(text_length == strlen("alice"));
+            assert(memcmp(text, "alice", text_length) == 0);
+            seen[2] = true;
+            break;
+        case FTAP_FIELD_DISPLAY_NAME:
+            assert(ftap_tlv_get_text(&field, &text, &text_length,
+                                     FTAP_DISPLAY_NAME_MAX) == FTAP_STATUS_OK);
+            assert(text_length == strlen("Test alice"));
+            assert(memcmp(text, "Test alice", text_length) == 0);
+            seen[3] = true;
+            break;
+        case FTAP_FIELD_PROTOCOL:
+            assert(ftap_tlv_get_text(&field, &text, &text_length,
+                                     FTAP_PROTOCOL_NAME_MAX) == FTAP_STATUS_OK);
+            assert(text_length == strlen(FTAP_PROTOCOL_SSH));
+            assert(memcmp(text, FTAP_PROTOCOL_SSH, text_length) == 0);
+            seen[4] = true;
+            break;
+        case FTAP_FIELD_AUTH_METHOD:
+            assert(ftap_tlv_get_text(&field, &text, &text_length,
+                                     FTAP_AUTH_METHOD_MAX) == FTAP_STATUS_OK);
+            assert(text_length == strlen(FTAP_AUTH_METHOD_PASSWORD));
+            assert(memcmp(text, FTAP_AUTH_METHOD_PASSWORD, text_length) == 0);
+            seen[5] = true;
+            break;
+        case FTAP_FIELD_AUTH_EPOCH:
+            assert(ftap_tlv_get_u64(&field, &number) == FTAP_STATUS_OK);
+            assert(number == UINT64_C(7));
+            seen[6] = true;
+            break;
+        case FTAP_FIELD_AUTHZ_REVISION:
+            assert(ftap_tlv_get_u64(&field, &number) == FTAP_STATUS_OK);
+            assert(number == UINT64_C(11));
+            seen[7] = true;
+            break;
+        case FTAP_FIELD_CAPABILITY:
+            seen[8] = true;
+            break;
+        default:
+            assert(false);
+        }
+    }
+    for (index = 0U; index < 8U; ++index) {
+        assert(seen[index]);
+    }
 }
 
 static void
@@ -934,7 +1063,10 @@ test_password_login_outcomes(const char *daemon_path, const char *directory)
     send_password_request(client, UINT64_C(1001), "Alice", "secret");
     assert(receive_frame(client, &response) == 0);
     assert_authentication_result(&response, UINT64_C(1001));
-    send_session_close(client, UINT64_C(1002), NULL);
+    send_session_context_request(client, UINT64_C(1002));
+    assert(receive_frame(client, &response) == 0);
+    assert_session_context_result(&response, UINT64_C(1002));
+    send_session_close(client, UINT64_C(1003), NULL);
     expect_connection_closed(client, TEST_TIMEOUT_MS);
     assert(close(client) == 0);
     sleep_milliseconds(50);
@@ -1123,13 +1255,317 @@ test_failed_authentication_response_closes_session(
     finish_login_fixture(&fixture, false);
 }
 
+static bool
+output_contains(const char *output, size_t output_length, const char *needle)
+{
+    size_t needle_length = strlen(needle);
+    size_t index;
+
+    if (needle_length == 0U || needle_length > output_length) {
+        return false;
+    }
+    for (index = 0U; index + needle_length <= output_length; ++index) {
+        if (memcmp(output + index, needle, needle_length) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void
+read_pty_until(int master_fd,
+               char *output,
+               size_t output_size,
+               size_t *output_length,
+               const char *needle)
+{
+    while (!output_contains(output, *output_length, needle)) {
+        ssize_t received;
+
+        assert(*output_length < output_size);
+        assert(wait_for_fd(master_fd, POLLIN, TEST_TIMEOUT_MS) == 0);
+        received = read(master_fd, output + *output_length,
+                        output_size - *output_length);
+        assert(received > 0);
+        *output_length += (size_t)received;
+    }
+}
+
+static void
+write_pty_input(int master_fd, const char *text)
+{
+    size_t offset = 0U;
+    size_t length = strlen(text);
+
+    while (offset < length) {
+        ssize_t written = write(master_fd, text + offset, length - offset);
+
+        if (written > 0) {
+            offset += (size_t)written;
+        } else if (written < 0 && errno == EINTR) {
+            continue;
+        } else {
+            assert(false);
+        }
+    }
+}
+
+static void
+drain_pty(int master_fd,
+          char *output,
+          size_t output_size,
+          size_t *output_length)
+{
+    for (;;) {
+        ssize_t received;
+
+        if (*output_length == output_size) {
+            return;
+        }
+        received = read(master_fd, output + *output_length,
+                        output_size - *output_length);
+        if (received > 0) {
+            *output_length += (size_t)received;
+            continue;
+        }
+        if (received < 0 && errno == EINTR) {
+            continue;
+        }
+        if (received < 0 && errno == EIO) {
+            return;
+        }
+        assert(received == 0);
+        return;
+    }
+}
+
+typedef struct login_pty_result {
+    char output[8192];
+    size_t output_length;
+    int wait_status;
+} login_pty_result_t;
+
+static void
+run_login_adapter_pty(const char *login_path,
+                      const char *socket_path,
+                      const char *mbse_root,
+                      const char *program_path,
+                      const char *login_name,
+                      const char *password,
+                      login_pty_result_t *result)
+{
+    int master_fd;
+    int slave_fd;
+    pid_t child;
+    char input[FTAP_PASSWORD_MAX + 2U];
+
+    memset(result, 0, sizeof(*result));
+    assert(openpty(&master_fd, &slave_fd, NULL, NULL, NULL) == 0);
+
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(close(master_fd) == 0);
+        assert(setsid() >= 0);
+        assert(dup2(slave_fd, STDIN_FILENO) >= 0);
+        assert(dup2(slave_fd, STDOUT_FILENO) >= 0);
+        assert(dup2(slave_fd, STDERR_FILENO) >= 0);
+        if (slave_fd > STDERR_FILENO) {
+            assert(close(slave_fd) == 0);
+        }
+        assert(setenv("LOGNAME", "untrusted-linux-name", 1) == 0);
+        assert(setenv("USER", "untrusted-linux-name", 1) == 0);
+        assert(setenv("FORTYTWO_TEST_SECRET", "must-not-survive", 1) == 0);
+        execl(login_path, login_path,
+              "--protocol", FTAP_PROTOCOL_SSH,
+              "--mbse-root", mbse_root,
+              "--socket", socket_path,
+              "--source-ip", "192.0.2.10",
+              "--tty-device", "pts/integration",
+              "--node-id", "integration-node",
+              "--program", program_path,
+              "--timeout-ms", "3000",
+              (char *)NULL);
+        _exit(127);
+    }
+
+    assert(close(slave_fd) == 0);
+    read_pty_until(master_fd, result->output, sizeof(result->output),
+                   &result->output_length, "Login: ");
+    assert(snprintf(input, sizeof(input), "%s\n", login_name) > 0);
+    write_pty_input(master_fd, input);
+    read_pty_until(master_fd, result->output, sizeof(result->output),
+                   &result->output_length, "Password: ");
+    assert(snprintf(input, sizeof(input), "%s\n", password) > 0);
+    write_pty_input(master_fd, input);
+    assert(waitpid(child, &result->wait_status, 0) == child);
+    drain_pty(master_fd, result->output, sizeof(result->output),
+              &result->output_length);
+    assert(close(master_fd) == 0);
+}
+
+/* A terminating terminal signal must never leave password echo disabled. */
+static void
+test_login_adapter_signal_restores_echo(const char *login_path,
+                                        const char *session_child_path,
+                                        const char *directory)
+{
+    int master_fd;
+    int slave_fd;
+    pid_t child;
+    char output[1024];
+    size_t output_length = 0U;
+    struct termios before;
+    struct termios hidden;
+    struct termios after;
+    int wait_status;
+
+    assert(openpty(&master_fd, &slave_fd, NULL, NULL, NULL) == 0);
+    assert(tcgetattr(slave_fd, &before) == 0);
+    assert((before.c_lflag & ECHO) != 0);
+
+    child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        assert(close(master_fd) == 0);
+        assert(setsid() >= 0);
+        assert(dup2(slave_fd, STDIN_FILENO) >= 0);
+        assert(dup2(slave_fd, STDOUT_FILENO) >= 0);
+        assert(dup2(slave_fd, STDERR_FILENO) >= 0);
+        if (slave_fd > STDERR_FILENO) {
+            assert(close(slave_fd) == 0);
+        }
+        execl(login_path, login_path,
+              "--protocol", FTAP_PROTOCOL_LOCAL,
+              "--mbse-root", directory,
+              "--socket", "/tmp/fortytwo-authd-signal-test.sock",
+              "--program", session_child_path,
+              "--timeout-ms", "3000",
+              (char *)NULL);
+        _exit(127);
+    }
+
+    read_pty_until(master_fd, output, sizeof(output), &output_length,
+                   "Login: ");
+    write_pty_input(master_fd, "Alice\n");
+    read_pty_until(master_fd, output, sizeof(output), &output_length,
+                   "Password: ");
+    assert(tcgetattr(slave_fd, &hidden) == 0);
+    assert((hidden.c_lflag & ECHO) == 0);
+
+    assert(kill(child, SIGQUIT) == 0);
+    assert(waitpid(child, &wait_status, 0) == child);
+    assert(WIFSIGNALED(wait_status));
+    assert(WTERMSIG(wait_status) == SIGQUIT);
+    assert(tcgetattr(slave_fd, &after) == 0);
+    assert((after.c_lflag & ECHO) != 0);
+
+    assert(close(slave_fd) == 0);
+    drain_pty(master_fd, output, sizeof(output), &output_length);
+    assert(close(master_fd) == 0);
+}
+
+static void
+test_login_adapter_fd_handoff(const char *daemon_path,
+                              const char *login_path,
+                              const char *session_child_path,
+                              const char *directory)
+{
+    login_fixture_t fixture;
+    login_pty_result_t result;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "20", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "access-handoff");
+    run_login_adapter_pty(login_path, fixture.socket_path, directory,
+                          session_child_path, "Alice", "secret", &result);
+    assert(WIFEXITED(result.wait_status));
+    assert(WEXITSTATUS(result.wait_status) == 0);
+    assert(output_contains(result.output, result.output_length,
+                           "FORTYTWO_SESSION_CHILD_OK"));
+    assert(!output_contains(result.output, result.output_length, "secret"));
+
+    sleep_milliseconds(50);
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:alice") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_close:normal_logout") == 1U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
+test_login_adapter_uniform_failure(const char *daemon_path,
+                                   const char *login_path,
+                                   const char *session_child_path,
+                                   const char *directory)
+{
+    login_fixture_t fixture;
+    login_pty_result_t result;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "20", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "access-denied");
+    run_login_adapter_pty(login_path, fixture.socket_path, directory,
+                          session_child_path, "Alice", "wrong", &result);
+    assert(WIFEXITED(result.wait_status));
+    assert(WEXITSTATUS(result.wait_status) == 1);
+    assert(output_contains(result.output, result.output_length,
+                           "Login failed."));
+    assert(!output_contains(result.output, result.output_length, "wrong"));
+
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "password_failure:wrong_password") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:") == 0U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
+test_login_adapter_exec_failure(const char *daemon_path,
+                                const char *login_path,
+                                const char *directory)
+{
+    login_fixture_t fixture;
+    login_pty_result_t result;
+    char broken_program[256];
+    int fd;
+    static const char content[] = "not an executable image\n";
+
+    assert(snprintf(broken_program, sizeof(broken_program),
+                    "%s/broken-program", directory) > 0);
+    fd = open(broken_program, O_WRONLY | O_CREAT | O_EXCL, 0700);
+    assert(fd >= 0);
+    assert(write(fd, content, sizeof(content) - 1U) ==
+           (ssize_t)(sizeof(content) - 1U));
+    assert(close(fd) == 0);
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "20", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory, "access-exec-fail");
+    run_login_adapter_pty(login_path, fixture.socket_path, directory,
+                          broken_program, "Alice", "secret", &result);
+    assert(WIFEXITED(result.wait_status));
+    assert(WEXITSTATUS(result.wait_status) == 1);
+    assert(output_contains(result.output, result.output_length,
+                           "cannot execute"));
+    assert(!output_contains(result.output, result.output_length, "secret"));
+
+    sleep_milliseconds(50);
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:alice") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_close:exec_failed") == 1U);
+    finish_login_fixture(&fixture, false);
+    assert(unlink(broken_program) == 0);
+}
+
 int
 main(int argc, char *argv[])
 {
     char directory_template[] = "/tmp/fortytwo-authd-test-XXXXXX";
     char *directory;
 
-    assert(argc == 2);
+    assert(argc == 4);
     directory = mkdtemp(directory_template);
     assert(directory != NULL);
 
@@ -1143,6 +1579,10 @@ main(int argc, char *argv[])
     test_duplicate_request_and_worker_overload(argv[1], directory);
     test_shutdown_with_running_job(argv[1], directory);
     test_failed_authentication_response_closes_session(argv[1], directory);
+    test_login_adapter_signal_restores_echo(argv[2], argv[3], directory);
+    test_login_adapter_fd_handoff(argv[1], argv[2], argv[3], directory);
+    test_login_adapter_uniform_failure(argv[1], argv[2], argv[3], directory);
+    test_login_adapter_exec_failure(argv[1], argv[2], directory);
 
     {
         static const char *const logs[] = {

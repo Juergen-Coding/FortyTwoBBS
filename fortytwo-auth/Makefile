@@ -35,8 +35,11 @@ THREAD_SANITIZER_FLAGS := -O1 -fno-omit-frame-pointer -fsanitize=thread
 
 NORMAL_DIR := build/normal
 SANITIZER_DIR := build/sanitize
+PUBLIC_HEADERS := $(wildcard include/*.h)
 
 PROTOCOL_SOURCES := src/ftap_codec.c src/ftap_schema.c
+FTAP_CLIENT_SOURCES := $(PROTOCOL_SOURCES) src/ftap_client.c
+LOGIN_SOURCES := $(FTAP_CLIENT_SOURCES) src/fortytwo_login.c
 DATABASE_VALIDATION_SOURCE := src/authd_database_validation.c
 DATABASE_SOURCE := src/authd_database.c $(DATABASE_VALIDATION_SOURCE)
 PASSWORD_SOURCE := src/authd_password.c
@@ -79,14 +82,17 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/authd_database_connection_test \
 	$(NORMAL_DIR)/authd_integration_test
 
-.PHONY: all authd test database-login-integration-test database-throttle-integration-test database-session-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
+.PHONY: all authd login test database-login-integration-test database-throttle-integration-test database-session-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
 
-all: authd test
+all: authd login test
 
 authd: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd
 
+login: $(NORMAL_DIR)/fortytwo-login
+
 test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
-	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_TESTS)
+	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_DIR)/fortytwo-login \
+	$(NORMAL_DIR)/fortytwo-session-child-test $(NORMAL_TESTS)
 	$(NORMAL_DIR)/ftap_protocol_compile_test
 	$(NORMAL_DIR)/ftap_codec_test
 	$(NORMAL_DIR)/ftap_schema_test
@@ -100,7 +106,9 @@ test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/authd_database_validation_test
 	$(NORMAL_DIR)/authd_database_mock_test
 	$(NORMAL_DIR)/authd_database_connection_test
-	$(NORMAL_DIR)/authd_integration_test $(NORMAL_DIR)/fortytwo-authd-test
+	$(NORMAL_DIR)/authd_integration_test $(NORMAL_DIR)/fortytwo-authd-test \
+		$(abspath $(NORMAL_DIR)/fortytwo-login) \
+		$(abspath $(NORMAL_DIR)/fortytwo-session-child-test)
 
 check-libpq:
 	@test -n "$(LIBPQ_CFLAGS)" -o -n "$(LIBPQ_LIBS)" || { \
@@ -116,6 +124,15 @@ check-libsodium:
 
 $(NORMAL_DIR):
 	mkdir -p $@
+
+$(NORMAL_TESTS) \
+$(NORMAL_DIR)/fortytwo-authd \
+$(NORMAL_DIR)/fortytwo-authd-test \
+$(NORMAL_DIR)/fortytwo-login \
+$(NORMAL_DIR)/fortytwo-session-child-test \
+$(NORMAL_DIR)/authd_database_login_integration_test \
+$(NORMAL_DIR)/authd_database_throttle_integration_test \
+$(NORMAL_DIR)/authd_database_session_integration_test: $(PUBLIC_HEADERS)
 
 $(NORMAL_DIR)/ftap_protocol_compile_test: tests/ftap_protocol_compile_test.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $< -o $@
@@ -135,6 +152,12 @@ $(NORMAL_DIR)/fortytwo-authd-test: src/fortytwo_authd.c $(AUTHD_TEST_SOURCES) | 
 	$(CC) $(CPPFLAGS) -DAUTHD_TESTING $(BASE_CFLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_TEST_SOURCES) \
 		src/fortytwo_authd.c -o $@
+
+$(NORMAL_DIR)/fortytwo-login: $(LOGIN_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(LOGIN_SOURCES) -o $@
+
+$(NORMAL_DIR)/fortytwo-session-child-test: tests/fortytwo_session_child_test.c $(FTAP_CLIENT_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) $< -o $@
 
 $(NORMAL_DIR)/authd_config_test: tests/authd_config_test.c src/authd_config.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $< -o $@
@@ -195,7 +218,7 @@ database-session-integration-test: check-libpq $(NORMAL_DIR)/authd_database_sess
 		$(NORMAL_DIR)/authd_database_session_integration_test
 
 $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -lutil -o $@
 
 sanitize-test: check-libpq check-libsodium
 	mkdir -p $(SANITIZER_DIR)
@@ -214,6 +237,11 @@ sanitize-test: check-libpq check-libsodium
 	$(CC) $(CPPFLAGS) -DAUTHD_TESTING $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_TEST_SOURCES) src/fortytwo_authd.c \
 		-o $(SANITIZER_DIR)/fortytwo-authd-test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(LOGIN_SOURCES) -o $(SANITIZER_DIR)/fortytwo-login
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(FTAP_CLIENT_SOURCES) tests/fortytwo_session_child_test.c \
+		-o $(SANITIZER_DIR)/fortytwo-session-child-test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		src/authd_config.c tests/authd_config_test.c \
 		-o $(SANITIZER_DIR)/authd_config_test
@@ -249,7 +277,7 @@ sanitize-test: check-libpq check-libsodium
 		tests/authd_database_connection_test.c $(LIBPQ_LIBS) \
 		-o $(SANITIZER_DIR)/authd_database_connection_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
-		$(PROTOCOL_SOURCES) tests/authd_integration_test.c \
+		$(PROTOCOL_SOURCES) tests/authd_integration_test.c -lutil \
 		-o $(SANITIZER_DIR)/authd_integration_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
@@ -293,7 +321,9 @@ sanitize-test: check-libpq check-libsodium
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_integration_test \
-		$(SANITIZER_DIR)/fortytwo-authd-test
+		$(SANITIZER_DIR)/fortytwo-authd-test \
+		$(abspath $(SANITIZER_DIR)/fortytwo-login) \
+		$(abspath $(SANITIZER_DIR)/fortytwo-session-child-test)
 
 thread-sanitize-test:
 	mkdir -p $(SANITIZER_DIR)
@@ -306,17 +336,25 @@ thread-sanitize-test:
 		$(AUTHD_TEST_SOURCES) src/fortytwo_authd.c \
 		-o $(SANITIZER_DIR)/fortytwo-authd-thread-test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) \
-		$(PROTOCOL_SOURCES) tests/authd_integration_test.c \
+		$(PROTOCOL_SOURCES) tests/authd_integration_test.c -lutil \
 		-o $(SANITIZER_DIR)/authd_integration_thread_driver
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_SANITIZER_FLAGS) \
+		$(LOGIN_SOURCES) -o $(SANITIZER_DIR)/fortytwo-login-thread-test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_SANITIZER_FLAGS) \
+		$(FTAP_CLIENT_SOURCES) tests/fortytwo_session_child_test.c \
+		-o $(SANITIZER_DIR)/fortytwo-session-child-thread-test
 	TSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_worker_pool_thread_test
 	TSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_integration_thread_driver \
-		$(SANITIZER_DIR)/fortytwo-authd-thread-test
+		$(SANITIZER_DIR)/fortytwo-authd-thread-test \
+		$(abspath $(SANITIZER_DIR)/fortytwo-login-thread-test) \
+		$(abspath $(SANITIZER_DIR)/fortytwo-session-child-thread-test)
 
 analyze: check-libpq check-libsodium
 	@set -e; \
-	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c; do \
+	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
+		src/ftap_client.c src/fortytwo_login.c; do \
 		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) "$$source" \
 			-o /dev/null; \
 	done

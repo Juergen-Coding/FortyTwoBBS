@@ -346,7 +346,8 @@ frame cannot be queued or sent, the new session is immediately closed as
 The test-only daemon uses deterministic database and password modules but the
 production server state machine. End-to-end coverage includes:
 
-- successful password login and ordered `SESSION_CLOSE`;
+- successful password login, descriptor-bound `SESSION_CONTEXT_REQUEST`,
+  and ordered `SESSION_CLOSE`;
 - wrong password;
 - unknown user through the dummy hash;
 - locked and disabled accounts through the dummy hash;

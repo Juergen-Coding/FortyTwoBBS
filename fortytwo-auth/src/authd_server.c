@@ -63,6 +63,13 @@ typedef struct authd_login_attempt {
     authd_login_rejection_reason_t rejection_reason;
 } authd_login_attempt_t;
 
+typedef struct authd_bound_session_context {
+    char login_name[FTAP_LOGIN_NAME_MAX + 1U];
+    char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char protocol[FTAP_PROTOCOL_NAME_MAX + 1U];
+    char auth_method[FTAP_AUTH_METHOD_MAX + 1U];
+} authd_bound_session_context_t;
+
 typedef struct authd_client {
     int fd;
     uint64_t connection_id;
@@ -80,6 +87,7 @@ typedef struct authd_client {
     authd_login_attempt_t login;
     bool session_open;
     authd_terminal_session_result_t session;
+    authd_bound_session_context_t session_context;
     char pending_end_reason[FTAP_ENDED_REASON_MAX + 1U];
 } authd_client_t;
 
@@ -793,6 +801,78 @@ queue_authentication_result(authd_client_t *client,
                        payload, writer.length, false);
 }
 
+/*
+ * Reconstruct the authenticated identity only from state bound to this socket.
+ * No caller-supplied user or session identifier participates in this response.
+ */
+static int
+queue_session_context_result(authd_client_t *client, uint64_t request_id)
+{
+    uint8_t payload[AUTHD_RESPONSE_BUFFER_SIZE - FTAP_FRAME_HEADER_SIZE];
+    ftap_tlv_writer_t writer;
+    ftap_status_t status;
+
+    if (client == NULL || !client->session_open) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(&writer, FTAP_FIELD_USER_ID, 0,
+                                          client->session.user_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(&writer, FTAP_FIELD_SESSION_ID, 0,
+                                          client->session.session_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LOGIN_NAME, 0,
+            (const uint8_t *)client->session_context.login_name,
+            strlen(client->session_context.login_name), FTAP_LOGIN_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+            (const uint8_t *)client->session_context.display_name,
+            strlen(client->session_context.display_name),
+            FTAP_DISPLAY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_PROTOCOL, 0,
+            (const uint8_t *)client->session_context.protocol,
+            strlen(client->session_context.protocol), FTAP_PROTOCOL_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_AUTH_METHOD, 0,
+            (const uint8_t *)client->session_context.auth_method,
+            strlen(client->session_context.auth_method), FTAP_AUTH_METHOD_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_u64(&writer, FTAP_FIELD_AUTH_EPOCH, 0,
+                                         client->session.auth_epoch);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_u64(&writer, FTAP_FIELD_AUTHZ_REVISION, 0,
+                                         client->session.authz_revision);
+    }
+    if (status != FTAP_STATUS_OK) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    {
+        int result = queue_frame(client, FTAP_MSG_SESSION_CONTEXT_RESULT,
+                                 FTAP_FRAME_FLAG_RESPONSE, request_id,
+                                 payload, writer.length, false);
+        authd_password_wipe(payload, sizeof(payload));
+        return result;
+    }
+}
+
 /* Parse one validated password request without retaining payload pointers. */
 static bool
 parse_password_request(const uint8_t *payload,
@@ -937,6 +1017,8 @@ close_bound_session(authd_client_t *client,
         result == AUTHD_DATABASE_WRITE_NOT_FOUND) {
         client->session_open = false;
         authd_password_wipe(&client->session, sizeof(client->session));
+        authd_password_wipe(&client->session_context,
+                            sizeof(client->session_context));
     } else {
         (void)snprintf(client->pending_end_reason,
                        sizeof(client->pending_end_reason), "%s", reason);
@@ -1129,6 +1211,18 @@ complete_password_login(authd_client_t *client,
         if (result == AUTHD_DATABASE_WRITE_OK) {
             client->session = session;
             client->session_open = true;
+            (void)snprintf(client->session_context.login_name,
+                           sizeof(client->session_context.login_name), "%s",
+                           attempt->record.login_name);
+            (void)snprintf(client->session_context.display_name,
+                           sizeof(client->session_context.display_name), "%s",
+                           attempt->record.display_name);
+            (void)snprintf(client->session_context.protocol,
+                           sizeof(client->session_context.protocol), "%s",
+                           attempt->protocol);
+            (void)snprintf(client->session_context.auth_method,
+                           sizeof(client->session_context.auth_method), "%s",
+                           FTAP_AUTH_METHOD_PASSWORD);
             client->state = FTAP_STATE_SESSION_BOUND;
             if (queue_authentication_result(client, request_id,
                                             attempt, &session) != 0) {
@@ -1255,6 +1349,10 @@ handle_complete_frame(authd_client_t *client,
     if (header->message_type == FTAP_MSG_AUTH_PASSWORD_REQUEST) {
         return start_password_login(client, header, payload,
                                     payload_length, context);
+    }
+    if (header->message_type == FTAP_MSG_SESSION_CONTEXT_REQUEST &&
+        client->state == FTAP_STATE_SESSION_BOUND) {
+        return queue_session_context_result(client, header->request_id);
     }
     if (header->message_type == FTAP_MSG_SESSION_CLOSE &&
         client->state == FTAP_STATE_SESSION_BOUND) {
