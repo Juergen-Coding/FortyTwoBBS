@@ -43,7 +43,7 @@ authd_throttle_policy_is_valid(const authd_throttle_policy_t *policy)
                AUTHD_THROTTLE_MAX_DURATION_SECONDS;
 }
 
-/* Only protocol names admitted by FTAP 1.2 may enter audit records. */
+/* Only protocol names admitted by FTAP 1.3 may enter audit records. */
 bool
 authd_login_protocol_is_valid(const char *protocol)
 {

@@ -296,3 +296,184 @@ history row before the migration's final `COMMIT`, and then verifies the
 complete history again. SQL application and checksum registration therefore
 cannot be accidentally separated as they were during the first manual B4.3
 migration test.
+
+
+## B4.3.2 FTAP 1.3 registration foundation
+
+B4.3.2 raises the local protocol to FTAP 1.3 and identifies the development
+binaries as `fortytwo-authd 0.3.0` and `fortytwo-login 0.1.3`.
+
+Self-registration remains disabled by default. The daemon configuration now
+contains bounded values for:
+
+```text
+registration_enabled               false
+registration_min_password_bytes    12
+registration_timeout_seconds       600
+registration_max_pending           16
+registration_ip_attempts           3
+registration_ip_window_seconds     900
+```
+
+The production service does not enable registration in this subsection. A
+later B4.3.2 server handler will enforce these settings before submitting an
+Argon2id generation job or opening a PostgreSQL registration transaction.
+
+The per-source-IP prefilter uses a fixed table of 1024 canonical IPv4 or IPv6
+addresses. Expired windows are reclaimed. If every entry is active, an unknown
+address fails closed with a retry delay instead of evicting a live counter and
+weakening the limit. This table is an in-memory defensive filter; PostgreSQL
+remains authoritative for the global pending-registration limit and durable
+registration state.
+
+The existing bounded password worker pool now accepts typed verification and
+hash-generation jobs through one shared thread and queue limit. Generated
+Argon2id PHC strings are returned only in value completions, never through a
+client pointer, and must be cleared explicitly after the event loop has used
+them. Queue rejection, shutdown, stale completions and unclaimed completions
+wipe both passwords and generated hashes.
+
+### Migration 0009 registration lifecycle
+
+Migration `0009_telnet_registration.sql` introduces the durable PostgreSQL
+side of the two-phase Telnet registration.  A row in
+`bbs_registration_attempts` binds one server-generated registration UUID to
+one pending FortyTwo user UUID, one reserved legacy MBSE key and one canonical
+source address.  Its constrained lifecycle is:
+
+```text
+pending_legacy -> completed
+pending_legacy -> aborted
+pending_legacy -> failed
+```
+
+Pending attempts expire explicitly and cannot represent an active account.
+Aborted identities remain as logically deleted UUID rows for audit history,
+while their credential, profile and legacy binding may be removed by the
+daemon.  The login-name uniqueness rule therefore now covers only identities
+whose `deleted_at` value is NULL, allowing a later independent registration to
+reuse a name abandoned before activation.
+
+The migration grants no broad schema rights.  `fortytwo_authd` receives only
+`SELECT`, `INSERT` and `UPDATE` on the new lifecycle table, the precise write
+rights required to reserve or release the legacy binding, and `DELETE` only on
+profile and password rows needed by an abort.  Registration history itself is
+never deleted by the runtime daemon.
+
+### Registration database API
+
+The PostgreSQL runtime layer now exposes four registration-specific operations:
+
+```text
+authd_database_begin_registration
+authd_database_commit_registration
+authd_database_abort_registration
+authd_database_expire_registrations
+```
+
+`begin_registration` serializes the global pending limit with a transaction-
+scoped advisory lock.  It then creates the pending identity, profile, Argon2id
+credential, legacy-name reservation, lifecycle row, and
+`auth.registration_started` audit in one explicit transaction.  A login-name
+or legacy-name conflict rolls the complete transaction back and has its own
+result code; neither case can leave a partial pending identity behind.
+
+`commit_registration` locks the complete attempt and identity context and
+rechecks the registration UUID, user UUID, login name, display name, legacy
+name, source address, optional terminal binding, account state, expiry,
+authentication epoch, authorization revision, and absence of pre-existing
+roles.  It grants only `bbs_user`, activates the identity, increments
+`authz_revision`, completes the attempt, creates the first Telnet/password
+session, and writes both `auth.registration_completed` and
+`auth.login_succeeded` before committing.  The SQL path never selects or
+inserts `ssh_access`.
+
+`abort_registration` keeps the user UUID and durable attempt history but marks
+the identity deleted, increments `auth_epoch`, releases the profile,
+credential, legacy binding and any accidental role assignment, and appends an
+`auth.registration_aborted` audit.  The login name and legacy key are therefore
+available to a later independent registration only after the abort transaction
+has committed.
+
+`expire_registrations` processes a bounded batch of expired pending attempts
+with `FOR UPDATE ... SKIP LOCKED`.  Each selected identity becomes logically
+deleted, authentication-bearing child rows are removed, the attempt becomes
+`failed` with reason `registration_timeout`, and an
+`auth.registration_failed` event is written atomically.
+
+The dedicated libpq-wrapper suite validates the transaction boundaries,
+conflict mappings, exact context binding, Telnet-only session creation,
+absence of an SSH role grant, abort cleanup, bounded expiry, and stable public
+result names.  This subsection still does not connect the database API to the
+FTAP server state machine; registration remains disabled in the production
+service configuration.
+
+A separate real-PostgreSQL target validates the same lifecycle against schema
+9, including actual SQL syntax, constraint behavior, grants, role assignment,
+logical deletion, name reuse, the global pending limit, expiry cleanup,
+sessions, and audits:
+
+```sh
+make database-registration-integration-test
+```
+
+The runner creates only conspicuously named test identities, refuses to start
+while another pending registration exists, executes the binary as the
+`fortytwo_authd` runtime role, verifies the resulting rows as the database
+administrator, and removes the fixture even when the test fails.
+
+### FTAP server registration state machine
+
+The local FTAP server now connects the FTAP 1.3 registration messages to the
+bounded worker pool and the schema-9 PostgreSQL lifecycle.  Registration still
+starts only when `registration_enabled` is explicitly set; the production
+default remains disabled until the visible NEW dialog and the legacy
+`users.data` writer are implemented.
+
+`REGISTRATION_BEGIN_REQUEST` is accepted only after HELLO on an otherwise idle
+connection.  The daemon validates the Telnet/password metadata, records the
+per-source-IP prefilter attempt, enforces the configured minimum password
+length, and submits one typed Argon2id generation job.  The cleartext password
+is wiped by the worker submission boundary.  No database identity exists while
+the hash is pending, so a socket loss or stale worker completion at this stage
+cannot leave a pending registration behind.
+
+After hash generation, the daemon first tries a canonical login name of at most
+eight characters as the legacy key.  A collision switches to an unbiased,
+cryptographically random eight-character compatibility key and retries at most
+16 times.  A successful PostgreSQL Begin snapshot is stored only in the client
+slot that owns the exact connection generation, request ID and worker job ID.
+The resulting registration UUID and pending identity are therefore bound to
+one live FTAP socket.
+
+In `REGISTERING`, Commit and Abort must contain the byte-identical bound
+registration UUID.  Commit delegates the full recheck and Telnet-only
+activation to PostgreSQL, binds the returned session, and changes the
+connection to `SESSION_BOUND`.  Confirmed Abort removes the pending identity
+through the database API, returns `REGISTRATION_ABORT_RESULT`, and moves the
+same connection back to `HELLO_COMPLETE` so another Begin may be attempted.
+
+Every reset after a successful Begin performs a best-effort database Abort.
+This covers peer disconnects, protocol errors, failed response writes, daemon
+shutdown and fatal daemon failure.  The local registration deadline is part of
+the poll timeout; on expiry the daemon aborts the bound attempt and closes the
+socket.  If that immediate cleanup fails, the database row remains bound and
+the periodic schema-9 expiry operation is the fail-closed fallback.  Startup
+and every database-health interval also process a bounded expiry batch with the
+same PostgreSQL API.
+
+The test-only database now models the registration lifecycle and records Begin,
+Commit, Abort and legacy-collision events.  A dedicated end-to-end test starts
+the real event-loop daemon with deterministic workers and covers:
+
+- administrative disablement and password-policy rejection;
+- successful Begin, Commit, session context and session close;
+- direct legacy names and random collision retry;
+- confirmed Abort followed by another Begin on the same socket;
+- the per-source-IP attempt limit;
+- disconnect, daemon-shutdown and database-failure cleanup after a durable Begin;
+- disconnect while Argon2id generation is still pending;
+- login-name, database, global-limit and stale-Commit result mappings.
+
+The test is part of both `make test` and `make sanitize-test`.  The latter runs
+the daemon and the complete registration state machine under ASan and UBSan.

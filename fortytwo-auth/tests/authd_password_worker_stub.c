@@ -17,6 +17,7 @@
 
 static atomic_uint delay_milliseconds;
 static atomic_size_t call_count;
+static atomic_size_t generate_call_count;
 static atomic_size_t active_calls;
 static atomic_size_t maximum_parallel;
 
@@ -105,6 +106,8 @@ authd_password_worker_stub_reset(unsigned int delay_ms)
     atomic_store_explicit(&delay_milliseconds, delay_ms,
                           memory_order_relaxed);
     atomic_store_explicit(&call_count, 0U, memory_order_relaxed);
+    atomic_store_explicit(&generate_call_count, 0U,
+                          memory_order_relaxed);
     atomic_store_explicit(&active_calls, 0U, memory_order_relaxed);
     atomic_store_explicit(&maximum_parallel, 0U, memory_order_relaxed);
 }
@@ -113,6 +116,13 @@ size_t
 authd_password_worker_stub_call_count(void)
 {
     return atomic_load_explicit(&call_count, memory_order_relaxed);
+}
+
+size_t
+authd_password_worker_stub_generate_call_count(void)
+{
+    return atomic_load_explicit(&generate_call_count,
+                                memory_order_relaxed);
 }
 
 size_t
@@ -154,6 +164,8 @@ authd_password_generate(const authd_password_policy_t *policy,
     if (authd_password_policy_is_valid(policy) && password != NULL &&
         password_length > 0U && password_capacity >= password_length &&
         encoded_hash != NULL && encoded_hash_size >= sizeof("dummy")) {
+        (void)atomic_fetch_add_explicit(&generate_call_count, 1U,
+                                        memory_order_relaxed);
         (void)snprintf(encoded_hash, encoded_hash_size, "%s", "dummy");
         result = AUTHD_PASSWORD_OK;
     }

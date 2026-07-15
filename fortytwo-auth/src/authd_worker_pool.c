@@ -16,6 +16,7 @@
 typedef struct authd_worker_job {
     uint64_t job_id;
     authd_worker_token_t token;
+    authd_worker_job_type_t job_type;
     char encoded_hash[AUTHD_WORKER_HASH_MAX_BYTES + 1U];
     char password[AUTHD_PASSWORD_MAX_BUFFER_BYTES];
     size_t password_length;
@@ -99,7 +100,7 @@ queue_push(authd_worker_job_t **head,
     *tail = job;
 }
 
-/* Wipe every password byte before a job allocation leaves the process. */
+/* Wipe every secret byte before a job allocation leaves the process. */
 static void
 job_destroy(authd_worker_job_t *job)
 {
@@ -111,6 +112,14 @@ job_destroy(authd_worker_job_t *job)
     authd_password_wipe(job->encoded_hash, sizeof(job->encoded_hash));
     authd_password_wipe(job, sizeof(*job));
     free(job);
+}
+
+void
+authd_worker_completion_clear(authd_worker_completion_t *completion)
+{
+    if (completion != NULL) {
+        authd_password_wipe(completion, sizeof(*completion));
+    }
 }
 
 /* Notify poll() once for every completed job. eventfd uses a 64-bit counter. */
@@ -141,6 +150,40 @@ completion_consume(int completion_fd)
     return received == (ssize_t)sizeof(value);
 }
 
+/* Execute exactly one bounded password operation outside the queue mutex. */
+static void
+execute_job(authd_worker_pool_t *pool, authd_worker_job_t *job)
+{
+    if (job->job_type == AUTHD_WORKER_JOB_VERIFY_PASSWORD) {
+        job->password_result = authd_password_verify(
+            &pool->password_policy,
+            job->encoded_hash,
+            job->password,
+            job->password_length,
+            sizeof(job->password),
+            &job->needs_rehash);
+        /* Verification completions never return the stored credential hash. */
+        authd_password_wipe(job->encoded_hash, sizeof(job->encoded_hash));
+        return;
+    }
+
+    if (job->job_type == AUTHD_WORKER_JOB_GENERATE_PASSWORD_HASH) {
+        job->password_result = authd_password_generate(
+            &pool->password_policy,
+            job->password,
+            job->password_length,
+            sizeof(job->password),
+            job->encoded_hash,
+            sizeof(job->encoded_hash));
+        job->needs_rehash = false;
+        return;
+    }
+
+    authd_password_wipe(job->password, sizeof(job->password));
+    job->password_result = AUTHD_PASSWORD_INVALID_INPUT;
+    job->needs_rehash = false;
+}
+
 /*
  * Workers remove jobs under the mutex, perform Argon2id without the mutex,
  * then return only value data to the completion queue.
@@ -169,13 +212,7 @@ worker_main(void *argument)
             continue;
         }
 
-        job->password_result = authd_password_verify(
-            &pool->password_policy,
-            job->encoded_hash,
-            job->password,
-            job->password_length,
-            sizeof(job->password),
-            &job->needs_rehash);
+        execute_job(pool, job);
 
         (void)pthread_mutex_lock(&pool->mutex);
         discard = pool->stopping;
@@ -360,34 +397,47 @@ next_job_id_locked(authd_worker_pool_t *pool)
     return identifier;
 }
 
-authd_worker_submit_result_t
-authd_worker_pool_submit(authd_worker_pool_t *pool,
-                         const authd_worker_token_t *token,
-                         const char *encoded_hash,
-                         char *password,
-                         size_t password_length,
-                         size_t password_capacity,
-                         uint64_t *job_id)
+/* Build one typed job and apply the common bounded queue lifecycle. */
+static authd_worker_submit_result_t
+submit_job(authd_worker_pool_t *pool,
+           const authd_worker_token_t *token,
+           authd_worker_job_type_t job_type,
+           const char *encoded_hash,
+           char *password,
+           size_t password_length,
+           size_t password_capacity,
+           uint64_t *job_id)
 {
     authd_worker_job_t *job = NULL;
     authd_worker_submit_result_t result = AUTHD_WORKER_SUBMIT_INVALID;
-    size_t hash_length;
+    size_t hash_length = 0U;
 
     if (job_id != NULL) {
         *job_id = UINT64_C(0);
     }
 
-    if (pool == NULL || token == NULL || encoded_hash == NULL ||
-        password == NULL || password_length == 0U ||
+    if (pool == NULL || token == NULL || password == NULL ||
+        password_length == 0U ||
         password_length > AUTHD_PASSWORD_MAX_BYTES ||
         password_capacity < password_length ||
         password_capacity > AUTHD_PASSWORD_MAX_BUFFER_BYTES ||
-        job_id == NULL) {
+        job_id == NULL ||
+        (job_type != AUTHD_WORKER_JOB_VERIFY_PASSWORD &&
+         job_type != AUTHD_WORKER_JOB_GENERATE_PASSWORD_HASH)) {
         goto finished;
     }
 
-    hash_length = strnlen(encoded_hash, AUTHD_WORKER_HASH_MAX_BYTES + 1U);
-    if (hash_length == 0U || hash_length > AUTHD_WORKER_HASH_MAX_BYTES) {
+    if (job_type == AUTHD_WORKER_JOB_VERIFY_PASSWORD) {
+        if (encoded_hash == NULL) {
+            goto finished;
+        }
+        hash_length = strnlen(encoded_hash,
+                              AUTHD_WORKER_HASH_MAX_BYTES + 1U);
+        if (hash_length == 0U ||
+            hash_length > AUTHD_WORKER_HASH_MAX_BYTES) {
+            goto finished;
+        }
+    } else if (encoded_hash != NULL) {
         goto finished;
     }
 
@@ -397,8 +447,11 @@ authd_worker_pool_submit(authd_worker_pool_t *pool,
         goto finished;
     }
     job->token = *token;
+    job->job_type = job_type;
     job->password_length = password_length;
-    memcpy(job->encoded_hash, encoded_hash, hash_length + 1U);
+    if (hash_length > 0U) {
+        memcpy(job->encoded_hash, encoded_hash, hash_length + 1U);
+    }
     memcpy(job->password, password, password_length);
 
     (void)pthread_mutex_lock(&pool->mutex);
@@ -427,6 +480,33 @@ finished:
     return result;
 }
 
+authd_worker_submit_result_t
+authd_worker_pool_submit_verify(authd_worker_pool_t *pool,
+                                const authd_worker_token_t *token,
+                                const char *encoded_hash,
+                                char *password,
+                                size_t password_length,
+                                size_t password_capacity,
+                                uint64_t *job_id)
+{
+    return submit_job(pool, token, AUTHD_WORKER_JOB_VERIFY_PASSWORD,
+                      encoded_hash, password, password_length,
+                      password_capacity, job_id);
+}
+
+authd_worker_submit_result_t
+authd_worker_pool_submit_generate(authd_worker_pool_t *pool,
+                                  const authd_worker_token_t *token,
+                                  char *password,
+                                  size_t password_length,
+                                  size_t password_capacity,
+                                  uint64_t *job_id)
+{
+    return submit_job(pool, token, AUTHD_WORKER_JOB_GENERATE_PASSWORD_HASH,
+                      NULL, password, password_length, password_capacity,
+                      job_id);
+}
+
 bool
 authd_worker_pool_take_completion(authd_worker_pool_t *pool,
                                   authd_worker_completion_t *completion)
@@ -449,11 +529,14 @@ authd_worker_pool_take_completion(authd_worker_pool_t *pool,
         return false;
     }
 
-    memset(completion, 0, sizeof(*completion));
+    authd_worker_completion_clear(completion);
     completion->job_id = job->job_id;
     completion->token = job->token;
+    completion->job_type = job->job_type;
     completion->password_result = job->password_result;
     completion->needs_rehash = job->needs_rehash;
+    memcpy(completion->encoded_hash, job->encoded_hash,
+           sizeof(completion->encoded_hash));
     job_destroy(job);
     return true;
 }

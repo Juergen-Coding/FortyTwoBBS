@@ -46,7 +46,7 @@ test_header_round_trip(void)
     uint8_t wire[FTAP_FRAME_HEADER_SIZE];
     static const uint8_t expected[FTAP_FRAME_HEADER_SIZE] = {
         0x46, 0x54, 0x41, 0x50,
-        0x00, 0x01, 0x00, 0x02,
+        0x00, 0x01, 0x00, 0x03,
         0x00, 0x78, 0x00, 0x00,
         0x00, 0x00, 0x03, 0x04,
         0x01, 0x02, 0x03, 0x04,
@@ -90,7 +90,7 @@ test_header_rejections(void)
                  FTAP_STATUS_ERR_VERSION);
 
     CHECK_STATUS(ftap_frame_header_encode(wire, &header), FTAP_STATUS_OK);
-    wire[7] = 3;
+    wire[7] = 4;
     CHECK_STATUS(ftap_frame_header_decode(wire, sizeof(wire), &decoded),
                  FTAP_STATUS_NEWER_MINOR);
 
@@ -115,6 +115,18 @@ test_header_rejections(void)
     header.payload_length = FTAP_MAX_PAYLOAD_SIZE + 1U;
     CHECK_STATUS(ftap_frame_header_encode(wire, &header),
                  FTAP_STATUS_ERR_LENGTH);
+}
+
+static void
+test_ftap_1_3_known_types(void)
+{
+    CHECK(ftap_message_type_is_known(
+        FTAP_MSG_REGISTRATION_BEGIN_REQUEST));
+    CHECK(ftap_message_type_is_known(
+        FTAP_MSG_REGISTRATION_ABORT_RESULT));
+    CHECK(ftap_field_type_is_known(FTAP_FIELD_REGISTRATION_ID));
+    CHECK(ftap_field_type_is_known(FTAP_FIELD_REGISTRATION_STATE));
+    CHECK(ftap_field_type_is_known(FTAP_FIELD_REGISTRATION_REASON));
 }
 
 static void
@@ -262,6 +274,7 @@ main(void)
 {
     test_header_round_trip();
     test_header_rejections();
+    test_ftap_1_3_known_types();
     test_utf8();
     test_tlv_round_trip();
     test_tlv_rejections();

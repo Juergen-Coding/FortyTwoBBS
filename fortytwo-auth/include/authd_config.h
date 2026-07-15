@@ -7,6 +7,7 @@
 #ifndef FORTYTWO_AUTHD_CONFIG_H
 #define FORTYTWO_AUTHD_CONFIG_H
 
+#include "authd_registration_limit.h"
 #include "authd_throttle.h"
 
 #include <stdbool.h>
@@ -16,7 +17,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-#define AUTHD_VERSION "0.2.4"
+#define AUTHD_VERSION "0.3.0"
 #define AUTHD_MAX_ALLOWED_UIDS 32U
 #define AUTHD_MIN_CLIENTS 1U
 #define AUTHD_MAX_CLIENTS 256U
@@ -56,6 +57,12 @@ typedef struct authd_config {
     uint32_t password_failure_threshold;
     uint32_t password_failure_window_seconds;
     uint32_t password_throttle_seconds;
+    bool registration_enabled;
+    uint32_t registration_min_password_bytes;
+    uint32_t registration_timeout_seconds;
+    size_t registration_max_pending;
+    uint32_t registration_ip_attempts;
+    uint32_t registration_ip_window_seconds;
     char db_host[AUTHD_DB_HOST_MAX + 1U];
     char db_name[AUTHD_DB_NAME_MAX + 1U];
     uint16_t db_port;

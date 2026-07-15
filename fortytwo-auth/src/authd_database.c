@@ -1515,6 +1515,1199 @@ authd_database_close_terminal_session(
     return AUTHD_DATABASE_WRITE_OK;
 }
 
+/* Validate non-empty text that is already represented as a C string. */
+static bool
+required_text_is_valid(const char *text, size_t maximum_length)
+{
+    size_t length;
+
+    if (text == NULL) {
+        return false;
+    }
+    length = strlen(text);
+    return length > 0U && length <= maximum_length;
+}
+
+/* Accept only the bounded Argon2id PHC representation produced by workers. */
+static bool
+registration_password_hash_is_valid(const char *password_hash)
+{
+    size_t length;
+
+    if (password_hash == NULL) {
+        return false;
+    }
+    length = strnlen(password_hash, AUTHD_DATABASE_PASSWORD_HASH_MAX + 1U);
+    return length > 0U && length <= AUTHD_DATABASE_PASSWORD_HASH_MAX &&
+           strncmp(password_hash, "$argon2id$", 10U) == 0;
+}
+
+/* Registration failure reasons share the FTAP machine-reason namespace. */
+static bool
+registration_reason_is_valid(const char *reason)
+{
+    size_t index;
+    size_t length;
+
+    if (reason == NULL) {
+        return false;
+    }
+    length = strlen(reason);
+    if (length == 0U || length > FTAP_REGISTRATION_REASON_MAX ||
+        reason[0] < 'a' || reason[0] > 'z') {
+        return false;
+    }
+    for (index = 1U; index < length; ++index) {
+        char character = reason[index];
+        if (!((character >= 'a' && character <= 'z') ||
+              (character >= '0' && character <= '9') ||
+              character == '.' || character == '-' || character == '_')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* Execute one transaction-control command and validate its command status. */
+static bool
+registration_transaction_command(authd_database_t *database,
+                                 const char *sql,
+                                 const char *description,
+                                 char *error,
+                                 size_t error_size)
+{
+    PGresult *result;
+
+    result = PQexec(database->connection, sql);
+    if (result == NULL) {
+        copy_libpq_error(error, error_size, description,
+                         database->connection);
+        return false;
+    }
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        copy_result_error(error, error_size, description, result);
+        PQclear(result);
+        return false;
+    }
+    PQclear(result);
+    return true;
+}
+
+/* Best-effort rollback preserves the original operation error. */
+static void
+registration_rollback(authd_database_t *database)
+{
+    PGresult *result;
+
+    if (database == NULL || database->connection == NULL) {
+        return;
+    }
+    result = PQexec(database->connection, "ROLLBACK");
+    if (result != NULL) {
+        PQclear(result);
+    }
+}
+
+/* Check one returned UUID column against an expected identity. */
+static bool
+registration_result_uuid_matches(const PGresult *result,
+                                 int row,
+                                 int column,
+                                 const uint8_t expected[FTAP_UUID_SIZE])
+{
+    uint8_t parsed[FTAP_UUID_SIZE];
+
+    return !PQgetisnull(result, row, column) &&
+           parse_uuid_hex(PQgetvalue(result, row, column), parsed) &&
+           uuid_is_valid(parsed) &&
+           memcmp(parsed, expected, FTAP_UUID_SIZE) == 0;
+}
+
+/*
+ * Create the durable pending identity and its legacy-name reservation.  The
+ * advisory transaction lock serializes the global pending limit; every later
+ * insert remains inside the same transaction so conflicts cannot leave a
+ * partial, non-audited identity behind.
+ */
+authd_database_registration_result_t
+authd_database_begin_registration(
+    authd_database_t *database,
+    const char *canonical_login_name,
+    const char *display_name,
+    const char *password_hash,
+    const char *legacy_name,
+    const char *source_ip,
+    const char *tty_device,
+    const char *node_id,
+    uint32_t timeout_seconds,
+    size_t max_pending,
+    authd_registration_begin_result_t *registration,
+    char *error,
+    size_t error_size)
+{
+    static const char capacity_sql[] =
+        "WITH registration_lock AS MATERIALIZED ("
+        "SELECT pg_catalog.pg_advisory_xact_lock(42, 432)) "
+        "SELECT CASE WHEN (SELECT pg_catalog.count(*) "
+        "FROM public.bbs_registration_attempts AS r "
+        "WHERE r.registration_state = 'pending_legacy' "
+        "AND r.expires_at > CURRENT_TIMESTAMP) "
+        "< $1::pg_catalog.int8 THEN '1' ELSE '0' END "
+        "FROM registration_lock";
+    static const char user_sql[] =
+        "INSERT INTO public.bbs_users (login_name, account_state) "
+        "VALUES ($1::pg_catalog.text, 'pending') "
+        "ON CONFLICT DO NOTHING RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex'), "
+        "auth_epoch::pg_catalog.text, authz_revision::pg_catalog.text";
+    static const char profile_sql[] =
+        "INSERT INTO public.bbs_user_profiles (user_id, display_name) "
+        "VALUES ($1::pg_catalog.uuid, $2::pg_catalog.text) RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex')";
+    static const char credential_sql[] =
+        "INSERT INTO public.bbs_password_credentials "
+        "(user_id, password_hash, must_change) "
+        "VALUES ($1::pg_catalog.uuid, $2::pg_catalog.text, FALSE) RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex')";
+    static const char binding_sql[] =
+        "INSERT INTO public.bbs_legacy_mbse_bindings "
+        "(user_id, legacy_name) "
+        "VALUES ($1::pg_catalog.uuid, $2::pg_catalog.text) "
+        "ON CONFLICT DO NOTHING RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex')";
+    static const char attempt_sql[] =
+        "INSERT INTO public.bbs_registration_attempts "
+        "(user_id, legacy_name, registration_state, protocol, source_ip, "
+        "tty_device, node_id, expires_at) VALUES "
+        "($1::pg_catalog.uuid, $2::pg_catalog.text, 'pending_legacy', "
+        "'telnet', $3::pg_catalog.inet, $4::pg_catalog.text, "
+        "$5::pg_catalog.text, CURRENT_TIMESTAMP + "
+        "($6::pg_catalog.int4 * INTERVAL '1 second')) RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(registration_id), 'hex')";
+    static const char audit_sql[] =
+        "INSERT INTO public.bbs_audit_events "
+        "(actor_user_id, subject_user_id, event_type, source_ip, detail) "
+        "VALUES ($1::pg_catalog.uuid, $1::pg_catalog.uuid, "
+        "'auth.registration_started', $2::pg_catalog.inet, "
+        "pg_catalog.jsonb_build_object("
+        "'registration_id', $3::pg_catalog.uuid, "
+        "'login_name', $4::pg_catalog.text, "
+        "'legacy_name', $5::pg_catalog.text, "
+        "'protocol', 'telnet', "
+        "'tty_device', $6::pg_catalog.text, "
+        "'node_id', $7::pg_catalog.text)) RETURNING event_id::pg_catalog.text";
+    const char *parameters[7];
+    char user_id_text[37];
+    char registration_id_text[37];
+    char timeout_text[16];
+    char pending_text[32];
+    PGresult *result;
+    uint64_t event_id;
+    bool capacity_available;
+    int rows;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (registration != NULL) {
+        memset(registration, 0, sizeof(*registration));
+    }
+    if (database == NULL || database->connection == NULL ||
+        registration == NULL ||
+        !authd_login_name_is_canonical(canonical_login_name) ||
+        !required_text_is_valid(display_name, FTAP_DISPLAY_NAME_MAX) ||
+        !registration_password_hash_is_valid(password_hash) ||
+        !authd_legacy_name_is_valid(legacy_name) ||
+        !authd_source_ip_is_valid(source_ip) ||
+        !optional_session_text_is_valid(tty_device, FTAP_TTY_DEVICE_MAX) ||
+        !optional_session_text_is_valid(node_id, FTAP_NODE_ID_MAX) ||
+        timeout_seconds < AUTHD_REGISTRATION_MIN_TIMEOUT_SECONDS ||
+        timeout_seconds > AUTHD_REGISTRATION_MAX_TIMEOUT_SECONDS ||
+        max_pending < AUTHD_REGISTRATION_MIN_PENDING ||
+        max_pending > AUTHD_REGISTRATION_MAX_PENDING) {
+        set_error(error, error_size,
+                  "invalid registration begin arguments");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    if (!registration_transaction_command(database, "BEGIN",
+                                          "registration begin failed",
+                                          error, error_size)) {
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+
+    (void)snprintf(pending_text, sizeof(pending_text), "%zu", max_pending);
+    parameters[0] = pending_text;
+    result = PQexecParams(database->connection, capacity_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 0),
+                             &capacity_available)) {
+        if (result == NULL) {
+            copy_libpq_error(error, error_size,
+                             "registration capacity check failed",
+                             database->connection);
+        } else {
+            copy_result_error(error, error_size,
+                              "registration capacity check failed", result);
+            PQclear(result);
+        }
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+    if (!capacity_available) {
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_LIMIT_REACHED;
+    }
+
+    parameters[0] = canonical_login_name;
+    result = PQexecParams(database->connection, user_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 3) {
+        if (result == NULL) {
+            copy_libpq_error(error, error_size,
+                             "registration user creation failed",
+                             database->connection);
+        } else {
+            copy_result_error(error, error_size,
+                              "registration user creation failed", result);
+            PQclear(result);
+        }
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    rows = PQntuples(result);
+    if (rows == 0) {
+        PQclear(result);
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_NAME_UNAVAILABLE;
+    }
+    if (rows != 1 || PQgetisnull(result, 0, 0) ||
+        PQgetisnull(result, 0, 1) || PQgetisnull(result, 0, 2) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 0), registration->user_id) ||
+        !uuid_is_valid(registration->user_id) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 1),
+                          &registration->auth_epoch) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 2),
+                          &registration->authz_revision) ||
+        registration->auth_epoch == 0U ||
+        registration->authz_revision == 0U) {
+        PQclear(result);
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration user creation returned an invalid record");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+    format_uuid_text(registration->user_id, user_id_text);
+
+    parameters[0] = user_id_text;
+    parameters[1] = display_name;
+    result = PQexecParams(database->connection, profile_sql, 2, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(result, 0, 0,
+                                          registration->user_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration profile creation failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    parameters[0] = user_id_text;
+    parameters[1] = password_hash;
+    result = PQexecParams(database->connection, credential_sql, 2, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(result, 0, 0,
+                                          registration->user_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration credential creation failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    parameters[0] = user_id_text;
+    parameters[1] = legacy_name;
+    result = PQexecParams(database->connection, binding_sql, 2, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 1) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration legacy reservation failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    rows = PQntuples(result);
+    if (rows == 0) {
+        PQclear(result);
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        return AUTHD_DATABASE_REGISTRATION_LEGACY_CONFLICT;
+    }
+    if (rows != 1 || !registration_result_uuid_matches(
+                         result, 0, 0, registration->user_id)) {
+        PQclear(result);
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration legacy reservation returned an invalid record");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    (void)snprintf(timeout_text, sizeof(timeout_text), "%" PRIu32,
+                   timeout_seconds);
+    parameters[0] = user_id_text;
+    parameters[1] = legacy_name;
+    parameters[2] = source_ip;
+    parameters[3] = tty_device;
+    parameters[4] = node_id;
+    parameters[5] = timeout_text;
+    result = PQexecParams(database->connection, attempt_sql, 6, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 0),
+                        registration->registration_id) ||
+        !uuid_is_valid(registration->registration_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration attempt creation failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+    format_uuid_text(registration->registration_id, registration_id_text);
+
+    parameters[0] = user_id_text;
+    parameters[1] = source_ip;
+    parameters[2] = registration_id_text;
+    parameters[3] = canonical_login_name;
+    parameters[4] = legacy_name;
+    parameters[5] = tty_device;
+    parameters[6] = node_id;
+    result = PQexecParams(database->connection, audit_sql, 7, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &event_id) ||
+        event_id == 0U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        set_error(error, error_size,
+                  "registration start audit failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    if (!registration_transaction_command(database, "COMMIT",
+                                          "registration commit failed",
+                                          error, error_size)) {
+        registration_rollback(database);
+        memset(registration, 0, sizeof(*registration));
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+
+    (void)snprintf(registration->login_name,
+                   sizeof(registration->login_name), "%s",
+                   canonical_login_name);
+    (void)snprintf(registration->display_name,
+                   sizeof(registration->display_name), "%s", display_name);
+    (void)snprintf(registration->legacy_name,
+                   sizeof(registration->legacy_name), "%s", legacy_name);
+    return AUTHD_DATABASE_REGISTRATION_OK;
+}
+
+/*
+ * Lock and validate the complete pending context before activation.  Role,
+ * account, attempt, session, and both audits are committed together; no SSH
+ * role is ever selected by this registration path.
+ */
+authd_database_registration_result_t
+authd_database_commit_registration(
+    authd_database_t *database,
+    const authd_registration_begin_result_t *registration,
+    const char *source_ip,
+    const char *tty_device,
+    const char *node_id,
+    authd_registration_commit_result_t *commit,
+    char *error,
+    size_t error_size)
+{
+    static const char lock_sql[] =
+        "SELECT "
+        "pg_catalog.encode(pg_catalog.uuid_send(r.registration_id), 'hex'), "
+        "pg_catalog.encode(pg_catalog.uuid_send(r.user_id), 'hex'), "
+        "u.login_name, p.display_name, r.legacy_name, m.legacy_name, "
+        "r.registration_state, r.protocol, "
+        "CASE WHEN r.source_ip = $3::pg_catalog.inet THEN '1' ELSE '0' END, "
+        "CASE WHEN r.tty_device IS NOT DISTINCT FROM $4::pg_catalog.text "
+        "THEN '1' ELSE '0' END, "
+        "CASE WHEN r.node_id IS NOT DISTINCT FROM $5::pg_catalog.text "
+        "THEN '1' ELSE '0' END, "
+        "u.account_state, "
+        "CASE WHEN u.deleted_at IS NULL THEN '0' ELSE '1' END, "
+        "u.auth_epoch::pg_catalog.text, "
+        "u.authz_revision::pg_catalog.text, "
+        "(SELECT pg_catalog.count(*)::pg_catalog.text "
+        "FROM public.bbs_user_roles AS ur WHERE ur.user_id = u.user_id), "
+        "CASE WHEN r.expires_at <= CURRENT_TIMESTAMP THEN '1' ELSE '0' END "
+        "FROM public.bbs_registration_attempts AS r "
+        "JOIN public.bbs_users AS u ON u.user_id = r.user_id "
+        "JOIN public.bbs_user_profiles AS p ON p.user_id = u.user_id "
+        "JOIN public.bbs_legacy_mbse_bindings AS m ON m.user_id = u.user_id "
+        "WHERE r.registration_id = $1::pg_catalog.uuid "
+        "AND r.user_id = $2::pg_catalog.uuid "
+        "FOR UPDATE OF r, u, p, m";
+    static const char role_sql[] =
+        "INSERT INTO public.bbs_user_roles (user_id, role_id) "
+        "SELECT $1::pg_catalog.uuid, r.role_id "
+        "FROM public.bbs_roles AS r WHERE r.role_name = 'bbs_user' "
+        "RETURNING role_id::pg_catalog.text";
+    static const char user_sql[] =
+        "UPDATE public.bbs_users SET account_state = 'active', "
+        "authz_revision = authz_revision + 1, updated_at = CURRENT_TIMESTAMP "
+        "WHERE user_id = $1::pg_catalog.uuid "
+        "AND account_state = 'pending' AND deleted_at IS NULL RETURNING "
+        "auth_epoch::pg_catalog.text, authz_revision::pg_catalog.text";
+    static const char attempt_sql[] =
+        "UPDATE public.bbs_registration_attempts "
+        "SET registration_state = 'completed', updated_at = CURRENT_TIMESTAMP, "
+        "completed_at = CURRENT_TIMESTAMP, failure_reason = NULL "
+        "WHERE registration_id = $1::pg_catalog.uuid "
+        "AND user_id = $2::pg_catalog.uuid "
+        "AND registration_state = 'pending_legacy' "
+        "AND expires_at > CURRENT_TIMESTAMP RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(registration_id), 'hex')";
+    static const char session_sql[] =
+        "INSERT INTO public.bbs_terminal_sessions "
+        "(user_id, protocol, auth_method, source_ip, tty_device, node_id, "
+        "auth_epoch) VALUES ($1::pg_catalog.uuid, 'telnet', 'password', "
+        "$2::pg_catalog.inet, $3::pg_catalog.text, $4::pg_catalog.text, "
+        "$5::pg_catalog.int8) RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(session_id), 'hex')";
+    static const char registration_audit_sql[] =
+        "INSERT INTO public.bbs_audit_events "
+        "(actor_user_id, subject_user_id, session_id, event_type, source_ip, "
+        "detail) VALUES ($1::pg_catalog.uuid, $1::pg_catalog.uuid, "
+        "$2::pg_catalog.uuid, 'auth.registration_completed', "
+        "$3::pg_catalog.inet, pg_catalog.jsonb_build_object("
+        "'registration_id', $4::pg_catalog.uuid, "
+        "'login_name', $5::pg_catalog.text, "
+        "'legacy_name', $6::pg_catalog.text, "
+        "'protocol', 'telnet', "
+        "'auth_epoch', $7::pg_catalog.int8, "
+        "'authz_revision', $8::pg_catalog.int8, "
+        "'tty_device', $9::pg_catalog.text, "
+        "'node_id', $10::pg_catalog.text)) RETURNING event_id::pg_catalog.text";
+    static const char login_audit_sql[] =
+        "INSERT INTO public.bbs_audit_events "
+        "(actor_user_id, subject_user_id, session_id, event_type, source_ip, "
+        "detail) VALUES ($1::pg_catalog.uuid, $1::pg_catalog.uuid, "
+        "$2::pg_catalog.uuid, 'auth.login_succeeded', $3::pg_catalog.inet, "
+        "pg_catalog.jsonb_build_object("
+        "'registration_id', $4::pg_catalog.uuid, "
+        "'login_name', $5::pg_catalog.text, "
+        "'legacy_name', $6::pg_catalog.text, "
+        "'protocol', 'telnet', 'required_capability', "
+        "'terminal.login.telnet', 'auth_method', 'password', "
+        "'auth_epoch', $7::pg_catalog.int8, "
+        "'authz_revision', $8::pg_catalog.int8, "
+        "'tty_device', $9::pg_catalog.text, "
+        "'node_id', $10::pg_catalog.text)) RETURNING event_id::pg_catalog.text";
+    const char *parameters[10];
+    char registration_id_text[37];
+    char user_id_text[37];
+    char session_id_text[37];
+    char auth_epoch_text[32];
+    char authz_revision_text[32];
+    PGresult *result;
+    uint8_t returned_registration_id[FTAP_UUID_SIZE];
+    uint8_t returned_user_id[FTAP_UUID_SIZE];
+    uint64_t auth_epoch;
+    uint64_t authz_revision;
+    uint64_t role_count;
+    uint64_t role_id;
+    uint64_t event_id;
+    bool deleted;
+    bool source_matches;
+    bool tty_matches;
+    bool node_matches;
+    bool expired;
+    int rows;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (commit != NULL) {
+        memset(commit, 0, sizeof(*commit));
+    }
+    if (database == NULL || database->connection == NULL ||
+        registration == NULL || commit == NULL ||
+        !uuid_is_valid(registration->registration_id) ||
+        !uuid_is_valid(registration->user_id) ||
+        !authd_login_name_is_canonical(registration->login_name) ||
+        !required_text_is_valid(registration->display_name,
+                                FTAP_DISPLAY_NAME_MAX) ||
+        !authd_legacy_name_is_valid(registration->legacy_name) ||
+        registration->auth_epoch == 0U ||
+        registration->authz_revision == 0U ||
+        registration->authz_revision >= (uint64_t)INT64_MAX ||
+        !authd_source_ip_is_valid(source_ip) ||
+        !optional_session_text_is_valid(tty_device, FTAP_TTY_DEVICE_MAX) ||
+        !optional_session_text_is_valid(node_id, FTAP_NODE_ID_MAX)) {
+        set_error(error, error_size,
+                  "invalid registration commit arguments");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    if (!registration_transaction_command(database, "BEGIN",
+                                          "registration commit failed",
+                                          error, error_size)) {
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+
+    format_uuid_text(registration->registration_id, registration_id_text);
+    format_uuid_text(registration->user_id, user_id_text);
+    parameters[0] = registration_id_text;
+    parameters[1] = user_id_text;
+    parameters[2] = source_ip;
+    parameters[3] = tty_device;
+    parameters[4] = node_id;
+    result = PQexecParams(database->connection, lock_sql, 5, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 17) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration commit lookup failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    rows = PQntuples(result);
+    if (rows == 0) {
+        PQclear(result);
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_NOT_FOUND;
+    }
+    if (rows != 1 || PQgetisnull(result, 0, 0) ||
+        PQgetisnull(result, 0, 1) || PQgetisnull(result, 0, 2) ||
+        PQgetisnull(result, 0, 3) || PQgetisnull(result, 0, 4) ||
+        PQgetisnull(result, 0, 5) || PQgetisnull(result, 0, 6) ||
+        PQgetisnull(result, 0, 7) || PQgetisnull(result, 0, 8) ||
+        PQgetisnull(result, 0, 9) || PQgetisnull(result, 0, 10) ||
+        PQgetisnull(result, 0, 11) || PQgetisnull(result, 0, 12) ||
+        PQgetisnull(result, 0, 13) || PQgetisnull(result, 0, 14) ||
+        PQgetisnull(result, 0, 15) || PQgetisnull(result, 0, 16) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 0),
+                        returned_registration_id) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 1), returned_user_id) ||
+        !uuid_is_valid(returned_registration_id) ||
+        !uuid_is_valid(returned_user_id) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 8), &source_matches) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 9), &tty_matches) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 10), &node_matches) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 12), &deleted) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 13), &auth_epoch) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 14), &authz_revision) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 15), &role_count) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 16), &expired) ||
+        auth_epoch == 0U || authz_revision == 0U) {
+        PQclear(result);
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration commit lookup returned an invalid record");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+
+    if (memcmp(returned_registration_id, registration->registration_id,
+               FTAP_UUID_SIZE) != 0 ||
+        memcmp(returned_user_id, registration->user_id,
+               FTAP_UUID_SIZE) != 0 ||
+        strcmp(PQgetvalue(result, 0, 2), registration->login_name) != 0 ||
+        strcmp(PQgetvalue(result, 0, 3), registration->display_name) != 0 ||
+        strcmp(PQgetvalue(result, 0, 4), registration->legacy_name) != 0 ||
+        strcmp(PQgetvalue(result, 0, 5), registration->legacy_name) != 0 ||
+        strcmp(PQgetvalue(result, 0, 6),
+               FTAP_REGISTRATION_STATE_PENDING_LEGACY) != 0 ||
+        strcmp(PQgetvalue(result, 0, 7), FTAP_PROTOCOL_TELNET) != 0 ||
+        !source_matches || !tty_matches || !node_matches ||
+        strcmp(PQgetvalue(result, 0, 11), "pending") != 0 ||
+        deleted || expired || role_count != 0U ||
+        auth_epoch != registration->auth_epoch ||
+        authz_revision != registration->authz_revision) {
+        PQclear(result);
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration state changed before commit");
+        return AUTHD_DATABASE_REGISTRATION_STALE_STATE;
+    }
+    PQclear(result);
+
+    parameters[0] = user_id_text;
+    result = PQexecParams(database->connection, role_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &role_id) ||
+        role_id == 0U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration bbs_user role grant failed");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    parameters[0] = user_id_text;
+    result = PQexecParams(database->connection, user_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 2 ||
+        PQgetisnull(result, 0, 0) || PQgetisnull(result, 0, 1) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &auth_epoch) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 1), &authz_revision) ||
+        auth_epoch != registration->auth_epoch ||
+        authz_revision != registration->authz_revision + 1U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration user activation failed");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    parameters[0] = registration_id_text;
+    parameters[1] = user_id_text;
+    result = PQexecParams(database->connection, attempt_sql, 2, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(
+            result, 0, 0, registration->registration_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration attempt completion failed");
+        return AUTHD_DATABASE_REGISTRATION_STALE_STATE;
+    }
+    PQclear(result);
+
+    (void)snprintf(auth_epoch_text, sizeof(auth_epoch_text), "%llu",
+                   (unsigned long long)auth_epoch);
+    parameters[0] = user_id_text;
+    parameters[1] = source_ip;
+    parameters[2] = tty_device;
+    parameters[3] = node_id;
+    parameters[4] = auth_epoch_text;
+    result = PQexecParams(database->connection, session_sql, 5, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 0),
+                        commit->session.session_id) ||
+        !uuid_is_valid(commit->session.session_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(commit, 0, sizeof(*commit));
+        set_error(error, error_size,
+                  "registration terminal session creation failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+    format_uuid_text(commit->session.session_id, session_id_text);
+    (void)snprintf(authz_revision_text, sizeof(authz_revision_text), "%llu",
+                   (unsigned long long)authz_revision);
+
+    parameters[0] = user_id_text;
+    parameters[1] = session_id_text;
+    parameters[2] = source_ip;
+    parameters[3] = registration_id_text;
+    parameters[4] = registration->login_name;
+    parameters[5] = registration->legacy_name;
+    parameters[6] = auth_epoch_text;
+    parameters[7] = authz_revision_text;
+    parameters[8] = tty_device;
+    parameters[9] = node_id;
+    result = PQexecParams(database->connection, registration_audit_sql, 10,
+                          NULL, parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &event_id) ||
+        event_id == 0U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(commit, 0, sizeof(*commit));
+        set_error(error, error_size,
+                  "registration completion audit failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    result = PQexecParams(database->connection, login_audit_sql, 10, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &event_id) ||
+        event_id == 0U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        memset(commit, 0, sizeof(*commit));
+        set_error(error, error_size,
+                  "registration login audit failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    if (!registration_transaction_command(database, "COMMIT",
+                                          "registration commit failed",
+                                          error, error_size)) {
+        registration_rollback(database);
+        memset(commit, 0, sizeof(*commit));
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+
+    memcpy(commit->registration_id, registration->registration_id,
+           FTAP_UUID_SIZE);
+    memcpy(commit->session.user_id, registration->user_id, FTAP_UUID_SIZE);
+    commit->session.auth_epoch = auth_epoch;
+    commit->session.authz_revision = authz_revision;
+    (void)snprintf(commit->login_name, sizeof(commit->login_name), "%s",
+                   registration->login_name);
+    (void)snprintf(commit->display_name, sizeof(commit->display_name), "%s",
+                   registration->display_name);
+    (void)snprintf(commit->legacy_name, sizeof(commit->legacy_name), "%s",
+                   registration->legacy_name);
+    return AUTHD_DATABASE_REGISTRATION_OK;
+}
+
+/*
+ * Abort one pending registration and remove every authentication-bearing
+ * child row while retaining the UUID identity and durable attempt history.
+ */
+authd_database_registration_result_t
+authd_database_abort_registration(
+    authd_database_t *database,
+    const uint8_t registration_id[FTAP_UUID_SIZE],
+    const uint8_t user_id[FTAP_UUID_SIZE],
+    const char *reason,
+    char *error,
+    size_t error_size)
+{
+    static const char lock_sql[] =
+        "SELECT r.registration_state, u.account_state, "
+        "CASE WHEN u.deleted_at IS NULL THEN '0' ELSE '1' END, "
+        "u.auth_epoch::pg_catalog.text "
+        "FROM public.bbs_registration_attempts AS r "
+        "JOIN public.bbs_users AS u ON u.user_id = r.user_id "
+        "WHERE r.registration_id = $1::pg_catalog.uuid "
+        "AND r.user_id = $2::pg_catalog.uuid "
+        "FOR UPDATE OF r, u";
+    static const char attempt_sql[] =
+        "UPDATE public.bbs_registration_attempts "
+        "SET registration_state = 'aborted', updated_at = CURRENT_TIMESTAMP, "
+        "completed_at = CURRENT_TIMESTAMP, failure_reason = $3::pg_catalog.text "
+        "WHERE registration_id = $1::pg_catalog.uuid "
+        "AND user_id = $2::pg_catalog.uuid "
+        "AND registration_state = 'pending_legacy' RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(registration_id), 'hex')";
+    static const char user_sql[] =
+        "UPDATE public.bbs_users SET account_state = 'deleted', "
+        "deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, "
+        "auth_epoch = auth_epoch + 1 "
+        "WHERE user_id = $1::pg_catalog.uuid "
+        "AND account_state = 'pending' AND deleted_at IS NULL RETURNING "
+        "auth_epoch::pg_catalog.text";
+    static const char role_delete_sql[] =
+        "DELETE FROM public.bbs_user_roles "
+        "WHERE user_id = $1::pg_catalog.uuid RETURNING role_id::pg_catalog.text";
+    static const char credential_delete_sql[] =
+        "DELETE FROM public.bbs_password_credentials "
+        "WHERE user_id = $1::pg_catalog.uuid RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex')";
+    static const char profile_delete_sql[] =
+        "DELETE FROM public.bbs_user_profiles "
+        "WHERE user_id = $1::pg_catalog.uuid RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex')";
+    static const char binding_delete_sql[] =
+        "DELETE FROM public.bbs_legacy_mbse_bindings "
+        "WHERE user_id = $1::pg_catalog.uuid RETURNING "
+        "pg_catalog.encode(pg_catalog.uuid_send(user_id), 'hex')";
+    static const char audit_sql[] =
+        "INSERT INTO public.bbs_audit_events "
+        "(actor_user_id, subject_user_id, event_type, detail) "
+        "VALUES ($1::pg_catalog.uuid, $1::pg_catalog.uuid, "
+        "'auth.registration_aborted', pg_catalog.jsonb_build_object("
+        "'registration_id', $2::pg_catalog.uuid, "
+        "'reason', $3::pg_catalog.text, 'protocol', 'telnet')) "
+        "RETURNING event_id::pg_catalog.text";
+    const char *parameters[3];
+    char registration_id_text[37];
+    char user_id_text[37];
+    PGresult *result;
+    uint64_t original_auth_epoch;
+    uint64_t updated_auth_epoch;
+    uint64_t event_id;
+    bool deleted;
+    int rows;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (database == NULL || database->connection == NULL ||
+        !uuid_is_valid(registration_id) || !uuid_is_valid(user_id) ||
+        !registration_reason_is_valid(reason)) {
+        set_error(error, error_size,
+                  "invalid registration abort arguments");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    if (!registration_transaction_command(database, "BEGIN",
+                                          "registration abort failed",
+                                          error, error_size)) {
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+
+    format_uuid_text(registration_id, registration_id_text);
+    format_uuid_text(user_id, user_id_text);
+    parameters[0] = registration_id_text;
+    parameters[1] = user_id_text;
+    result = PQexecParams(database->connection, lock_sql, 2, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 4) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort lookup failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    rows = PQntuples(result);
+    if (rows == 0) {
+        PQclear(result);
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_NOT_FOUND;
+    }
+    if (rows != 1 || PQgetisnull(result, 0, 0) ||
+        PQgetisnull(result, 0, 1) || PQgetisnull(result, 0, 2) ||
+        PQgetisnull(result, 0, 3) ||
+        !parse_boolean_digit(PQgetvalue(result, 0, 2), &deleted) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 3),
+                          &original_auth_epoch) ||
+        original_auth_epoch == 0U ||
+        original_auth_epoch >= (uint64_t)INT64_MAX) {
+        PQclear(result);
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort lookup returned an invalid record");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    if (strcmp(PQgetvalue(result, 0, 0),
+               FTAP_REGISTRATION_STATE_PENDING_LEGACY) != 0 ||
+        strcmp(PQgetvalue(result, 0, 1), "pending") != 0 || deleted) {
+        PQclear(result);
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_STALE_STATE;
+    }
+    PQclear(result);
+
+    parameters[0] = registration_id_text;
+    parameters[1] = user_id_text;
+    parameters[2] = reason;
+    result = PQexecParams(database->connection, attempt_sql, 3, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(result, 0, 0, registration_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_STALE_STATE;
+    }
+    PQclear(result);
+
+    parameters[0] = user_id_text;
+    result = PQexecParams(database->connection, user_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &updated_auth_epoch) ||
+        updated_auth_epoch != original_auth_epoch + 1U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort user deletion failed");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    result = PQexecParams(database->connection, role_delete_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQnfields(result) != 1) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort role cleanup failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    result = PQexecParams(database->connection, credential_delete_sql, 1,
+                          NULL, parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(result, 0, 0, user_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort credential cleanup failed");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    result = PQexecParams(database->connection, profile_delete_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(result, 0, 0, user_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort profile cleanup failed");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    result = PQexecParams(database->connection, binding_delete_sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        !registration_result_uuid_matches(result, 0, 0, user_id)) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort legacy cleanup failed");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_RECORD;
+    }
+    PQclear(result);
+
+    parameters[0] = user_id_text;
+    parameters[1] = registration_id_text;
+    parameters[2] = reason;
+    result = PQexecParams(database->connection, audit_sql, 3, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &event_id) ||
+        event_id == 0U) {
+        if (result != NULL) {
+            PQclear(result);
+        }
+        registration_rollback(database);
+        set_error(error, error_size,
+                  "registration abort audit failed");
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+
+    if (!registration_transaction_command(database, "COMMIT",
+                                          "registration abort failed",
+                                          error, error_size)) {
+        registration_rollback(database);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    return AUTHD_DATABASE_REGISTRATION_OK;
+}
+
+/*
+ * Expire a bounded batch with SKIP LOCKED so concurrent maintenance passes do
+ * not block each other.  Only structurally valid pending identities are
+ * selected; the attempt, logical deletion, credential cleanup, and audit are
+ * one PostgreSQL statement.
+ */
+authd_database_registration_result_t
+authd_database_expire_registrations(authd_database_t *database,
+                                    size_t batch_limit,
+                                    size_t *expired_count,
+                                    char *error,
+                                    size_t error_size)
+{
+    static const char sql[] =
+        "WITH expired AS MATERIALIZED ("
+        "SELECT r.registration_id, r.user_id "
+        "FROM public.bbs_registration_attempts AS r "
+        "JOIN public.bbs_users AS u ON u.user_id = r.user_id "
+        "WHERE r.registration_state = 'pending_legacy' "
+        "AND r.expires_at <= CURRENT_TIMESTAMP "
+        "AND u.account_state = 'pending' AND u.deleted_at IS NULL "
+        "ORDER BY r.expires_at, r.registration_id "
+        "FOR UPDATE OF r, u SKIP LOCKED LIMIT $1::pg_catalog.int4), "
+        "attempt_update AS ("
+        "UPDATE public.bbs_registration_attempts AS r SET "
+        "registration_state = 'failed', updated_at = CURRENT_TIMESTAMP, "
+        "completed_at = CURRENT_TIMESTAMP, "
+        "failure_reason = 'registration_timeout' "
+        "FROM expired AS e WHERE r.registration_id = e.registration_id "
+        "RETURNING r.registration_id, r.user_id), "
+        "user_update AS ("
+        "UPDATE public.bbs_users AS u SET account_state = 'deleted', "
+        "deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, "
+        "auth_epoch = auth_epoch + 1 FROM expired AS e "
+        "WHERE u.user_id = e.user_id RETURNING u.user_id), "
+        "role_delete AS ("
+        "DELETE FROM public.bbs_user_roles AS ur USING user_update AS u "
+        "WHERE ur.user_id = u.user_id RETURNING ur.user_id), "
+        "credential_delete AS ("
+        "DELETE FROM public.bbs_password_credentials AS c "
+        "USING user_update AS u WHERE c.user_id = u.user_id "
+        "RETURNING c.user_id), "
+        "profile_delete AS ("
+        "DELETE FROM public.bbs_user_profiles AS p USING user_update AS u "
+        "WHERE p.user_id = u.user_id RETURNING p.user_id), "
+        "binding_delete AS ("
+        "DELETE FROM public.bbs_legacy_mbse_bindings AS m "
+        "USING user_update AS u WHERE m.user_id = u.user_id "
+        "RETURNING m.user_id), "
+        "audit_insert AS ("
+        "INSERT INTO public.bbs_audit_events "
+        "(subject_user_id, event_type, detail) "
+        "SELECT a.user_id, 'auth.registration_failed', "
+        "pg_catalog.jsonb_build_object("
+        "'registration_id', a.registration_id, "
+        "'reason', 'registration_timeout', 'protocol', 'telnet') "
+        "FROM attempt_update AS a JOIN user_update AS u USING (user_id) "
+        "RETURNING event_id) "
+        "SELECT pg_catalog.count(*)::pg_catalog.text FROM audit_insert";
+    const char *parameters[1];
+    char limit_text[16];
+    PGresult *result;
+    uint64_t count;
+
+    if (error != NULL && error_size > 0U) {
+        error[0] = '\0';
+    }
+    if (expired_count != NULL) {
+        *expired_count = 0U;
+    }
+    if (database == NULL || database->connection == NULL ||
+        expired_count == NULL || batch_limit == 0U ||
+        batch_limit > AUTHD_REGISTRATION_MAX_PENDING ||
+        batch_limit > (size_t)INT_MAX) {
+        set_error(error, error_size,
+                  "invalid registration expiry arguments");
+        return AUTHD_DATABASE_REGISTRATION_INVALID_ARGUMENT;
+    }
+    if (PQstatus(database->connection) != CONNECTION_OK) {
+        copy_libpq_error(error, error_size,
+                         "database connection is unavailable",
+                         database->connection);
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+
+    (void)snprintf(limit_text, sizeof(limit_text), "%zu", batch_limit);
+    parameters[0] = limit_text;
+    result = PQexecParams(database->connection, sql, 1, NULL,
+                          parameters, NULL, NULL, 0);
+    if (result == NULL || PQresultStatus(result) != PGRES_TUPLES_OK ||
+        PQntuples(result) != 1 || PQnfields(result) != 1 ||
+        PQgetisnull(result, 0, 0) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 0), &count) ||
+        count > (uint64_t)SIZE_MAX || count > (uint64_t)batch_limit) {
+        if (result == NULL) {
+            copy_libpq_error(error, error_size,
+                             "registration expiry failed",
+                             database->connection);
+        } else {
+            copy_result_error(error, error_size,
+                              "registration expiry failed", result);
+            PQclear(result);
+        }
+        return AUTHD_DATABASE_REGISTRATION_ERROR;
+    }
+    PQclear(result);
+    *expired_count = (size_t)count;
+    return AUTHD_DATABASE_REGISTRATION_OK;
+}
+
 authd_login_availability_t
 authd_login_record_availability(const authd_login_record_t *record)
 {
@@ -1633,6 +2826,35 @@ authd_database_write_result_name(authd_database_write_result_t result)
     case AUTHD_DATABASE_WRITE_INVALID_RECORD:
         return "invalid_record";
     case AUTHD_DATABASE_WRITE_ERROR:
+        return "error";
+    default:
+        return "invalid";
+    }
+}
+
+/* Return stable names for registration lifecycle outcomes. */
+const char *
+authd_database_registration_result_name(
+    authd_database_registration_result_t result)
+{
+    switch (result) {
+    case AUTHD_DATABASE_REGISTRATION_OK:
+        return "ok";
+    case AUTHD_DATABASE_REGISTRATION_NAME_UNAVAILABLE:
+        return "name_unavailable";
+    case AUTHD_DATABASE_REGISTRATION_LEGACY_CONFLICT:
+        return "legacy_conflict";
+    case AUTHD_DATABASE_REGISTRATION_LIMIT_REACHED:
+        return "limit_reached";
+    case AUTHD_DATABASE_REGISTRATION_NOT_FOUND:
+        return "not_found";
+    case AUTHD_DATABASE_REGISTRATION_STALE_STATE:
+        return "stale_state";
+    case AUTHD_DATABASE_REGISTRATION_INVALID_ARGUMENT:
+        return "invalid_argument";
+    case AUTHD_DATABASE_REGISTRATION_INVALID_RECORD:
+        return "invalid_record";
+    case AUTHD_DATABASE_REGISTRATION_ERROR:
         return "error";
     default:
         return "invalid";

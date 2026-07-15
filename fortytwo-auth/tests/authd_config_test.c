@@ -34,6 +34,12 @@ test_defaults(void)
     assert(config.password_failure_threshold == 5U);
     assert(config.password_failure_window_seconds == 900U);
     assert(config.password_throttle_seconds == 900U);
+    assert(!config.registration_enabled);
+    assert(config.registration_min_password_bytes == 12U);
+    assert(config.registration_timeout_seconds == 600U);
+    assert(config.registration_max_pending == 16U);
+    assert(config.registration_ip_attempts == 3U);
+    assert(config.registration_ip_window_seconds == 900U);
     assert(strcmp(config.db_host, "/var/run/postgresql") == 0);
     assert(strcmp(config.db_name, "fortytwo") == 0);
     assert(config.db_port == 5432U);
@@ -63,6 +69,12 @@ test_complete_configuration(void)
         (char *)"--password-failure-threshold", (char *)"6",
         (char *)"--password-failure-window-seconds", (char *)"1200",
         (char *)"--password-throttle-seconds", (char *)"1800",
+        (char *)"--registration-enabled",
+        (char *)"--registration-min-password-bytes", (char *)"16",
+        (char *)"--registration-timeout-seconds", (char *)"1200",
+        (char *)"--registration-max-pending", (char *)"23",
+        (char *)"--registration-ip-attempts", (char *)"7",
+        (char *)"--registration-ip-window-seconds", (char *)"1800",
         (char *)"--db-host", (char *)"/run/postgresql-test",
         (char *)"--db-port", (char *)"5544",
         (char *)"--db-name", (char *)"fortytwo_test",
@@ -91,6 +103,12 @@ test_complete_configuration(void)
     assert(config.password_failure_threshold == 6U);
     assert(config.password_failure_window_seconds == 1200U);
     assert(config.password_throttle_seconds == 1800U);
+    assert(config.registration_enabled);
+    assert(config.registration_min_password_bytes == 16U);
+    assert(config.registration_timeout_seconds == 1200U);
+    assert(config.registration_max_pending == 23U);
+    assert(config.registration_ip_attempts == 7U);
+    assert(config.registration_ip_window_seconds == 1800U);
     assert(strcmp(config.db_host, "/run/postgresql-test") == 0);
     assert(config.db_port == 5544U);
     assert(strcmp(config.db_name, "fortytwo_test") == 0);
@@ -137,6 +155,24 @@ test_invalid_values(void)
     char *throttle_seconds[] = {
         (char *)"authd", (char *)"--password-throttle-seconds", (char *)"86401"
     };
+    char *registration_password[] = {
+        (char *)"authd", (char *)"--registration-min-password-bytes",
+        (char *)"11"
+    };
+    char *registration_timeout[] = {
+        (char *)"authd", (char *)"--registration-timeout-seconds",
+        (char *)"59"
+    };
+    char *registration_pending[] = {
+        (char *)"authd", (char *)"--registration-max-pending", (char *)"0"
+    };
+    char *registration_attempts[] = {
+        (char *)"authd", (char *)"--registration-ip-attempts", (char *)"0"
+    };
+    char *registration_window[] = {
+        (char *)"authd", (char *)"--registration-ip-window-seconds",
+        (char *)"86401"
+    };
     char *db_host[] = {(char *)"authd", (char *)"--db-host", (char *)"localhost"};
     char *db_port[] = {(char *)"authd", (char *)"--db-port", (char *)"0"};
     char *db_name[] = {(char *)"authd", (char *)"--db-name", (char *)"bad name"};
@@ -155,6 +191,11 @@ test_invalid_values(void)
     expect_error(3, failure_threshold, "between");
     expect_error(3, failure_window, "between");
     expect_error(3, throttle_seconds, "between");
+    expect_error(3, registration_password, "between");
+    expect_error(3, registration_timeout, "between");
+    expect_error(3, registration_pending, "between");
+    expect_error(3, registration_attempts, "between");
+    expect_error(3, registration_window, "between");
     expect_error(3, db_host, "absolute Unix-socket");
     expect_error(3, db_port, "between");
     expect_error(3, db_name, "ASCII letters");
@@ -188,6 +229,12 @@ test_printed_configuration(void)
     assert(strstr(usage, "--password-failure-threshold") != NULL);
     assert(strstr(usage, "--password-failure-window-seconds") != NULL);
     assert(strstr(usage, "--password-throttle-seconds") != NULL);
+    assert(strstr(usage, "--registration-enabled") != NULL);
+    assert(strstr(usage, "--registration-min-password-bytes") != NULL);
+    assert(strstr(usage, "--registration-timeout-seconds") != NULL);
+    assert(strstr(usage, "--registration-max-pending") != NULL);
+    assert(strstr(usage, "--registration-ip-attempts") != NULL);
+    assert(strstr(usage, "--registration-ip-window-seconds") != NULL);
     assert(strstr(usage, "--db-host") != NULL);
     assert(strstr(usage, "--check-database") != NULL);
 
@@ -202,6 +249,12 @@ test_printed_configuration(void)
     assert(strstr(effective, "password_failure_threshold=5") != NULL);
     assert(strstr(effective, "password_failure_window_seconds=900") != NULL);
     assert(strstr(effective, "password_throttle_seconds=900") != NULL);
+    assert(strstr(effective, "registration_enabled=no") != NULL);
+    assert(strstr(effective, "registration_min_password_bytes=12") != NULL);
+    assert(strstr(effective, "registration_timeout_seconds=600") != NULL);
+    assert(strstr(effective, "registration_max_pending=16") != NULL);
+    assert(strstr(effective, "registration_ip_attempts=3") != NULL);
+    assert(strstr(effective, "registration_ip_window_seconds=900") != NULL);
     assert(strstr(effective, "db_host=/var/run/postgresql") != NULL);
     assert(strstr(effective, "db_port=5432") != NULL);
     assert(strstr(effective, "db_name=fortytwo") != NULL);
@@ -216,11 +269,23 @@ test_help_and_version(void)
 {
     authd_config_t config;
     char error[256];
+    char *printed = NULL;
+    size_t printed_size = 0U;
+    FILE *stream;
     char *help[] = {(char *)"authd", (char *)"--help"};
     char *version[] = {(char *)"authd", (char *)"--version"};
 
     assert(parse_arguments(&config, 2, help, error) == AUTHD_CONFIG_HELP);
     assert(parse_arguments(&config, 2, version, error) == AUTHD_CONFIG_VERSION);
+
+    stream = open_memstream(&printed, &printed_size);
+    assert(stream != NULL);
+    authd_config_print_version(stream);
+    assert(fclose(stream) == 0);
+    assert(printed != NULL);
+    assert(strstr(printed, "fortytwo-authd 0.3.0") != NULL);
+    assert(strstr(printed, "FTAP 1.3") != NULL);
+    free(printed);
 }
 
 int

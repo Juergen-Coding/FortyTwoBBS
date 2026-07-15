@@ -10,6 +10,7 @@
 #include "authd_identity.h"
 #include "authd_password.h"
 #include "authd_peer.h"
+#include "authd_registration_limit.h"
 #include "authd_throttle.h"
 #include "authd_worker_pool.h"
 #include "ftap_codec.h"
@@ -38,6 +39,10 @@
 
 #define AUTHD_RESPONSE_BUFFER_SIZE 512U
 #define AUTHD_POLL_MAXIMUM_MS 1000
+#define AUTHD_LEGACY_RANDOM_ATTEMPTS 16U
+#define AUTHD_LEGACY_RANDOM_LENGTH 8U
+#define AUTHD_LEGACY_RANDOM_ALPHABET "abcdefghjkmnpqrstuvwxyz23456789"
+#define AUTHD_REGISTRATION_EXPIRY_BATCH 64U
 
 typedef struct authd_socket_identity {
     dev_t device;
@@ -63,6 +68,23 @@ typedef struct authd_login_attempt {
     authd_login_rejection_reason_t rejection_reason;
 } authd_login_attempt_t;
 
+typedef struct authd_registration_attempt {
+    bool active;
+    bool database_pending;
+    uint64_t request_id;
+    uint64_t worker_job_id;
+    char login_name[FTAP_LOGIN_NAME_MAX + 1U];
+    char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char protocol[FTAP_PROTOCOL_NAME_MAX + 1U];
+    char source_ip[FTAP_IP_ADDRESS_MAX + 1U];
+    char tty_device[FTAP_TTY_DEVICE_MAX + 1U];
+    char node_id[FTAP_NODE_ID_MAX + 1U];
+    bool tty_device_set;
+    bool node_id_set;
+    uint64_t deadline_ms;
+    authd_registration_begin_result_t record;
+} authd_registration_attempt_t;
+
 typedef struct authd_bound_session_context {
     char login_name[FTAP_LOGIN_NAME_MAX + 1U];
     char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
@@ -86,6 +108,7 @@ typedef struct authd_client {
     bool close_after_write;
     uint64_t hello_deadline_ms;
     authd_login_attempt_t login;
+    authd_registration_attempt_t registration;
     bool session_open;
     authd_terminal_session_result_t session;
     authd_bound_session_context_t session_context;
@@ -102,13 +125,17 @@ typedef struct authd_signal_state {
 } authd_signal_state_t;
 
 typedef struct authd_server_context {
+    const authd_config_t *config;
     authd_database_t *database;
     authd_worker_pool_t *worker_pool;
     authd_throttle_policy_t throttle_policy;
+    authd_registration_limiter_t registration_limiter;
     char dummy_password_hash[AUTHD_DATABASE_PASSWORD_HASH_MAX + 1U];
 } authd_server_context_t;
 
 static volatile sig_atomic_t signal_pipe_write_fd = -1;
+
+static int random_bytes(void *buffer, size_t size);
 
 static void
 authd_signal_handler(int signal_number)
@@ -413,6 +440,73 @@ login_attempt_clear(authd_login_attempt_t *attempt)
     }
 }
 
+static void
+registration_attempt_clear(authd_registration_attempt_t *attempt)
+{
+    if (attempt != NULL) {
+        authd_password_wipe(attempt, sizeof(*attempt));
+    }
+}
+
+/* Convert socket and daemon termination reasons into durable registration reasons. */
+static const char *
+registration_disconnect_reason(const char *ended_reason)
+{
+    if (ended_reason == NULL) {
+        return FTAP_REGISTRATION_REASON_INTERNAL_ERROR;
+    }
+    if (strcmp(ended_reason, "authd_shutdown") == 0) {
+        return FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN;
+    }
+    if (strcmp(ended_reason, "database_failure") == 0) {
+        return FTAP_REGISTRATION_REASON_DATABASE_FAILURE;
+    }
+    if (strcmp(ended_reason, "authd_failure") == 0) {
+        return FTAP_REGISTRATION_REASON_INTERNAL_ERROR;
+    }
+    if (strcmp(ended_reason, "peer_disconnected") == 0) {
+        return FTAP_REGISTRATION_REASON_CLIENT_DISCONNECTED;
+    }
+    if (strcmp(ended_reason, "registration_timeout") == 0) {
+        return FTAP_REGISTRATION_REASON_TIMEOUT;
+    }
+    return FTAP_REGISTRATION_REASON_INTERNAL_ERROR;
+}
+
+/*
+ * A registration that reached PostgreSQL is connection-bound. Any socket
+ * teardown before Commit or confirmed Abort must therefore release its pending
+ * identity best-effort; database expiry remains the fail-closed fallback.
+ */
+static void
+abort_registration_on_reset(authd_client_t *client,
+                            authd_database_t *database,
+                            const char *ended_reason)
+{
+    char error[AUTHD_DATABASE_ERROR_MAX];
+    authd_database_registration_result_t result;
+
+    if (client == NULL || !client->registration.active ||
+        !client->registration.database_pending || database == NULL) {
+        return;
+    }
+
+    result = authd_database_abort_registration(
+        database,
+        client->registration.record.registration_id,
+        client->registration.record.user_id,
+        registration_disconnect_reason(ended_reason),
+        error, sizeof(error));
+    if (result != AUTHD_DATABASE_REGISTRATION_OK &&
+        result != AUTHD_DATABASE_REGISTRATION_NOT_FOUND &&
+        result != AUTHD_DATABASE_REGISTRATION_STALE_STATE) {
+        (void)fprintf(stderr,
+                      "fortytwo-authd: registration cleanup failed: %s\n",
+                      error[0] != '\0' ? error :
+                      authd_database_registration_result_name(result));
+    }
+}
+
 /*
  * A database session lives exactly as long as its authenticated FTAP socket.
  * Cleanup is best-effort during fatal database failure, but every ordinary
@@ -429,6 +523,8 @@ client_reset(authd_client_t *client,
     if (client == NULL) {
         return;
     }
+
+    abort_registration_on_reset(client, database, ended_reason);
 
     if (client->session_open && database != NULL && ended_reason != NULL) {
         char error[AUTHD_DATABASE_ERROR_MAX];
@@ -454,6 +550,7 @@ client_reset(authd_client_t *client,
         free(client->input);
     }
     login_attempt_clear(&client->login);
+    registration_attempt_clear(&client->registration);
     authd_password_wipe(client->output, sizeof(client->output));
 
     connection_id = client->connection_id;
@@ -557,6 +654,10 @@ error_text(uint32_t error_code)
         return "authentication temporarily rate limited";
     case FTAP_ERR_DATABASE_UNAVAILABLE:
         return "database unavailable";
+    case FTAP_ERR_LOGIN_NAME_UNAVAILABLE:
+        return "login name unavailable";
+    case FTAP_ERR_PASSWORD_POLICY:
+        return "password does not satisfy registration policy";
     case FTAP_ERR_INTERNAL:
         return "internal service error";
     case FTAP_ERR_PROTOCOL:
@@ -972,6 +1073,346 @@ parse_password_request(const uint8_t *payload,
     return login_seen && password_seen && attempt->protocol[0] != '\0';
 }
 
+/* Parse one validated registration request without retaining payload pointers. */
+static bool
+parse_registration_begin_request(
+    const uint8_t *payload,
+    size_t payload_length,
+    authd_registration_attempt_t *attempt,
+    char password[AUTHD_PASSWORD_MAX_BUFFER_BYTES],
+    size_t *password_length)
+{
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    bool login_seen = false;
+    bool display_seen = false;
+    bool password_seen = false;
+    bool protocol_seen = false;
+    bool source_ip_seen = false;
+
+    memset(attempt, 0, sizeof(*attempt));
+    memset(password, 0, AUTHD_PASSWORD_MAX_BUFFER_BYTES);
+    *password_length = 0U;
+
+    status = ftap_tlv_reader_init(&reader, payload, payload_length);
+    if (status != FTAP_STATUS_OK) {
+        return false;
+    }
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            return false;
+        }
+
+        switch (field.type) {
+        case FTAP_FIELD_LOGIN_NAME:
+            if (!authd_login_name_canonicalize(
+                    (const char *)field.value, field.length,
+                    attempt->login_name)) {
+                return false;
+            }
+            login_seen = true;
+            break;
+        case FTAP_FIELD_DISPLAY_NAME:
+            if (!copy_field_text(&field, attempt->display_name,
+                                 sizeof(attempt->display_name))) {
+                return false;
+            }
+            display_seen = true;
+            break;
+        case FTAP_FIELD_PASSWORD:
+            if ((size_t)field.length > AUTHD_PASSWORD_MAX_BYTES) {
+                return false;
+            }
+            memcpy(password, field.value, field.length);
+            *password_length = field.length;
+            password_seen = true;
+            break;
+        case FTAP_FIELD_PROTOCOL:
+            if (!copy_field_text(&field, attempt->protocol,
+                                 sizeof(attempt->protocol))) {
+                return false;
+            }
+            protocol_seen = true;
+            break;
+        case FTAP_FIELD_SOURCE_IP:
+            if (!copy_field_text(&field, attempt->source_ip,
+                                 sizeof(attempt->source_ip))) {
+                return false;
+            }
+            source_ip_seen = true;
+            break;
+        case FTAP_FIELD_TTY_DEVICE:
+            if (!copy_field_text(&field, attempt->tty_device,
+                                 sizeof(attempt->tty_device))) {
+                return false;
+            }
+            attempt->tty_device_set = true;
+            break;
+        case FTAP_FIELD_NODE_ID:
+            if (!copy_field_text(&field, attempt->node_id,
+                                 sizeof(attempt->node_id))) {
+                return false;
+            }
+            attempt->node_id_set = true;
+            break;
+        case FTAP_FIELD_AUTH_METHOD:
+            break;
+        default:
+            return false;
+        }
+    }
+
+    return login_seen && display_seen && password_seen && protocol_seen &&
+           source_ip_seen;
+}
+
+static const char *
+registration_tty_device(const authd_registration_attempt_t *attempt)
+{
+    return attempt->tty_device_set ? attempt->tty_device : NULL;
+}
+
+static const char *
+registration_node_id(const authd_registration_attempt_t *attempt)
+{
+    return attempt->node_id_set ? attempt->node_id : NULL;
+}
+
+/* A canonical login name is also a legal direct legacy key when it fits. */
+static bool
+login_name_fits_legacy_key(const char *login_name)
+{
+    size_t length;
+
+    if (login_name == NULL) {
+        return false;
+    }
+    length = strlen(login_name);
+    return length > 0U && length <= FTAP_LEGACY_NAME_MAX;
+}
+
+/* Generate an unbiased eight-character compatibility key from secure bytes. */
+static int
+generate_random_legacy_name(char legacy_name[FTAP_LEGACY_NAME_MAX + 1U])
+{
+    static const char alphabet[] = AUTHD_LEGACY_RANDOM_ALPHABET;
+    const size_t alphabet_size = sizeof(alphabet) - 1U;
+    const unsigned int accepted_limit =
+        256U - (256U % (unsigned int)alphabet_size);
+    size_t produced = 0U;
+
+    while (produced < AUTHD_LEGACY_RANDOM_LENGTH) {
+        uint8_t random_buffer[32];
+        size_t index;
+
+        if (random_bytes(random_buffer, sizeof(random_buffer)) != 0) {
+            authd_password_wipe(random_buffer, sizeof(random_buffer));
+            return -1;
+        }
+        for (index = 0U; index < sizeof(random_buffer) &&
+                         produced < AUTHD_LEGACY_RANDOM_LENGTH; ++index) {
+            unsigned int value = random_buffer[index];
+            if (value >= accepted_limit) {
+                continue;
+            }
+            legacy_name[produced++] = alphabet[value % alphabet_size];
+        }
+        authd_password_wipe(random_buffer, sizeof(random_buffer));
+    }
+    legacy_name[produced] = '\0';
+    return 0;
+}
+
+static int
+queue_registration_begin_result(
+    authd_client_t *client,
+    uint64_t request_id,
+    const authd_registration_begin_result_t *registration)
+{
+    uint8_t payload[AUTHD_RESPONSE_BUFFER_SIZE - FTAP_FRAME_HEADER_SIZE];
+    ftap_tlv_writer_t writer;
+    ftap_status_t status;
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(
+            &writer, FTAP_FIELD_REGISTRATION_ID, 0,
+            registration->registration_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+            (const uint8_t *)FTAP_REGISTRATION_STATE_PENDING_LEGACY,
+            strlen(FTAP_REGISTRATION_STATE_PENDING_LEGACY),
+            FTAP_REGISTRATION_STATE_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(&writer, FTAP_FIELD_USER_ID, 0,
+                                          registration->user_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LOGIN_NAME, 0,
+            (const uint8_t *)registration->login_name,
+            strlen(registration->login_name), FTAP_LOGIN_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+            (const uint8_t *)registration->display_name,
+            strlen(registration->display_name), FTAP_DISPLAY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LEGACY_NAME, 0,
+            (const uint8_t *)registration->legacy_name,
+            strlen(registration->legacy_name), FTAP_LEGACY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_ACCOUNT_STATE, 0,
+            (const uint8_t *)FTAP_ACCOUNT_STATE_PENDING,
+            strlen(FTAP_ACCOUNT_STATE_PENDING), FTAP_ACCOUNT_STATE_MAX);
+    }
+    if (status != FTAP_STATUS_OK) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    return queue_frame(client, FTAP_MSG_REGISTRATION_BEGIN_RESULT,
+                       FTAP_FRAME_FLAG_RESPONSE, request_id,
+                       payload, writer.length, false);
+}
+
+static int
+queue_registration_abort_result(
+    authd_client_t *client,
+    uint64_t request_id,
+    const authd_registration_begin_result_t *registration)
+{
+    uint8_t payload[AUTHD_RESPONSE_BUFFER_SIZE - FTAP_FRAME_HEADER_SIZE];
+    ftap_tlv_writer_t writer;
+    ftap_status_t status;
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(
+            &writer, FTAP_FIELD_REGISTRATION_ID, 0,
+            registration->registration_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+            (const uint8_t *)FTAP_REGISTRATION_STATE_ABORTED,
+            strlen(FTAP_REGISTRATION_STATE_ABORTED),
+            FTAP_REGISTRATION_STATE_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(&writer, FTAP_FIELD_USER_ID, 0,
+                                          registration->user_id);
+    }
+    if (status != FTAP_STATUS_OK) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    return queue_frame(client, FTAP_MSG_REGISTRATION_ABORT_RESULT,
+                       FTAP_FRAME_FLAG_RESPONSE, request_id,
+                       payload, writer.length, false);
+}
+
+static int
+queue_registration_commit_result(
+    authd_client_t *client,
+    uint64_t request_id,
+    const authd_registration_commit_result_t *commit)
+{
+    uint8_t payload[AUTHD_RESPONSE_BUFFER_SIZE - FTAP_FRAME_HEADER_SIZE];
+    ftap_tlv_writer_t writer;
+    ftap_status_t status;
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(
+            &writer, FTAP_FIELD_REGISTRATION_ID, 0,
+            commit->registration_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+            (const uint8_t *)FTAP_REGISTRATION_STATE_COMPLETED,
+            strlen(FTAP_REGISTRATION_STATE_COMPLETED),
+            FTAP_REGISTRATION_STATE_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(&writer, FTAP_FIELD_USER_ID, 0,
+                                          commit->session.user_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(&writer, FTAP_FIELD_SESSION_ID, 0,
+                                          commit->session.session_id);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LOGIN_NAME, 0,
+            (const uint8_t *)commit->login_name,
+            strlen(commit->login_name), FTAP_LOGIN_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+            (const uint8_t *)commit->display_name,
+            strlen(commit->display_name), FTAP_DISPLAY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LEGACY_NAME, 0,
+            (const uint8_t *)commit->legacy_name,
+            strlen(commit->legacy_name), FTAP_LEGACY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_ACCOUNT_STATE, 0,
+            (const uint8_t *)FTAP_ACCOUNT_STATE_ACTIVE,
+            strlen(FTAP_ACCOUNT_STATE_ACTIVE), FTAP_ACCOUNT_STATE_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_PROTOCOL, 0,
+            (const uint8_t *)FTAP_PROTOCOL_TELNET,
+            strlen(FTAP_PROTOCOL_TELNET), FTAP_PROTOCOL_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_AUTH_METHOD, 0,
+            (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+            strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_u64(
+            &writer, FTAP_FIELD_AUTH_EPOCH, 0,
+            commit->session.auth_epoch);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_u64(
+            &writer, FTAP_FIELD_AUTHZ_REVISION, 0,
+            commit->session.authz_revision);
+    }
+    if (status != FTAP_STATUS_OK) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    return queue_frame(client, FTAP_MSG_REGISTRATION_COMMIT_RESULT,
+                       FTAP_FRAME_FLAG_RESPONSE, request_id,
+                       payload, writer.length, false);
+}
+
 /* Copy the optional protocol reason, otherwise use the normal logout reason. */
 static bool
 parse_session_close_reason(const uint8_t *payload,
@@ -1004,7 +1445,7 @@ parse_session_close_reason(const uint8_t *payload,
 }
 
 /*
- * SESSION_CLOSE has no response in FTAP 1.2. Close the database lifecycle
+ * SESSION_CLOSE has no response in FTAP 1.3. Close the database lifecycle
  * first, then let the event loop close the bound socket. A transient database
  * failure leaves the reason on the client so client_reset() can retry once.
  */
@@ -1102,7 +1543,7 @@ start_password_login(authd_client_t *client,
         availability = authd_login_record_availability(&attempt.record);
     }
 
-    /* Temporary account throttling is deliberately explicit in FTAP 1.2. */
+    /* Temporary account throttling is deliberately explicit in FTAP 1.3. */
     if (lookup_result == AUTHD_DATABASE_LOOKUP_OK &&
         availability == AUTHD_LOGIN_THROTTLED) {
         uint64_t retry_after_ms = attempt.record.retry_after_ms;
@@ -1142,7 +1583,7 @@ start_password_login(authd_client_t *client,
     token.connection_id = client->connection_id;
     token.connection_generation = client->connection_generation;
     token.request_id = header->request_id;
-    submit_result = authd_worker_pool_submit(
+    submit_result = authd_worker_pool_submit_verify(
         context->worker_pool, &token, verification_hash,
         password, password_length, sizeof(password), &job_id);
     if (submit_result != AUTHD_WORKER_SUBMIT_OK) {
@@ -1167,6 +1608,414 @@ start_password_login(authd_client_t *client,
     login_attempt_clear(&attempt);
     client->state = FTAP_STATE_AUTHENTICATING;
     return 0;
+}
+
+/* Start one bounded Argon2id generation job for a Telnet registration. */
+static int
+start_registration(authd_client_t *client,
+                   const ftap_frame_header_t *header,
+                   const uint8_t *payload,
+                   size_t payload_length,
+                   authd_server_context_t *context)
+{
+    authd_registration_attempt_t attempt;
+    authd_registration_limit_result_t limit_result;
+    authd_worker_token_t token;
+    authd_worker_submit_result_t submit_result;
+    char password[AUTHD_PASSWORD_MAX_BUFFER_BYTES];
+    size_t password_length = 0U;
+    uint32_t retry_after_seconds = 0U;
+    uint64_t now_ms;
+    uint64_t job_id = UINT64_C(0);
+
+    if (client->registration.active || client->login.active ||
+        client->state != FTAP_STATE_HELLO_COMPLETE) {
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id,
+                           FTAP_ERR_INVALID_STATE);
+    }
+    if (!context->config->registration_enabled) {
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id,
+                           FTAP_ERR_ACCESS_DENIED);
+    }
+    if (!parse_registration_begin_request(payload, payload_length, &attempt,
+                                          password, &password_length)) {
+        authd_password_wipe(password, sizeof(password));
+        registration_attempt_clear(&attempt);
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id, FTAP_ERR_PROTOCOL);
+    }
+    if (monotonic_milliseconds(&now_ms) != 0) {
+        authd_password_wipe(password, sizeof(password));
+        registration_attempt_clear(&attempt);
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id, FTAP_ERR_INTERNAL);
+    }
+
+    limit_result = authd_registration_limiter_record(
+        &context->registration_limiter, attempt.source_ip,
+        now_ms / UINT64_C(1000), &retry_after_seconds);
+    if (limit_result != AUTHD_REGISTRATION_LIMIT_ALLOWED) {
+        uint64_t retry_after_ms =
+            (uint64_t)retry_after_seconds * UINT64_C(1000);
+
+        authd_password_wipe(password, sizeof(password));
+        registration_attempt_clear(&attempt);
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error_with_retry(client, header->request_id,
+                                      FTAP_ERR_RATE_LIMITED,
+                                      retry_after_ms);
+    }
+    if (password_length < context->config->registration_min_password_bytes) {
+        authd_password_wipe(password, sizeof(password));
+        registration_attempt_clear(&attempt);
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id,
+                           FTAP_ERR_PASSWORD_POLICY);
+    }
+
+    memset(&token, 0, sizeof(token));
+    token.connection_id = client->connection_id;
+    token.connection_generation = client->connection_generation;
+    token.request_id = header->request_id;
+    submit_result = authd_worker_pool_submit_generate(
+        context->worker_pool, &token, password, password_length,
+        sizeof(password), &job_id);
+    if (submit_result != AUTHD_WORKER_SUBMIT_OK) {
+        registration_attempt_clear(&attempt);
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id, FTAP_ERR_INTERNAL);
+    }
+
+    attempt.active = true;
+    attempt.request_id = header->request_id;
+    attempt.worker_job_id = job_id;
+    client->registration = attempt;
+    registration_attempt_clear(&attempt);
+    client->state = FTAP_STATE_REGISTERING;
+    return 0;
+}
+
+/* Persist the generated PHC string and bind the returned pending identity. */
+static int
+complete_registration_hash(authd_client_t *client,
+                           const authd_worker_completion_t *completion,
+                           authd_server_context_t *context)
+{
+    authd_registration_attempt_t *attempt = &client->registration;
+    authd_database_registration_result_t result =
+        AUTHD_DATABASE_REGISTRATION_ERROR;
+    authd_registration_begin_result_t registration;
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
+    char error[AUTHD_DATABASE_ERROR_MAX];
+    bool direct_candidate;
+    size_t candidate_index;
+    uint64_t request_id = attempt->request_id;
+
+    if (completion->password_result != AUTHD_PASSWORD_OK ||
+        completion->encoded_hash[0] == '\0') {
+        registration_attempt_clear(attempt);
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, request_id, FTAP_ERR_INTERNAL);
+    }
+
+    direct_candidate = login_name_fits_legacy_key(attempt->login_name);
+    memset(&registration, 0, sizeof(registration));
+    memset(legacy_name, 0, sizeof(legacy_name));
+    for (candidate_index = 0U;
+         candidate_index < AUTHD_LEGACY_RANDOM_ATTEMPTS +
+                               (direct_candidate ? 1U : 0U);
+         ++candidate_index) {
+        if (candidate_index == 0U && direct_candidate) {
+            size_t login_length = strlen(attempt->login_name);
+
+            memcpy(legacy_name, attempt->login_name, login_length + 1U);
+        } else if (generate_random_legacy_name(legacy_name) != 0) {
+            result = AUTHD_DATABASE_REGISTRATION_ERROR;
+            (void)snprintf(error, sizeof(error), "%s",
+                           "secure legacy-name generation failed");
+            break;
+        }
+
+        result = authd_database_begin_registration(
+            context->database, attempt->login_name, attempt->display_name,
+            completion->encoded_hash, legacy_name, attempt->source_ip,
+            registration_tty_device(attempt), registration_node_id(attempt),
+            context->config->registration_timeout_seconds,
+            context->config->registration_max_pending,
+            &registration, error, sizeof(error));
+        if (result != AUTHD_DATABASE_REGISTRATION_LEGACY_CONFLICT) {
+            break;
+        }
+    }
+    authd_password_wipe(legacy_name, sizeof(legacy_name));
+
+    if (result == AUTHD_DATABASE_REGISTRATION_OK) {
+        uint64_t now_ms;
+
+        attempt->record = registration;
+        attempt->database_pending = true;
+        attempt->worker_job_id = UINT64_C(0);
+        if (monotonic_milliseconds(&now_ms) != 0 ||
+            UINT64_MAX - now_ms <
+                (uint64_t)context->config->registration_timeout_seconds *
+                    UINT64_C(1000)) {
+            char abort_error[AUTHD_DATABASE_ERROR_MAX];
+            authd_database_registration_result_t abort_result;
+
+            abort_result = authd_database_abort_registration(
+                context->database, registration.registration_id,
+                registration.user_id,
+                FTAP_REGISTRATION_REASON_INTERNAL_ERROR,
+                abort_error, sizeof(abort_error));
+            if (abort_result != AUTHD_DATABASE_REGISTRATION_OK &&
+                abort_result != AUTHD_DATABASE_REGISTRATION_NOT_FOUND &&
+                abort_result != AUTHD_DATABASE_REGISTRATION_STALE_STATE) {
+                (void)fprintf(
+                    stderr,
+                    "fortytwo-authd: registration deadline cleanup failed: %s\n",
+                    abort_error[0] != '\0' ? abort_error :
+                    authd_database_registration_result_name(abort_result));
+            }
+            registration_attempt_clear(attempt);
+            client->state = FTAP_STATE_CLOSING;
+            return queue_error(client, request_id, FTAP_ERR_INTERNAL);
+        }
+        attempt->deadline_ms =
+            now_ms +
+            (uint64_t)context->config->registration_timeout_seconds *
+                UINT64_C(1000);
+        if (queue_registration_begin_result(client, request_id,
+                                            &registration) != 0) {
+            return -1;
+        }
+        client->state = FTAP_STATE_REGISTERING;
+        return 0;
+    }
+
+    registration_attempt_clear(attempt);
+    client->state = FTAP_STATE_CLOSING;
+    if (result == AUTHD_DATABASE_REGISTRATION_NAME_UNAVAILABLE) {
+        return queue_error(client, request_id,
+                           FTAP_ERR_LOGIN_NAME_UNAVAILABLE);
+    }
+    if (result == AUTHD_DATABASE_REGISTRATION_LIMIT_REACHED) {
+        return queue_error(client, request_id, FTAP_ERR_RATE_LIMITED);
+    }
+    if (result == AUTHD_DATABASE_REGISTRATION_ERROR) {
+        (void)fprintf(stderr,
+                      "fortytwo-authd: registration begin failed: %s\n",
+                      error[0] != '\0' ? error :
+                      authd_database_registration_result_name(result));
+        return queue_error(client, request_id,
+                           FTAP_ERR_DATABASE_UNAVAILABLE);
+    }
+    if (result == AUTHD_DATABASE_REGISTRATION_LEGACY_CONFLICT) {
+        (void)fprintf(stderr,
+                      "fortytwo-authd: legacy-name collision retry limit exhausted\n");
+    } else {
+        (void)fprintf(
+            stderr, "fortytwo-authd: unexpected registration begin result: %s\n",
+            authd_database_registration_result_name(result));
+    }
+    return queue_error(client, request_id, FTAP_ERR_INTERNAL);
+}
+
+static bool
+parse_registration_id(const uint8_t *payload,
+                      size_t payload_length,
+                      uint8_t registration_id[FTAP_UUID_SIZE],
+                      char reason[FTAP_REGISTRATION_REASON_MAX + 1U],
+                      bool *reason_set)
+{
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    bool id_seen = false;
+
+    memset(registration_id, 0, FTAP_UUID_SIZE);
+    if (reason != NULL) {
+        reason[0] = '\0';
+    }
+    if (reason_set != NULL) {
+        *reason_set = false;
+    }
+    status = ftap_tlv_reader_init(&reader, payload, payload_length);
+    if (status != FTAP_STATUS_OK) {
+        return false;
+    }
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            return false;
+        }
+        if (field.type == FTAP_FIELD_REGISTRATION_ID) {
+            if (ftap_tlv_get_uuid(&field, registration_id) != FTAP_STATUS_OK) {
+                return false;
+            }
+            id_seen = true;
+        } else if (field.type == FTAP_FIELD_REGISTRATION_REASON &&
+                   reason != NULL && reason_set != NULL) {
+            if (!copy_field_text(&field, reason,
+                                 FTAP_REGISTRATION_REASON_MAX + 1U)) {
+                return false;
+            }
+            *reason_set = true;
+        } else {
+            return false;
+        }
+    }
+    return id_seen;
+}
+
+/* Commit only the exact registration snapshot bound to this socket. */
+static int
+commit_registration(authd_client_t *client,
+                    const ftap_frame_header_t *header,
+                    const uint8_t *payload,
+                    size_t payload_length,
+                    authd_server_context_t *context)
+{
+    authd_registration_commit_result_t commit;
+    authd_database_registration_result_t result;
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    char error[AUTHD_DATABASE_ERROR_MAX];
+
+    if (!client->registration.active ||
+        !client->registration.database_pending ||
+        !parse_registration_id(payload, payload_length, registration_id,
+                               NULL, NULL) ||
+        memcmp(registration_id,
+               client->registration.record.registration_id,
+               FTAP_UUID_SIZE) != 0) {
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id,
+                           FTAP_ERR_INVALID_STATE);
+    }
+
+    memset(&commit, 0, sizeof(commit));
+    result = authd_database_commit_registration(
+        context->database, &client->registration.record,
+        client->registration.source_ip,
+        registration_tty_device(&client->registration),
+        registration_node_id(&client->registration),
+        &commit, error, sizeof(error));
+    if (result != AUTHD_DATABASE_REGISTRATION_OK) {
+        client->state = FTAP_STATE_CLOSING;
+        if (result == AUTHD_DATABASE_REGISTRATION_ERROR) {
+            (void)fprintf(stderr,
+                          "fortytwo-authd: registration commit failed: %s\n",
+                          error[0] != '\0' ? error :
+                          authd_database_registration_result_name(result));
+            return queue_error(client, header->request_id,
+                               FTAP_ERR_DATABASE_UNAVAILABLE);
+        }
+        if (result == AUTHD_DATABASE_REGISTRATION_NOT_FOUND ||
+            result == AUTHD_DATABASE_REGISTRATION_STALE_STATE) {
+            return queue_error(client, header->request_id,
+                               FTAP_ERR_ACCOUNT_UNAVAILABLE);
+        }
+        (void)fprintf(
+            stderr, "fortytwo-authd: unexpected registration commit result: %s\n",
+            authd_database_registration_result_name(result));
+        return queue_error(client, header->request_id, FTAP_ERR_INTERNAL);
+    }
+
+    client->session = commit.session;
+    client->session_open = true;
+    (void)snprintf(client->session_context.login_name,
+                   sizeof(client->session_context.login_name), "%s",
+                   commit.login_name);
+    (void)snprintf(client->session_context.display_name,
+                   sizeof(client->session_context.display_name), "%s",
+                   commit.display_name);
+    (void)snprintf(client->session_context.legacy_name,
+                   sizeof(client->session_context.legacy_name), "%s",
+                   commit.legacy_name);
+    (void)snprintf(client->session_context.protocol,
+                   sizeof(client->session_context.protocol), "%s",
+                   FTAP_PROTOCOL_TELNET);
+    (void)snprintf(client->session_context.auth_method,
+                   sizeof(client->session_context.auth_method), "%s",
+                   FTAP_AUTH_METHOD_PASSWORD);
+    registration_attempt_clear(&client->registration);
+    client->state = FTAP_STATE_SESSION_BOUND;
+    if (queue_registration_commit_result(client, header->request_id,
+                                         &commit) != 0) {
+        (void)snprintf(client->pending_end_reason,
+                       sizeof(client->pending_end_reason), "%s",
+                       "registration_commit_response_failed");
+        return -1;
+    }
+    return 0;
+}
+
+/* Abort one bound pending identity and return the socket to HELLO_COMPLETE. */
+static int
+abort_registration(authd_client_t *client,
+                   const ftap_frame_header_t *header,
+                   const uint8_t *payload,
+                   size_t payload_length,
+                   authd_server_context_t *context)
+{
+    authd_registration_begin_result_t registration;
+    authd_database_registration_result_t result;
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    char reason[FTAP_REGISTRATION_REASON_MAX + 1U];
+    bool reason_set = false;
+    char error[AUTHD_DATABASE_ERROR_MAX];
+
+    if (!client->registration.active ||
+        !client->registration.database_pending ||
+        !parse_registration_id(payload, payload_length, registration_id,
+                               reason, &reason_set) ||
+        memcmp(registration_id,
+               client->registration.record.registration_id,
+               FTAP_UUID_SIZE) != 0) {
+        authd_password_wipe(reason, sizeof(reason));
+        client->state = FTAP_STATE_CLOSING;
+        return queue_error(client, header->request_id,
+                           FTAP_ERR_INVALID_STATE);
+    }
+    if (!reason_set) {
+        (void)snprintf(reason, sizeof(reason), "%s",
+                       FTAP_REGISTRATION_REASON_CLIENT_CANCELLED);
+    }
+
+    registration = client->registration.record;
+    result = authd_database_abort_registration(
+        context->database, registration.registration_id,
+        registration.user_id, reason, error, sizeof(error));
+    authd_password_wipe(reason, sizeof(reason));
+    if (result != AUTHD_DATABASE_REGISTRATION_OK) {
+        client->state = FTAP_STATE_CLOSING;
+        if (result == AUTHD_DATABASE_REGISTRATION_ERROR) {
+            (void)fprintf(stderr,
+                          "fortytwo-authd: registration abort failed: %s\n",
+                          error[0] != '\0' ? error :
+                          authd_database_registration_result_name(result));
+            return queue_error(client, header->request_id,
+                               FTAP_ERR_DATABASE_UNAVAILABLE);
+        }
+        if (result == AUTHD_DATABASE_REGISTRATION_NOT_FOUND ||
+            result == AUTHD_DATABASE_REGISTRATION_STALE_STATE) {
+            return queue_error(client, header->request_id,
+                               FTAP_ERR_ACCOUNT_UNAVAILABLE);
+        }
+        (void)fprintf(
+            stderr, "fortytwo-authd: unexpected registration abort result: %s\n",
+            authd_database_registration_result_name(result));
+        return queue_error(client, header->request_id, FTAP_ERR_INTERNAL);
+    }
+
+    registration_attempt_clear(&client->registration);
+    client->state = FTAP_STATE_HELLO_COMPLETE;
+    return queue_registration_abort_result(client, header->request_id,
+                                            &registration);
 }
 
 static int
@@ -1309,24 +2158,41 @@ process_worker_completions(authd_client_t *clients,
 
     while (authd_worker_pool_take_completion(context->worker_pool,
                                               &completion)) {
-        authd_client_t *client;
+        authd_client_t *client = NULL;
+        bool reset_client = false;
         size_t slot;
 
         if (completion.token.connection_id == 0U ||
             completion.token.connection_id > client_count) {
+            authd_worker_completion_clear(&completion);
             continue;
         }
         slot = (size_t)(completion.token.connection_id - UINT64_C(1));
         client = &clients[slot];
-        if (client->fd < 0 || !client->login.active ||
-            client->connection_generation !=
-                completion.token.connection_generation ||
-            client->login.request_id != completion.token.request_id ||
-            client->login.worker_job_id != completion.job_id) {
-            continue;
+        if (client->fd >= 0 &&
+            client->connection_generation ==
+                completion.token.connection_generation) {
+            if (completion.job_type == AUTHD_WORKER_JOB_VERIFY_PASSWORD &&
+                client->login.active &&
+                client->login.request_id == completion.token.request_id &&
+                client->login.worker_job_id == completion.job_id) {
+                reset_client =
+                    complete_password_login(client, &completion, context) != 0;
+            } else if (
+                completion.job_type ==
+                    AUTHD_WORKER_JOB_GENERATE_PASSWORD_HASH &&
+                client->registration.active &&
+                !client->registration.database_pending &&
+                client->registration.request_id ==
+                    completion.token.request_id &&
+                client->registration.worker_job_id == completion.job_id) {
+                reset_client = complete_registration_hash(
+                                   client, &completion, context) != 0;
+            }
         }
 
-        if (complete_password_login(client, &completion, context) != 0) {
+        authd_worker_completion_clear(&completion);
+        if (reset_client) {
             client_reset(client, context->database, "auth_response_failed");
         }
     }
@@ -1373,6 +2239,18 @@ handle_complete_frame(authd_client_t *client,
     if (header->message_type == FTAP_MSG_AUTH_PASSWORD_REQUEST) {
         return start_password_login(client, header, payload,
                                     payload_length, context);
+    }
+    if (header->message_type == FTAP_MSG_REGISTRATION_BEGIN_REQUEST) {
+        return start_registration(client, header, payload,
+                                  payload_length, context);
+    }
+    if (header->message_type == FTAP_MSG_REGISTRATION_COMMIT_REQUEST) {
+        return commit_registration(client, header, payload,
+                                   payload_length, context);
+    }
+    if (header->message_type == FTAP_MSG_REGISTRATION_ABORT_REQUEST) {
+        return abort_registration(client, header, payload,
+                                  payload_length, context);
     }
     if (header->message_type == FTAP_MSG_SESSION_CONTEXT_REQUEST &&
         client->state == FTAP_STATE_SESSION_BOUND) {
@@ -1464,8 +2342,11 @@ process_client_input(authd_client_t *client,
                 (size_t)header.payload_length, context) != 0) {
             return -1;
         }
-        consume_input(client, frame_size,
-                      header.message_type == FTAP_MSG_AUTH_PASSWORD_REQUEST);
+        consume_input(
+            client, frame_size,
+            header.message_type == FTAP_MSG_AUTH_PASSWORD_REQUEST ||
+                header.message_type ==
+                    FTAP_MSG_REGISTRATION_BEGIN_REQUEST);
     }
 }
 
@@ -1629,6 +2510,12 @@ compute_poll_timeout(const authd_client_t *clients,
             clients[index].hello_deadline_ms < nearest) {
             nearest = clients[index].hello_deadline_ms;
         }
+        if (clients[index].fd >= 0 &&
+            clients[index].registration.active &&
+            clients[index].registration.database_pending &&
+            clients[index].registration.deadline_ms < nearest) {
+            nearest = clients[index].registration.deadline_ms;
+        }
     }
 
     if (nearest == UINT64_MAX) {
@@ -1659,6 +2546,45 @@ expire_hello_deadlines(authd_client_t *clients,
             log_peer(config, "HELLO timeout", &clients[index].peer);
             client_reset(&clients[index], database, "hello_timeout");
         }
+    }
+}
+
+/* Fail an actively bound pending registration at its local deadline. */
+static void
+expire_registration_deadlines(authd_client_t *clients,
+                              size_t client_count,
+                              uint64_t now_ms,
+                              authd_database_t *database)
+{
+    size_t index;
+
+    for (index = 0U; index < client_count; ++index) {
+        authd_client_t *client = &clients[index];
+        char error[AUTHD_DATABASE_ERROR_MAX];
+        authd_database_registration_result_t result;
+
+        if (client->fd < 0 || !client->registration.active ||
+            !client->registration.database_pending ||
+            client->registration.deadline_ms > now_ms) {
+            continue;
+        }
+        result = authd_database_abort_registration(
+            database, client->registration.record.registration_id,
+            client->registration.record.user_id,
+            FTAP_REGISTRATION_REASON_TIMEOUT,
+            error, sizeof(error));
+        if (result != AUTHD_DATABASE_REGISTRATION_OK &&
+            result != AUTHD_DATABASE_REGISTRATION_NOT_FOUND &&
+            result != AUTHD_DATABASE_REGISTRATION_STALE_STATE) {
+            (void)fprintf(stderr,
+                          "fortytwo-authd: registration timeout cleanup failed: %s\n",
+                          error[0] != '\0' ? error :
+                          authd_database_registration_result_name(result));
+        } else {
+            registration_attempt_clear(&client->registration);
+        }
+        client->state = FTAP_STATE_CLOSING;
+        client_reset(client, database, "registration_timeout");
     }
 }
 
@@ -1786,6 +2712,7 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
     int result = -1;
     int failure_errno = 0;
     bool stopping = false;
+    const char *failure_end_reason = "authd_failure";
     uint64_t next_database_health_ms = 0U;
     size_t index;
 
@@ -1798,7 +2725,17 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
         config->password_queue_capacity < AUTHD_WORKER_MIN_CAPACITY ||
         config->password_queue_capacity > AUTHD_WORKER_MAX_CAPACITY ||
         config->db_health_interval_ms < AUTHD_DB_MIN_HEALTH_INTERVAL_MS ||
-        config->db_health_interval_ms > AUTHD_DB_MAX_HEALTH_INTERVAL_MS) {
+        config->db_health_interval_ms > AUTHD_DB_MAX_HEALTH_INTERVAL_MS ||
+        config->registration_min_password_bytes <
+            AUTHD_REGISTRATION_MIN_PASSWORD_BYTES ||
+        config->registration_min_password_bytes >
+            AUTHD_REGISTRATION_MAX_PASSWORD_BYTES ||
+        config->registration_timeout_seconds <
+            AUTHD_REGISTRATION_MIN_TIMEOUT_SECONDS ||
+        config->registration_timeout_seconds >
+            AUTHD_REGISTRATION_MAX_TIMEOUT_SECONDS ||
+        config->registration_max_pending < AUTHD_REGISTRATION_MIN_PENDING ||
+        config->registration_max_pending > AUTHD_REGISTRATION_MAX_PENDING) {
         errno = EINVAL;
         return -1;
     }
@@ -1808,6 +2745,7 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
     signals.write_fd = -1;
     memset(&socket_identity, 0, sizeof(socket_identity));
     memset(&context, 0, sizeof(context));
+    context.config = config;
     context.database = database;
     context.throttle_policy.failure_threshold =
         config->password_failure_threshold;
@@ -1818,6 +2756,18 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
     if (!authd_throttle_policy_is_valid(&context.throttle_policy)) {
         failure_errno = EINVAL;
         goto cleanup;
+    }
+    {
+        authd_registration_limit_policy_t registration_policy;
+
+        registration_policy.attempts = config->registration_ip_attempts;
+        registration_policy.window_seconds =
+            config->registration_ip_window_seconds;
+        if (!authd_registration_limiter_init(
+                &context.registration_limiter, &registration_policy)) {
+            failure_errno = EINVAL;
+            goto cleanup;
+        }
     }
 
     authd_password_policy_defaults(&password_policy);
@@ -1839,6 +2789,24 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
             (void)fprintf(stderr,
                           "fortytwo-authd: worker pool startup failed: %s\n",
                           worker_error);
+            failure_errno = EIO;
+            goto cleanup;
+        }
+    }
+
+    {
+        size_t expired_count = 0U;
+        char registration_error[AUTHD_DATABASE_ERROR_MAX];
+        authd_database_registration_result_t expire_result;
+
+        expire_result = authd_database_expire_registrations(
+            database, AUTHD_REGISTRATION_EXPIRY_BATCH, &expired_count,
+            registration_error, sizeof(registration_error));
+        if (expire_result != AUTHD_DATABASE_REGISTRATION_OK) {
+            (void)fprintf(stderr,
+                          "fortytwo-authd: registration expiry startup failed: %s\n",
+                          registration_error[0] != '\0' ? registration_error :
+                          authd_database_registration_result_name(expire_result));
             failure_errno = EIO;
             goto cleanup;
         }
@@ -1901,7 +2869,27 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
                               "fortytwo-authd: database unavailable: %s\n",
                               database_error);
                 failure_errno = EIO;
+                failure_end_reason = "database_failure";
                 goto cleanup;
+            }
+            {
+                size_t expired_count = 0U;
+                authd_database_registration_result_t expire_result;
+
+                expire_result = authd_database_expire_registrations(
+                    database, AUTHD_REGISTRATION_EXPIRY_BATCH,
+                    &expired_count, database_error,
+                    sizeof(database_error));
+                if (expire_result != AUTHD_DATABASE_REGISTRATION_OK) {
+                    (void)fprintf(
+                        stderr,
+                        "fortytwo-authd: registration expiry failed: %s\n",
+                        database_error[0] != '\0' ? database_error :
+                        authd_database_registration_result_name(expire_result));
+                    failure_errno = EIO;
+                    failure_end_reason = "database_failure";
+                    goto cleanup;
+                }
             }
             if (UINT64_MAX - now_ms <
                 (uint64_t)config->db_health_interval_ms) {
@@ -1913,6 +2901,8 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
         }
         expire_hello_deadlines(clients, config->max_clients,
                                now_ms, config, database);
+        expire_registration_deadlines(clients, config->max_clients,
+                                      now_ms, database);
 
         poll_fds[poll_count].fd = signals.read_fd;
         poll_fds[poll_count].events = POLLIN;
@@ -2022,7 +3012,6 @@ authd_server_run(const authd_config_t *config, authd_database_t *database)
             }
         }
 
-
         /* Socket close/error events win over stale worker completions. */
         if ((poll_fds[2].revents & POLLIN) != 0) {
             process_worker_completions(clients, config->max_clients,
@@ -2042,12 +3031,14 @@ cleanup:
     }
     if (clients != NULL) {
         for (index = 0U; index < config->max_clients; ++index) {
-            client_reset(&clients[index], database,
-                         result == 0 ? "authd_shutdown" : "authd_failure");
+            client_reset(
+                &clients[index], database,
+                result == 0 ? "authd_shutdown" : failure_end_reason);
         }
     }
     authd_worker_pool_destroy(context.worker_pool);
     context.worker_pool = NULL;
+    authd_registration_limiter_clear(&context.registration_limiter);
     authd_password_wipe(context.dummy_password_hash,
                         sizeof(context.dummy_password_hash));
     if (listener >= 0) {

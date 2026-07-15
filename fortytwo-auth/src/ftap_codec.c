@@ -164,6 +164,12 @@ ftap_message_type_is_known(uint16_t message_type)
     case FTAP_MSG_SESSION_REVOKED:
     case FTAP_MSG_TOKEN_CONTEXT_REQUEST:
     case FTAP_MSG_TOKEN_CONTEXT_RESULT:
+    case FTAP_MSG_REGISTRATION_BEGIN_REQUEST:
+    case FTAP_MSG_REGISTRATION_BEGIN_RESULT:
+    case FTAP_MSG_REGISTRATION_COMMIT_REQUEST:
+    case FTAP_MSG_REGISTRATION_COMMIT_RESULT:
+    case FTAP_MSG_REGISTRATION_ABORT_REQUEST:
+    case FTAP_MSG_REGISTRATION_ABORT_RESULT:
         return true;
     default:
         return false;
@@ -204,6 +210,9 @@ ftap_field_type_is_known(uint16_t field_type)
     case FTAP_FIELD_RETRY_AFTER_MS:
     case FTAP_FIELD_ACCESS_TOKEN:
     case FTAP_FIELD_API_SESSION_ID:
+    case FTAP_FIELD_REGISTRATION_ID:
+    case FTAP_FIELD_REGISTRATION_STATE:
+    case FTAP_FIELD_REGISTRATION_REASON:
         return true;
     default:
         return false;

@@ -804,6 +804,13 @@ test_parallel_hello_clients(const char *socket_path)
         assert(receive_frame(clients[index], &response) == 0);
         assert(response.header.message_type == FTAP_MSG_HELLO_OK);
         assert(response.header.request_id == UINT64_C(100) + index);
+
+        /*
+         * Wait until the daemon has observed EOF and reclaimed the slot.
+         * A local close alone can race with the next capacity-sensitive test.
+         */
+        assert(shutdown(clients[index], SHUT_WR) == 0);
+        expect_connection_closed(clients[index], TEST_TIMEOUT_MS);
         assert(close(clients[index]) == 0);
     }
 }

@@ -48,6 +48,11 @@ static const authd_migration_record_t required_migrations[] = {
         UINT32_C(8),
         "0008_transport_capabilities.sql",
         "59fd903315fa67bbeb5d6357c4aa48b1d0d29a396d3b54598768368f267fe4b2"
+    },
+    {
+        UINT32_C(9),
+        "0009_telnet_registration.sql",
+        "e6a2c4f44460de538e6d6846bae333228793c539776ed6112d06993e4a060547"
     }
 };
 

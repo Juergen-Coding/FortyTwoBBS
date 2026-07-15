@@ -74,6 +74,58 @@ static const ftap_field_rule_t auth_password_result_rules[] = {
     RULE_REPEATABLE(FTAP_FIELD_CAPABILITY)
 };
 
+static const ftap_field_rule_t registration_begin_request_rules[] = {
+    RULE_REQUIRED(FTAP_FIELD_LOGIN_NAME),
+    RULE_REQUIRED(FTAP_FIELD_DISPLAY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_PASSWORD),
+    RULE_REQUIRED(FTAP_FIELD_PROTOCOL),
+    RULE_REQUIRED(FTAP_FIELD_SOURCE_IP),
+    RULE_OPTIONAL(FTAP_FIELD_TTY_DEVICE),
+    RULE_OPTIONAL(FTAP_FIELD_NODE_ID),
+    RULE_REQUIRED(FTAP_FIELD_AUTH_METHOD)
+};
+
+static const ftap_field_rule_t registration_begin_result_rules[] = {
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_ID),
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_STATE),
+    RULE_REQUIRED(FTAP_FIELD_USER_ID),
+    RULE_REQUIRED(FTAP_FIELD_LOGIN_NAME),
+    RULE_REQUIRED(FTAP_FIELD_DISPLAY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_LEGACY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_ACCOUNT_STATE)
+};
+
+static const ftap_field_rule_t registration_commit_request_rules[] = {
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_ID)
+};
+
+static const ftap_field_rule_t registration_commit_result_rules[] = {
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_ID),
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_STATE),
+    RULE_REQUIRED(FTAP_FIELD_USER_ID),
+    RULE_REQUIRED(FTAP_FIELD_SESSION_ID),
+    RULE_REQUIRED(FTAP_FIELD_LOGIN_NAME),
+    RULE_REQUIRED(FTAP_FIELD_DISPLAY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_LEGACY_NAME),
+    RULE_REQUIRED(FTAP_FIELD_ACCOUNT_STATE),
+    RULE_REQUIRED(FTAP_FIELD_PROTOCOL),
+    RULE_REQUIRED(FTAP_FIELD_AUTH_METHOD),
+    RULE_REQUIRED(FTAP_FIELD_AUTH_EPOCH),
+    RULE_REQUIRED(FTAP_FIELD_AUTHZ_REVISION),
+    RULE_REPEATABLE(FTAP_FIELD_CAPABILITY)
+};
+
+static const ftap_field_rule_t registration_abort_request_rules[] = {
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_ID),
+    RULE_OPTIONAL(FTAP_FIELD_REGISTRATION_REASON)
+};
+
+static const ftap_field_rule_t registration_abort_result_rules[] = {
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_ID),
+    RULE_REQUIRED(FTAP_FIELD_REGISTRATION_STATE),
+    RULE_REQUIRED(FTAP_FIELD_USER_ID)
+};
+
 static const ftap_field_rule_t session_context_result_rules[] = {
     RULE_REQUIRED(FTAP_FIELD_USER_ID),
     RULE_REQUIRED(FTAP_FIELD_SESSION_ID),
@@ -136,6 +188,12 @@ ASSERT_RULE_COUNT(error_rules);
 ASSERT_RULE_COUNT(service_bind_request_rules);
 ASSERT_RULE_COUNT(auth_password_request_rules);
 ASSERT_RULE_COUNT(auth_password_result_rules);
+ASSERT_RULE_COUNT(registration_begin_request_rules);
+ASSERT_RULE_COUNT(registration_begin_result_rules);
+ASSERT_RULE_COUNT(registration_commit_request_rules);
+ASSERT_RULE_COUNT(registration_commit_result_rules);
+ASSERT_RULE_COUNT(registration_abort_request_rules);
+ASSERT_RULE_COUNT(registration_abort_result_rules);
 ASSERT_RULE_COUNT(session_context_result_rules);
 ASSERT_RULE_COUNT(session_authz_changed_rules);
 ASSERT_RULE_COUNT(session_authz_check_request_rules);
@@ -242,6 +300,70 @@ validate_legacy_name(const ftap_tlv_t *field)
     return FTAP_STATUS_OK;
 }
 
+/* Registration display names are UTF-8 text, not terminal control data. */
+static ftap_status_t
+validate_registration_display_name(const ftap_tlv_t *field)
+{
+    size_t i;
+    ftap_status_t status;
+
+    status = validate_text(field, FTAP_DISPLAY_NAME_MAX, false);
+    if (status != FTAP_STATUS_OK) {
+        return status;
+    }
+    if (field->value[0] == (uint8_t)' ' ||
+        field->value[field->length - 1U] == (uint8_t)' ') {
+        return FTAP_STATUS_ERR_INVALID_VALUE;
+    }
+
+    for (i = 0U; i < field->length; ++i) {
+        uint8_t character = field->value[i];
+
+        if (character <= UINT8_C(0x1f) || character == UINT8_C(0x7f)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+        if (character == UINT8_C(0xc2) && i + 1U < field->length &&
+            field->value[i + 1U] >= UINT8_C(0x80) &&
+            field->value[i + 1U] <= UINT8_C(0x9f)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+    }
+
+    return FTAP_STATUS_OK;
+}
+
+static ftap_status_t
+validate_account_state(const ftap_tlv_t *field)
+{
+    ftap_status_t status;
+
+    status = validate_text(field, FTAP_ACCOUNT_STATE_MAX, false);
+    if (status != FTAP_STATUS_OK) {
+        return status;
+    }
+    return text_equals(field, FTAP_ACCOUNT_STATE_PENDING) ||
+           text_equals(field, FTAP_ACCOUNT_STATE_ACTIVE)
+               ? FTAP_STATUS_OK
+               : FTAP_STATUS_ERR_INVALID_VALUE;
+}
+
+static ftap_status_t
+validate_registration_state(const ftap_tlv_t *field)
+{
+    ftap_status_t status;
+
+    status = validate_text(field, FTAP_REGISTRATION_STATE_MAX, false);
+    if (status != FTAP_STATUS_OK) {
+        return status;
+    }
+    return text_equals(field, FTAP_REGISTRATION_STATE_PENDING_LEGACY) ||
+           text_equals(field, FTAP_REGISTRATION_STATE_COMPLETED) ||
+           text_equals(field, FTAP_REGISTRATION_STATE_ABORTED) ||
+           text_equals(field, FTAP_REGISTRATION_STATE_FAILED)
+               ? FTAP_STATUS_OK
+               : FTAP_STATUS_ERR_INVALID_VALUE;
+}
+
 static ftap_status_t
 validate_reason(const ftap_tlv_t *field, size_t maximum)
 {
@@ -264,6 +386,26 @@ validate_reason(const ftap_tlv_t *field, size_t maximum)
     }
 
     return FTAP_STATUS_OK;
+}
+
+static ftap_status_t
+validate_registration_reason(const ftap_tlv_t *field)
+{
+    ftap_status_t status;
+
+    status = validate_reason(field, FTAP_REGISTRATION_REASON_MAX);
+    if (status != FTAP_STATUS_OK) {
+        return status;
+    }
+    return text_equals(field, FTAP_REGISTRATION_REASON_CLIENT_CANCELLED) ||
+           text_equals(field, FTAP_REGISTRATION_REASON_CLIENT_DISCONNECTED) ||
+           text_equals(field, FTAP_REGISTRATION_REASON_LEGACY_WRITE_FAILED) ||
+           text_equals(field, FTAP_REGISTRATION_REASON_TIMEOUT) ||
+           text_equals(field, FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN) ||
+           text_equals(field, FTAP_REGISTRATION_REASON_DATABASE_FAILURE) ||
+           text_equals(field, FTAP_REGISTRATION_REASON_INTERNAL_ERROR)
+               ? FTAP_STATUS_OK
+               : FTAP_STATUS_ERR_INVALID_VALUE;
 }
 
 static ftap_status_t
@@ -362,9 +504,12 @@ validate_field_value(const ftap_tlv_t *field)
     case FTAP_FIELD_USER_ID:
     case FTAP_FIELD_SESSION_ID:
     case FTAP_FIELD_API_SESSION_ID:
+    case FTAP_FIELD_REGISTRATION_ID:
         return ftap_tlv_get_uuid(field, uuid);
     case FTAP_FIELD_DISPLAY_NAME:
         return validate_text(field, FTAP_DISPLAY_NAME_MAX, false);
+    case FTAP_FIELD_ACCOUNT_STATE:
+        return validate_account_state(field);
     case FTAP_FIELD_LEGACY_NAME:
         return validate_legacy_name(field);
     case FTAP_FIELD_AUTH_EPOCH:
@@ -382,13 +527,17 @@ validate_field_value(const ftap_tlv_t *field)
         return validate_reason(field, FTAP_ENDED_REASON_MAX);
     case FTAP_FIELD_REVOKE_REASON:
         return validate_reason(field, FTAP_REVOKE_REASON_MAX);
+    case FTAP_FIELD_REGISTRATION_STATE:
+        return validate_registration_state(field);
+    case FTAP_FIELD_REGISTRATION_REASON:
+        return validate_registration_reason(field);
     case FTAP_FIELD_ERROR_CODE:
         status = ftap_tlv_get_u32(field, &u32_value);
         if (status != FTAP_STATUS_OK) {
             return status;
         }
         return (u32_value >= FTAP_ERR_PROTOCOL &&
-                u32_value <= FTAP_ERR_INTERNAL)
+                u32_value <= FTAP_ERR_PASSWORD_POLICY)
                    ? FTAP_STATUS_OK
                    : FTAP_STATUS_ERR_INVALID_VALUE;
     case FTAP_FIELD_ERROR_TEXT:
@@ -403,6 +552,69 @@ validate_field_value(const ftap_tlv_t *field)
     default:
         return FTAP_STATUS_ERR_UNSUPPORTED_FIELD;
     }
+}
+
+/* Apply constraints that depend on the containing registration message. */
+static ftap_status_t
+validate_message_field_value(uint16_t message_type, const ftap_tlv_t *field)
+{
+    ftap_status_t status;
+
+    status = validate_field_value(field);
+    if (status != FTAP_STATUS_OK) {
+        return status;
+    }
+
+    if (message_type == FTAP_MSG_REGISTRATION_BEGIN_REQUEST) {
+        if (field->type == FTAP_FIELD_DISPLAY_NAME) {
+            return validate_registration_display_name(field);
+        }
+        if (field->type == FTAP_FIELD_PROTOCOL &&
+            !text_equals(field, FTAP_PROTOCOL_TELNET)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+    }
+
+    if (message_type == FTAP_MSG_REGISTRATION_BEGIN_RESULT) {
+        if (field->type == FTAP_FIELD_REGISTRATION_STATE &&
+            !text_equals(field, FTAP_REGISTRATION_STATE_PENDING_LEGACY)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+        if (field->type == FTAP_FIELD_ACCOUNT_STATE &&
+            !text_equals(field, FTAP_ACCOUNT_STATE_PENDING)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+    }
+
+    if (message_type == FTAP_MSG_REGISTRATION_COMMIT_RESULT) {
+        if (field->type == FTAP_FIELD_REGISTRATION_STATE &&
+            !text_equals(field, FTAP_REGISTRATION_STATE_COMPLETED)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+        if (field->type == FTAP_FIELD_ACCOUNT_STATE &&
+            !text_equals(field, FTAP_ACCOUNT_STATE_ACTIVE)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+        if (field->type == FTAP_FIELD_PROTOCOL &&
+            !text_equals(field, FTAP_PROTOCOL_TELNET)) {
+            return FTAP_STATUS_ERR_INVALID_VALUE;
+        }
+    }
+
+    if (message_type == FTAP_MSG_REGISTRATION_ABORT_REQUEST &&
+        field->type == FTAP_FIELD_REGISTRATION_REASON &&
+        !text_equals(field, FTAP_REGISTRATION_REASON_CLIENT_CANCELLED) &&
+        !text_equals(field, FTAP_REGISTRATION_REASON_LEGACY_WRITE_FAILED)) {
+        return FTAP_STATUS_ERR_INVALID_VALUE;
+    }
+
+    if (message_type == FTAP_MSG_REGISTRATION_ABORT_RESULT &&
+        field->type == FTAP_FIELD_REGISTRATION_STATE &&
+        !text_equals(field, FTAP_REGISTRATION_STATE_ABORTED)) {
+        return FTAP_STATUS_ERR_INVALID_VALUE;
+    }
+
+    return FTAP_STATUS_OK;
 }
 
 static ftap_status_t
@@ -421,6 +633,9 @@ expected_flags(uint16_t message_type, uint16_t *flags)
     case FTAP_MSG_AUTHZ_CHECK_REQUEST:
     case FTAP_MSG_SESSION_CLOSE:
     case FTAP_MSG_TOKEN_CONTEXT_REQUEST:
+    case FTAP_MSG_REGISTRATION_BEGIN_REQUEST:
+    case FTAP_MSG_REGISTRATION_COMMIT_REQUEST:
+    case FTAP_MSG_REGISTRATION_ABORT_REQUEST:
         *flags = 0;
         return FTAP_STATUS_OK;
     case FTAP_MSG_HELLO_OK:
@@ -429,6 +644,9 @@ expected_flags(uint16_t message_type, uint16_t *flags)
     case FTAP_MSG_SESSION_CONTEXT_RESULT:
     case FTAP_MSG_AUTHZ_CHECK_RESULT:
     case FTAP_MSG_TOKEN_CONTEXT_RESULT:
+    case FTAP_MSG_REGISTRATION_BEGIN_RESULT:
+    case FTAP_MSG_REGISTRATION_COMMIT_RESULT:
+    case FTAP_MSG_REGISTRATION_ABORT_RESULT:
         *flags = FTAP_FRAME_FLAG_RESPONSE;
         return FTAP_STATUS_OK;
     case FTAP_MSG_ERROR:
@@ -462,6 +680,14 @@ state_allows_message(ftap_connection_state_t state, uint16_t message_type)
     case FTAP_MSG_AUTH_PASSWORD_RESULT:
         return state == FTAP_STATE_HELLO_COMPLETE ||
                state == FTAP_STATE_AUTHENTICATING;
+    case FTAP_MSG_REGISTRATION_BEGIN_REQUEST:
+        return state == FTAP_STATE_HELLO_COMPLETE;
+    case FTAP_MSG_REGISTRATION_BEGIN_RESULT:
+    case FTAP_MSG_REGISTRATION_COMMIT_REQUEST:
+    case FTAP_MSG_REGISTRATION_COMMIT_RESULT:
+    case FTAP_MSG_REGISTRATION_ABORT_REQUEST:
+    case FTAP_MSG_REGISTRATION_ABORT_RESULT:
+        return state == FTAP_STATE_REGISTERING;
     case FTAP_MSG_SESSION_CONTEXT_REQUEST:
     case FTAP_MSG_SESSION_CONTEXT_RESULT:
     case FTAP_MSG_SESSION_HEARTBEAT:
@@ -518,6 +744,30 @@ message_schema(ftap_connection_state_t state,
     case FTAP_MSG_AUTH_PASSWORD_RESULT:
         schema->rules = auth_password_result_rules;
         schema->rule_count = ARRAY_COUNT(auth_password_result_rules);
+        break;
+    case FTAP_MSG_REGISTRATION_BEGIN_REQUEST:
+        schema->rules = registration_begin_request_rules;
+        schema->rule_count = ARRAY_COUNT(registration_begin_request_rules);
+        break;
+    case FTAP_MSG_REGISTRATION_BEGIN_RESULT:
+        schema->rules = registration_begin_result_rules;
+        schema->rule_count = ARRAY_COUNT(registration_begin_result_rules);
+        break;
+    case FTAP_MSG_REGISTRATION_COMMIT_REQUEST:
+        schema->rules = registration_commit_request_rules;
+        schema->rule_count = ARRAY_COUNT(registration_commit_request_rules);
+        break;
+    case FTAP_MSG_REGISTRATION_COMMIT_RESULT:
+        schema->rules = registration_commit_result_rules;
+        schema->rule_count = ARRAY_COUNT(registration_commit_result_rules);
+        break;
+    case FTAP_MSG_REGISTRATION_ABORT_REQUEST:
+        schema->rules = registration_abort_request_rules;
+        schema->rule_count = ARRAY_COUNT(registration_abort_request_rules);
+        break;
+    case FTAP_MSG_REGISTRATION_ABORT_RESULT:
+        schema->rules = registration_abort_result_rules;
+        schema->rule_count = ARRAY_COUNT(registration_abort_result_rules);
         break;
     case FTAP_MSG_SESSION_CONTEXT_RESULT:
         schema->rules = session_context_result_rules;
@@ -702,7 +952,7 @@ ftap_validate_message(ftap_connection_state_t state,
             return FTAP_STATUS_ERR_DUPLICATE_FIELD;
         }
 
-        status = validate_field_value(&field);
+        status = validate_message_field_value(header->message_type, &field);
         if (status != FTAP_STATUS_OK) {
             set_error(error, status, header->message_type, field.type);
             return status;

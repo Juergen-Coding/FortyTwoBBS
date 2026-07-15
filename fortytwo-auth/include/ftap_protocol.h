@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * FortyTwo Authentication Protocol (FTAP)
- * Wire constants for FTAP 1.2 (document revision 1.4).
+ * Wire constants for FTAP 1.3 (document revision 1.5).
  *
  * Source of truth:
  *   fortytwo-auth/protocol/FTAP-1.md
@@ -25,7 +25,7 @@
 /* Wire identification and version. */
 #define FTAP_MAGIC_U32                    UINT32_C(0x46544150) /* "FTAP" */
 #define FTAP_VERSION_MAJOR                UINT16_C(1)
-#define FTAP_VERSION_MINOR                UINT16_C(2)
+#define FTAP_VERSION_MINOR                UINT16_C(3)
 
 /* Fixed wire sizes and offsets. */
 #define FTAP_FRAME_HEADER_SIZE            UINT32_C(24)
@@ -49,7 +49,7 @@
 #define FTAP_SERVER_PUSH_REQUEST_ID       UINT64_C(0)
 #define FTAP_FIRST_CLIENT_REQUEST_ID       UINT64_C(1)
 
-/* Text and byte-string limits from FTAP 1.2. */
+/* Text and byte-string limits from FTAP 1.3. */
 #define FTAP_LOGIN_NAME_MAX               UINT32_C(32)
 #define FTAP_DISPLAY_NAME_MAX             UINT32_C(64)
 #define FTAP_LEGACY_NAME_MAX               UINT32_C(8)
@@ -67,11 +67,13 @@
 #define FTAP_RESOURCE_ID_MAX              UINT32_C(128)
 #define FTAP_ENDED_REASON_MAX             UINT32_C(64)
 #define FTAP_REVOKE_REASON_MAX            UINT32_C(64)
+#define FTAP_REGISTRATION_STATE_MAX       UINT32_C(24)
+#define FTAP_REGISTRATION_REASON_MAX      UINT32_C(64)
 #define FTAP_ERROR_TEXT_MAX               UINT32_C(256)
 #define FTAP_PASSWORD_MAX                 UINT32_C(1024)
 #define FTAP_ACCESS_TOKEN_MAX             UINT32_C(512)
 
-/* Normative string values for FTAP 1.2. */
+/* Normative string values for FTAP 1.3. */
 #define FTAP_PROTOCOL_TELNET              "telnet"
 #define FTAP_PROTOCOL_SSH                 "ssh"
 #define FTAP_PROTOCOL_LOCAL               "local"
@@ -79,6 +81,29 @@
 #define FTAP_AUTH_METHOD_PASSWORD         "password"
 
 #define FTAP_SERVICE_FORTYTWO_API         "fortytwo-api"
+
+#define FTAP_ACCOUNT_STATE_PENDING        "pending"
+#define FTAP_ACCOUNT_STATE_ACTIVE         "active"
+
+#define FTAP_REGISTRATION_STATE_PENDING_LEGACY  "pending_legacy"
+#define FTAP_REGISTRATION_STATE_COMPLETED       "completed"
+#define FTAP_REGISTRATION_STATE_ABORTED         "aborted"
+#define FTAP_REGISTRATION_STATE_FAILED          "failed"
+
+#define FTAP_REGISTRATION_REASON_CLIENT_CANCELLED \
+    "client_cancelled"
+#define FTAP_REGISTRATION_REASON_CLIENT_DISCONNECTED \
+    "client_disconnected"
+#define FTAP_REGISTRATION_REASON_LEGACY_WRITE_FAILED \
+    "legacy_write_failed"
+#define FTAP_REGISTRATION_REASON_TIMEOUT \
+    "registration_timeout"
+#define FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN \
+    "daemon_shutdown"
+#define FTAP_REGISTRATION_REASON_DATABASE_FAILURE \
+    "database_failure"
+#define FTAP_REGISTRATION_REASON_INTERNAL_ERROR \
+    "internal_error"
 
 /*
  * Frame flags.
@@ -110,6 +135,7 @@ typedef enum ftap_field_flag {
 typedef enum ftap_connection_state {
     FTAP_STATE_CONNECTED = 0,
     FTAP_STATE_HELLO_COMPLETE,
+    FTAP_STATE_REGISTERING,
     FTAP_STATE_AUTHENTICATING,
     FTAP_STATE_SESSION_BOUND,
     FTAP_STATE_SERVICE_BOUND,
@@ -139,7 +165,14 @@ typedef enum ftap_message_type {
     FTAP_MSG_SESSION_REVOKED          = 131,
 
     FTAP_MSG_TOKEN_CONTEXT_REQUEST    = 140,
-    FTAP_MSG_TOKEN_CONTEXT_RESULT     = 141
+    FTAP_MSG_TOKEN_CONTEXT_RESULT     = 141,
+
+    FTAP_MSG_REGISTRATION_BEGIN_REQUEST  = 150,
+    FTAP_MSG_REGISTRATION_BEGIN_RESULT   = 151,
+    FTAP_MSG_REGISTRATION_COMMIT_REQUEST = 152,
+    FTAP_MSG_REGISTRATION_COMMIT_RESULT  = 153,
+    FTAP_MSG_REGISTRATION_ABORT_REQUEST  = 154,
+    FTAP_MSG_REGISTRATION_ABORT_RESULT   = 155
 } ftap_message_type_t;
 
 /* FTAP TLV field types. */
@@ -179,7 +212,11 @@ typedef enum ftap_field_type {
     FTAP_FIELD_RETRY_AFTER_MS     = 52,
 
     FTAP_FIELD_ACCESS_TOKEN       = 60,
-    FTAP_FIELD_API_SESSION_ID     = 61
+    FTAP_FIELD_API_SESSION_ID     = 61,
+
+    FTAP_FIELD_REGISTRATION_ID     = 62,
+    FTAP_FIELD_REGISTRATION_STATE  = 63,
+    FTAP_FIELD_REGISTRATION_REASON = 64
 } ftap_field_type_t;
 
 /* FTAP protocol error codes. */
@@ -195,7 +232,9 @@ typedef enum ftap_error_code {
     FTAP_ERR_RATE_LIMITED          = 9,
     FTAP_ERR_SESSION_REVOKED       = 10,
     FTAP_ERR_DATABASE_UNAVAILABLE  = 11,
-    FTAP_ERR_INTERNAL              = 12
+    FTAP_ERR_INTERNAL              = 12,
+    FTAP_ERR_LOGIN_NAME_UNAVAILABLE = 13,
+    FTAP_ERR_PASSWORD_POLICY        = 14
 } ftap_error_code_t;
 
 #endif /* FORTYTWO_FTAP_PROTOCOL_H */

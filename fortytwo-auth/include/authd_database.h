@@ -82,6 +82,36 @@ typedef struct authd_terminal_session_result {
     uint64_t authz_revision;
 } authd_terminal_session_result_t;
 
+typedef enum authd_database_registration_result {
+    AUTHD_DATABASE_REGISTRATION_OK = 0,
+    AUTHD_DATABASE_REGISTRATION_NAME_UNAVAILABLE,
+    AUTHD_DATABASE_REGISTRATION_LEGACY_CONFLICT,
+    AUTHD_DATABASE_REGISTRATION_LIMIT_REACHED,
+    AUTHD_DATABASE_REGISTRATION_NOT_FOUND,
+    AUTHD_DATABASE_REGISTRATION_STALE_STATE,
+    AUTHD_DATABASE_REGISTRATION_INVALID_ARGUMENT,
+    AUTHD_DATABASE_REGISTRATION_INVALID_RECORD,
+    AUTHD_DATABASE_REGISTRATION_ERROR
+} authd_database_registration_result_t;
+
+typedef struct authd_registration_begin_result {
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    uint8_t user_id[FTAP_UUID_SIZE];
+    char login_name[FTAP_LOGIN_NAME_MAX + 1U];
+    char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
+    uint64_t auth_epoch;
+    uint64_t authz_revision;
+} authd_registration_begin_result_t;
+
+typedef struct authd_registration_commit_result {
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    authd_terminal_session_result_t session;
+    char login_name[FTAP_LOGIN_NAME_MAX + 1U];
+    char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
+} authd_registration_commit_result_t;
+
 typedef enum authd_login_availability {
     AUTHD_LOGIN_AVAILABLE = 0,
     AUTHD_LOGIN_PENDING,
@@ -148,6 +178,46 @@ authd_database_write_result_t authd_database_close_terminal_session(
     char *error,
     size_t error_size);
 
+authd_database_registration_result_t authd_database_begin_registration(
+    authd_database_t *database,
+    const char *canonical_login_name,
+    const char *display_name,
+    const char *password_hash,
+    const char *legacy_name,
+    const char *source_ip,
+    const char *tty_device,
+    const char *node_id,
+    uint32_t timeout_seconds,
+    size_t max_pending,
+    authd_registration_begin_result_t *registration,
+    char *error,
+    size_t error_size);
+
+authd_database_registration_result_t authd_database_commit_registration(
+    authd_database_t *database,
+    const authd_registration_begin_result_t *registration,
+    const char *source_ip,
+    const char *tty_device,
+    const char *node_id,
+    authd_registration_commit_result_t *commit,
+    char *error,
+    size_t error_size);
+
+authd_database_registration_result_t authd_database_abort_registration(
+    authd_database_t *database,
+    const uint8_t registration_id[FTAP_UUID_SIZE],
+    const uint8_t user_id[FTAP_UUID_SIZE],
+    const char *reason,
+    char *error,
+    size_t error_size);
+
+authd_database_registration_result_t authd_database_expire_registrations(
+    authd_database_t *database,
+    size_t batch_limit,
+    size_t *expired_count,
+    char *error,
+    size_t error_size);
+
 authd_login_availability_t authd_login_record_availability(
     const authd_login_record_t *record);
 
@@ -158,6 +228,8 @@ const char *authd_login_availability_name(
     authd_login_availability_t availability);
 const char *authd_database_write_result_name(
     authd_database_write_result_t result);
+const char *authd_database_registration_result_name(
+    authd_database_registration_result_t result);
 
 void authd_database_close(authd_database_t *database);
 

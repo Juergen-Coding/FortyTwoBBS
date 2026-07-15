@@ -1,10 +1,19 @@
 # FortyTwo Authentication Protocol – FTAP/1
 
 Status: Interne Protokollspezifikation
-Dokumentrevision: 1.4
-Wire-Version: FTAP 1.2
+Dokumentrevision: 1.5
+Wire-Version: FTAP 1.3
 Transport: lokaler Unix-Domain-Socket
 Standardpfad: `/run/fortytwo/auth.sock`
+
+Dokumentrevision 1.5 ergänzt die verbindungsgebundene Telnet-Registrierung:
+
+- den Zustand `REGISTERING`;
+- Begin, Commit und bestätigten Abort;
+- serverseitig erzeugte Registrierungs-, Benutzer- und Legacy-Identitäten;
+- ein nicht anmeldbares Pending-Konto vor der MBSE-Provisionierung;
+- Aktivierung und erste Telnet-Sitzung erst beim Commit;
+- registrierungsspezifische Fehler ohne Offenlegung fremder Profildaten.
 
 Dokumentrevision 1.4 ergänzt für den MBSE-Sitzungsbootstrap:
 
@@ -95,7 +104,7 @@ Für das Wire-Format dieser Spezifikation gilt:
 
 ```text
 Major-Version: 1
-Minor-Version: 1
+Minor-Version: 3
 ```
 
 Die Dokumentrevision ist davon unabhängig. Reine Klarstellungen und
@@ -246,13 +255,16 @@ Nicht zulässig sind:
 | Ressourcenkennung            | 128 Byte |
 | Sitzungsende-Grund           | 64 Byte |
 | Widerrufsgrund               | 64 Byte |
+| Registrierungszustand        | 24 Byte |
+| Registrierungsgrund          | 64 Byte |
 | Fehlertext                   | 256 Byte |
 | Passwort                     | 1024 Byte |
 | Opakes Access-Token          | 512 Byte |
 
 Der Empfänger prüft alle Längen vor einer Speicherreservierung oder Kopie.
 
-`ENDED_REASON` und `REVOKE_REASON` sind maschinenlesbare Kennungen. Zulässig
+`ENDED_REASON`, `REVOKE_REASON` und `REGISTRATION_REASON` sind
+maschinenlesbare Kennungen. Zulässig
 sind 1 bis 64 ASCII-Byte. Das erste Zeichen muss ein Kleinbuchstabe sein; die
 folgenden Zeichen dürfen Kleinbuchstaben, Ziffern, Punkt, Bindestrich oder
 Unterstrich sein. Beispiele:
@@ -265,7 +277,7 @@ authd_shutdown
 protocol_error
 ```
 
-Freitext oder eine lokalisierte Erklärung gehört nicht in diese beiden Felder.
+Freitext oder eine lokalisierte Erklärung gehört nicht in diese Felder.
 
 ## 8. Verbindungszustände
 
@@ -274,6 +286,7 @@ Eine FTAP-Verbindung befindet sich immer in genau einem Zustand:
 ```text
 CONNECTED
 HELLO_COMPLETE
+REGISTERING
 AUTHENTICATING
 SESSION_BOUND
 SERVICE_BOUND
@@ -283,12 +296,20 @@ CLOSING
 Erlaubte Übergänge:
 
 ```text
-Terminalverbindung:
+Terminalverbindung mit Anmeldung:
 
 CONNECTED
     -> HELLO_COMPLETE
     -> AUTHENTICATING
     -> SESSION_BOUND
+    -> CLOSING
+
+Telnet-Registrierung:
+
+CONNECTED
+    -> HELLO_COMPLETE
+    -> REGISTERING
+    -> SESSION_BOUND oder HELLO_COMPLETE
     -> CLOSING
 
 Vertrauenswürdige Dienstverbindung:
@@ -351,6 +372,17 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 140  | TOKEN_CONTEXT_REQUEST |
 | 141  | TOKEN_CONTEXT_RESULT  |
 
+### 9.7 Registrierung
+
+| Wert | Name                        |
+|-----:|-----------------------------|
+| 150  | REGISTRATION_BEGIN_REQUEST  |
+| 151  | REGISTRATION_BEGIN_RESULT   |
+| 152  | REGISTRATION_COMMIT_REQUEST |
+| 153  | REGISTRATION_COMMIT_RESULT  |
+| 154  | REGISTRATION_ABORT_REQUEST  |
+| 155  | REGISTRATION_ABORT_RESULT   |
+
 ## 10. Feldtypen
 
 | Wert | Name                    | Datentyp       |
@@ -370,7 +402,7 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 20   | USER_ID                 | UUID           |
 | 21   | SESSION_ID              | UUID           |
 | 22   | DISPLAY_NAME            | Text           |
-| 23   | ACCOUNT_STATE           | Text, reserviert |
+| 23   | ACCOUNT_STATE           | Text           |
 | 24   | AUTH_EPOCH              | uint64         |
 | 25   | AUTHZ_REVISION          | uint64         |
 | 26   | CAPABILITY              | Text           |
@@ -385,13 +417,17 @@ Ungültige Nachrichtentypen für den aktuellen Zustand führen zu
 | 52   | RETRY_AFTER_MS          | uint32         |
 | 60   | ACCESS_TOKEN            | Bytes/Text     |
 | 61   | API_SESSION_ID          | UUID           |
+| 62   | REGISTRATION_ID          | UUID           |
+| 63   | REGISTRATION_STATE       | Text           |
+| 64   | REGISTRATION_REASON      | Text           |
 
-`ACCOUNT_STATE` ist in FTAP 1.2 reserviert und in keiner Nachricht zulässig.
-Ein Auftreten wird als `FTAP_STATUS_ERR_FORBIDDEN_FIELD` behandelt. Der
-Kontostatus wird ausschließlich von `fortytwo-authd` interpretiert; laufende
-Clients erhalten bei einer sicherheitsrelevanten Änderung gegebenenfalls
-`SESSION_REVOKED`, statt selbst einen möglicherweise veralteten Status zu
-bewerten.
+`ACCOUNT_STATE` ist in FTAP 1.3 ausschließlich in
+`REGISTRATION_BEGIN_RESULT` und `REGISTRATION_COMMIT_RESULT` zulässig. Der
+Client darf diesen Wert niemals vorgeben. Zulässige Werte sind dort `pending`
+beziehungsweise `active`. In allen anderen Nachrichten führt das Feld zu
+`FTAP_STATUS_ERR_FORBIDDEN_FIELD`. Laufende Clients erhalten bei einer späteren
+sicherheitsrelevanten Änderung gegebenenfalls `SESSION_REVOKED`, statt selbst
+einen möglicherweise veralteten Status zu bewerten.
 
 `LEGACY_NAME` ist der explizit administrativ gebundene Schlüssel des
 bestehenden MBSE-`users.data`-Datensatzes. Er besteht aus 1 bis 8
@@ -399,6 +435,12 @@ kleingeschriebenen ASCII-Zeichen. Das erste Zeichen ist `[a-z0-9]`, weitere
 Zeichen dürfen zusätzlich `.`, `_` oder `-` sein. Clients dürfen diesen Wert
 nicht vorgeben; der Auth-Dienst lädt ihn zusammen mit der UUID-Identität aus
 PostgreSQL. Eine Identität ohne Bindung kann keine Terminal-Sitzung eröffnen.
+
+`REGISTRATION_ID` wird ausschließlich von `fortytwo-authd` erzeugt und bindet
+einen Pending-Versuch an genau eine FTAP-Verbindung. `REGISTRATION_STATE`
+verwendet ausschließlich `pending_legacy`, `completed`, `aborted` oder
+`failed`. `REGISTRATION_REASON` ist eine maschinenlesbare Kennung und niemals
+ein Passwort-, Profil- oder Fehlerfreitext.
 
 Die numerische Feld-ID ist nicht an die interne Kardinalitätsverwaltung einer
 Implementierung gekoppelt. Implementierungen müssen deshalb auch Feld-IDs über
@@ -420,6 +462,8 @@ SUPPORTED_MINOR
 ```
 
 `fortytwo-authd` prüft zusätzlich die Peer-Credentials.
+
+Für diesen Implementierungsstand muss `SUPPORTED_MINOR` mindestens `3` sein. Ein FTAP-1.2-Client wird kontrolliert mit `FTAP_ERR_UNSUPPORTED_VERSION` abgewiesen.
 
 Bei Erfolg antwortet der Server mit `HELLO_OK`.
 
@@ -559,7 +603,216 @@ erzwingen, beispielsweise:
 
 Diese Schutzgrenzen ersetzen das HTTP-Rate-Limiting in `fortytwo-api` nicht.
 
-## 13. Passwortanmeldung
+## 13. Telnet-Registrierung
+
+Registrierung ist in FTAP 1.3 ausschließlich für einen zugelassenen lokalen
+Loginprozess mit:
+
+```text
+PROTOCOL    = telnet
+AUTH_METHOD = password
+```
+
+erlaubt. Eine ausgeblendete Clientoption ist keine Sicherheitsgrenze. Der
+Daemon muss Registrierung zusätzlich administrativ aktiviert haben.
+
+### 13.1 Begin-Anfrage
+
+`REGISTRATION_BEGIN_REQUEST` ist nur in `HELLO_COMPLETE` zulässig.
+
+Pflichtfelder:
+
+```text
+LOGIN_NAME
+DISPLAY_NAME
+PASSWORD
+PROTOCOL
+SOURCE_IP
+AUTH_METHOD
+```
+
+Optionale Felder:
+
+```text
+TTY_DEVICE
+NODE_ID
+```
+
+`USER_ID`, `REGISTRATION_ID`, `LEGACY_NAME`, `ACCOUNT_STATE`, `SESSION_ID` und
+`CAPABILITY` sind in der Anfrage verboten. UUID, Registrierungs-ID und
+Legacy-Schlüssel werden ausschließlich serverseitig erzeugt.
+
+Der Daemon:
+
+1. prüft die administrative Freigabe und Registrierungsgrenzen;
+2. kanonisiert und validiert den Loginnamen;
+3. validiert Anzeigename, Passwort und kanonische Quell-IP;
+4. erzeugt den Argon2id-Hash im gemeinsam begrenzten Worker-Pool;
+5. erzeugt UUID, Registrierungs-ID und Legacy-Schlüssel;
+6. legt Benutzer, Profil, Credential, Legacy-Bindung, Registrierungsversuch
+   und Audit atomar in PostgreSQL an;
+7. bindet den Versuch an diese FTAP-Verbindung.
+
+Nach erfolgreichem Begin gilt:
+
+```text
+bbs_users.account_state = pending
+keine Rolle bbs_user
+keine Rolle ssh_access
+keine Terminalsitzung
+```
+
+Der Klartext des Passworts und der Argon2id-PHC-String werden nie über FTAP
+zurückgesendet.
+
+### 13.2 Begin-Ergebnis
+
+`REGISTRATION_BEGIN_RESULT` besitzt das Flag `RESPONSE` und enthält:
+
+```text
+REGISTRATION_ID
+REGISTRATION_STATE = pending_legacy
+USER_ID
+LOGIN_NAME
+DISPLAY_NAME
+LEGACY_NAME
+ACCOUNT_STATE = pending
+```
+
+Die Verbindung befindet sich anschließend im Zustand `REGISTERING`.
+
+### 13.3 Commit
+
+Nach dauerhaft erfolgreicher MBSE-Provisionierung sendet der Client im Zustand
+`REGISTERING`:
+
+```text
+REGISTRATION_COMMIT_REQUEST
+REGISTRATION_ID
+```
+
+Die ID muss bytegenau zu dem an diese Verbindung gebundenen Versuch gehören.
+Der Client sendet keine Benutzer-ID und keinen Legacy-Schlüssel zurück.
+
+Der Daemon führt atomar aus:
+
+- Pending-Zustand und Bindung erneut prüfen;
+- Rolle `bbs_user` zuweisen;
+- Rolle `ssh_access` nicht zuweisen;
+- Konto auf `active` setzen;
+- `authz_revision` erhöhen;
+- Registrierungsversuch auf `completed` setzen;
+- erste Telnet-Terminalsitzung erzeugen;
+- `auth.registration_completed` und `auth.login_succeeded` auditieren.
+
+`REGISTRATION_COMMIT_RESULT` besitzt das Flag `RESPONSE` und enthält:
+
+```text
+REGISTRATION_ID
+REGISTRATION_STATE = completed
+USER_ID
+SESSION_ID
+LOGIN_NAME
+DISPLAY_NAME
+LEGACY_NAME
+ACCOUNT_STATE = active
+PROTOCOL = telnet
+AUTH_METHOD = password
+AUTH_EPOCH
+AUTHZ_REVISION
+```
+
+`CAPABILITY` darf null- bis mehrfach vorkommen. Nach Erfolg wechselt die
+Verbindung in `SESSION_BOUND` und ist für den späteren FD-3-Handoff geeignet.
+
+### 13.4 Bestätigter Abbruch
+
+Ein Abbruch ist eine bestätigte Anfrage und keine einseitige Meldung:
+
+```text
+REGISTRATION_ABORT_REQUEST
+REGISTRATION_ABORT_RESULT
+```
+
+Die Anfrage ist nur in `REGISTERING` zulässig und enthält zwingend:
+
+```text
+REGISTRATION_ID
+```
+
+Optional:
+
+```text
+REGISTRATION_REASON
+```
+
+Fehlt der Grund, verwendet der Daemon `client_cancelled`. Ein Client darf
+hier ausschließlich `client_cancelled` oder `legacy_write_failed` senden.
+Gründe wie `client_disconnected`, `daemon_shutdown`, `database_failure`,
+`registration_timeout` und `internal_error` werden ausschließlich serverseitig
+für Audit und Rekonsiliation erzeugt.
+
+Der Daemon markiert den Versuch atomar als `aborted`, hinterlässt kein
+anmeldbares Konto, keine Rolle und keine Sitzung. Credential, Profil und
+Legacy-Bindung werden entfernt; die UUID und der Registrierungsdatensatz bleiben
+für Audit und Historie erhalten.
+
+Das Ergebnis enthält:
+
+```text
+REGISTRATION_ID
+REGISTRATION_STATE = aborted
+USER_ID
+```
+
+Nach erfolgreichem Abort kehrt die Verbindung in `HELLO_COMPLETE` zurück und
+darf einen neuen Begin-Versuch senden.
+
+### 13.5 Verbindungsverlust und Neustart
+
+Während der Hash-Erzeugung existiert noch kein Datenbankversuch. Eine späte
+Worker-Completion wird über Verbindungs-ID, Generation, Request-ID und Job-ID
+als veraltet erkannt und vollständig gelöscht.
+
+Nach erfolgreichem Begin versucht der Daemon bei Socketverlust einen atomaren
+Abort mit `client_disconnected`. Ist PostgreSQL nicht verfügbar, bleibt das
+Konto nicht anmeldbar und wird nach seiner Ablaufzeit als `failed` bereinigt.
+
+Eine Pending-Registrierung wird nach einem Daemon-Neustart nicht an eine neue
+FTAP-Verbindung gebunden. FTAP 1.3 besitzt keinen Wiederaufnahme-Token für
+Registrierungen.
+
+### 13.6 Eingabegrenzen
+
+Loginname:
+
+```text
+^[a-z0-9][a-z0-9._-]{0,31}$
+```
+
+ASCII-Großbuchstaben werden vor der Prüfung in Kleinbuchstaben umgewandelt.
+
+Anzeigename:
+
+```text
+1 bis 64 UTF-8-Byte
+kein NUL
+keine C0- oder C1-Steuerzeichen
+keine führenden oder abschließenden ASCII-Leerzeichen
+```
+
+Passwort für neue Registrierungen:
+
+```text
+12 bis 1024 UTF-8-Byte
+kein NUL
+keine Normalisierung oder Trimmung
+```
+
+`SOURCE_IP` ist bei Registrierung Pflicht und muss eine kanonische IPv4- oder
+IPv6-Darstellung enthalten.
+
+## 14. Passwortanmeldung
 
 `AUTH_PASSWORD_REQUEST` darf nur von dafür zugelassenen Loginprozessen
 gesendet werden.
@@ -573,7 +826,7 @@ PROTOCOL
 AUTH_METHOD
 ```
 
-Für `AUTH_PASSWORD_REQUEST` sind in FTAP/1.2 ausschließlich folgende Werte
+Für `AUTH_PASSWORD_REQUEST` sind in FTAP/1.3 ausschließlich folgende Werte
 zulässig:
 
 ```text
@@ -634,7 +887,7 @@ Nach erfolgreicher Anmeldung wechselt die Verbindung in den Zustand
 
 Das Passwort wird niemals in einer Antwort zurückgesendet.
 
-## 14. Geerbter Sitzungs-Dateideskriptor
+## 15. Geerbter Sitzungs-Dateideskriptor
 
 Nach erfolgreicher Anmeldung startet `fortytwo-login` den BBS-Prozess per
 `execve()`.
@@ -654,7 +907,7 @@ geschlossen.
 Die Sitzung ist an die bestehende Socket-Verbindung gebunden. Es wird kein
 übertragbares Bearer-Token erzeugt.
 
-## 15. Sitzungskontext
+## 16. Sitzungskontext
 
 Nach dem Start sendet `mbsebbs`:
 
@@ -681,7 +934,7 @@ AUTHZ_REVISION
 
 `CAPABILITY` darf in dieser Ergebnisnachricht null- bis mehrfach vorkommen.
 
-## 16. Autorisierungsprüfung
+## 17. Autorisierungsprüfung
 
 Für ressourcenbezogene Prüfungen sendet der Client:
 
@@ -694,7 +947,7 @@ In jeder `AUTHZ_CHECK_REQUEST` ist genau ein `CAPABILITY`-Feld erlaubt.
 Mehrere Capability-Felder sind ein Protokollfehler; es gibt keine implizite
 UND- oder ODER-Semantik.
 
-### 16.1 Sitzunggebundene Terminalverbindung
+### 17.1 Sitzunggebundene Terminalverbindung
 
 Im Zustand `SESSION_BOUND` sind Pflichtfelder:
 
@@ -713,7 +966,7 @@ RESOURCE_ID
 verboten. Die Identität ergibt sich ausschließlich aus der gebundenen
 Socket-Sitzung.
 
-### 16.2 Vertrauenswürdige Service-Verbindung
+### 17.2 Vertrauenswürdige Service-Verbindung
 
 Im Zustand `SERVICE_BOUND` sind Pflichtfelder:
 
@@ -752,7 +1005,7 @@ AUTHZ_REVISION
 Der Client darf eine fehlende oder fehlerhafte Antwort niemals als Erlaubnis
 interpretieren.
 
-### 16.3 Server-Push und ausstehende Anfragen
+### 17.3 Server-Push und ausstehende Anfragen
 
 Ein Client muss jederzeit mit `SERVER_PUSH`-Nachrichten mit Request-ID `0`
 rechnen, auch wenn eigene Anfragen noch offen sind.
@@ -770,7 +1023,7 @@ verwenden, selbst wenn diese bereits unterwegs war.
 Terminalclients dürfen ihre eigenen Anfragen seriell senden, müssen
 Server-Push-Nachrichten aber dennoch jederzeit verarbeiten können.
 
-## 17. Berechtigungsänderungen
+## 18. Berechtigungsänderungen
 
 Ändern sich Rollen oder Capabilities einer laufenden Sitzung, sendet
 `fortytwo-authd` asynchron:
@@ -795,7 +1048,7 @@ AUTHZ_REVISION
 Der Client verwirft daraufhin seinen bisherigen Capability-Snapshot und
 fordert den Sitzungskontext neu an.
 
-## 18. Sitzungswiderruf
+## 19. Sitzungswiderruf
 
 Bei Sperrung, Deaktivierung, Passwortänderung oder administrativer Abmeldung
 sendet `fortytwo-authd`:
@@ -826,7 +1079,7 @@ Der Client:
 
 Ein widerrufener Client darf keine weiteren normalen Anfragen senden.
 
-## 19. Heartbeat
+## 20. Heartbeat
 
 Aktive Terminalprozesse dürfen regelmäßig `SESSION_HEARTBEAT` senden.
 
@@ -836,7 +1089,7 @@ Ein Heartbeat enthält keine frei gewählte Benutzeridentität.
 
 Das genaue Intervall wird später konfigurierbar festgelegt.
 
-## 20. Geordnetes Sitzungsende
+## 21. Geordnetes Sitzungsende
 
 Beim normalen Logout sendet der Client:
 
@@ -855,7 +1108,7 @@ Danach wird die Verbindung geschlossen.
 Bei unerwartetem Socketabbruch markiert `fortytwo-authd` die Sitzung mit einem
 geeigneten Beendigungsgrund als geschlossen.
 
-## 21. Fehlercodes
+## 22. Fehlercodes
 
 | Wert | Name                              |
 |-----:|-----------------------------------|
@@ -871,6 +1124,8 @@ geeigneten Beendigungsgrund als geschlossen.
 | 10   | FTAP_ERR_SESSION_REVOKED          |
 | 11   | FTAP_ERR_DATABASE_UNAVAILABLE     |
 | 12   | FTAP_ERR_INTERNAL                 |
+| 13   | FTAP_ERR_LOGIN_NAME_UNAVAILABLE  |
+| 14   | FTAP_ERR_PASSWORD_POLICY         |
 
 Extern sichtbare Loginfehler unterscheiden grundsätzlich nicht zwischen:
 
@@ -884,7 +1139,12 @@ Meldung keine Information über unbekannte Konten oder falsche Passwörter preis
 
 Internes Audit darf die genaue Ursache enthalten.
 
-## 22. Timeouts
+`FTAP_ERR_LOGIN_NAME_UNAVAILABLE` wird nur im ausdrücklichen
+Registrierungsvorgang verwendet und gibt keine Profil- oder Kontostatusdaten
+preis. `FTAP_ERR_PASSWORD_POLICY` nennt keine Passwortinhalte und keine
+unnötigen Prüfdaten.
+
+## 23. Timeouts
 
 FTAP/1 verwendet mindestens folgende konfigurierbare Timeouts:
 
@@ -892,6 +1152,7 @@ FTAP/1 verwendet mindestens folgende konfigurierbare Timeouts:
 HELLO-Timeout
 Anfrage-Timeout
 Authentifizierungs-Timeout
+Registrierungs-Timeout
 Schreib-Timeout
 Heartbeat-Timeout
 ```
@@ -899,18 +1160,18 @@ Heartbeat-Timeout
 Ein Timeout führt zu einer kontrollierten Fehlerbehandlung und gegebenenfalls
 zum Schließen der Verbindung.
 
-## 23. Verhalten bei Auth-Daemon-Ausfall
+## 24. Verhalten bei Auth-Daemon-Ausfall
 
-### 23.1 Sitzunggebundene Terminalverbindungen
+### 24.1 Sitzunggebundene Terminalverbindungen
 
 Wird die FTAP-Verbindung während einer aktiven Terminal-Sitzung unerwartet
 geschlossen, beendet `mbsebbs` die Sitzung.
 
-Für eine `SESSION_BOUND`-Verbindung gibt es in FTAP 1.2 keine automatische
+Für eine `SESSION_BOUND`-Verbindung gibt es in FTAP 1.3 keine automatische
 Wiederanbindung an einen neu gestarteten Auth-Daemon. Die Benutzerin oder der
 Benutzer meldet sich anschließend neu an.
 
-### 23.2 Vertrauenswürdige Service-Verbindungen
+### 24.2 Vertrauenswürdige Service-Verbindungen
 
 Der Verlust einer `SERVICE_BOUND`-Verbindung invalidiert keine API-Sitzungen
 und keine Access- oder Refresh-Tokens.
@@ -942,11 +1203,11 @@ Solange keine funktionsfähige Service-Verbindung verfügbar ist, gilt
 „fail closed“: `fortytwo-api` erteilt keine Berechtigung aufgrund alter,
 lokal zwischengespeicherter oder vermuteter Zustände.
 
-## 24. Zurückgestellte Authentifizierungsverfahren
+## 25. Zurückgestellte Authentifizierungsverfahren
 
-### 24.1 TOTP und weitere Mehrfaktorverfahren
+### 25.1 TOTP und weitere Mehrfaktorverfahren
 
-TOTP und weitere Mehrfaktorverfahren sind nicht Bestandteil von FTAP/1.2.
+TOTP und weitere Mehrfaktorverfahren sind nicht Bestandteil von FTAP/1.3.
 
 Spätere Versionen ergänzen dafür neue Nachrichtentypen, beispielsweise:
 
@@ -956,10 +1217,10 @@ AUTH_TOTP_RESPONSE
 AUTH_TOTP_RESULT
 ```
 
-### 24.2 Interne SSH-Public-Key-Anmeldung
+### 25.2 Interne SSH-Public-Key-Anmeldung
 
 Die Zuordnung und Prüfung von SSH-Schlüsseln gegen `bbs_ssh_keys` ist ebenfalls
-nicht Bestandteil von FTAP/1.2.
+nicht Bestandteil von FTAP/1.3.
 
 Die erste FTAP-Stufe unterstützt SSH als Transport mit der internen
 Passwortanmeldung:
@@ -978,7 +1239,7 @@ akzeptiert.
 Die Bedeutung bestehender FTAP/1-Nachrichten wird durch spätere Erweiterungen
 nicht verändert.
 
-## 25. Sicherheitsregeln
+## 26. Sicherheitsregeln
 
 - Passwörter erscheinen niemals in Logs.
 - Passwörter erscheinen niemals in Fehlermeldungen.
@@ -996,7 +1257,7 @@ nicht verändert.
 - Sensible Speicherbereiche werden nach Benutzung sicher gelöscht.
 - Keine FTAP-Nachricht enthält PostgreSQL-Zugangsdaten oder Passwort-Hashes.
 
-## 26. Testanforderungen
+## 27. Testanforderungen
 
 Mindestens getestet werden:
 
@@ -1014,6 +1275,13 @@ Mindestens getestet werden:
 - doppeltes nicht wiederholbares Feld,
 - mehrere `CAPABILITY`-Felder in `AUTHZ_CHECK_REQUEST`,
 - TLV-Summe kleiner oder größer als deklarierte Payload-Länge,
+- vollständige FTAP-1.3-Registrierung nur über Telnet,
+- Begin ohne Rolle und ohne Sitzung,
+- Commit mit `bbs_user`, aber ohne `ssh_access`,
+- bestätigter Abort und Rückkehr zu `HELLO_COMPLETE`,
+- fremde oder veraltete `REGISTRATION_ID`,
+- Socketabbruch während Hashing und Pending-Zustand,
+- Timeout-Bereinigung ohne anmeldbares Konto,
 - falsches Passwort,
 - temporäre Schutzsperre,
 - administrative Sperre,

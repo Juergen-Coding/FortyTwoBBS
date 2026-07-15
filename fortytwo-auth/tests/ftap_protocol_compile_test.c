@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
- * Compile-time contract test for FTAP 1.2 wire constants.
+ * Compile-time contract test for FTAP 1.3 wire constants.
  */
 
 #include "ftap_protocol.h"
@@ -9,7 +9,7 @@ _Static_assert(FTAP_MAGIC_U32 == UINT32_C(0x46544150),
                "FTAP magic must encode FTAP");
 _Static_assert(FTAP_VERSION_MAJOR == 1,
                "Unexpected FTAP major version");
-_Static_assert(FTAP_VERSION_MINOR == 2,
+_Static_assert(FTAP_VERSION_MINOR == 3,
                "Unexpected FTAP minor version");
 _Static_assert(FTAP_FRAME_HEADER_SIZE == 24,
                "FTAP frame header must be 24 bytes");
@@ -51,6 +51,10 @@ _Static_assert(FTAP_ENDED_REASON_MAX == 64,
                "Unexpected ended-reason limit");
 _Static_assert(FTAP_REVOKE_REASON_MAX == 64,
                "Unexpected revoke-reason limit");
+_Static_assert(FTAP_REGISTRATION_STATE_MAX == 24,
+               "Unexpected registration-state limit");
+_Static_assert(FTAP_REGISTRATION_REASON_MAX == 64,
+               "Unexpected registration-reason limit");
 _Static_assert(FTAP_MSG_SERVICE_BIND_REQUEST == 4,
                "Unexpected service-bind message value");
 _Static_assert(FTAP_MSG_AUTH_PASSWORD_REQUEST == 100,
@@ -59,10 +63,24 @@ _Static_assert(FTAP_MSG_SESSION_REVOKED == 131,
                "Unexpected session-revoked message value");
 _Static_assert(FTAP_MSG_TOKEN_CONTEXT_RESULT == 141,
                "Unexpected token-context message value");
+_Static_assert(FTAP_MSG_REGISTRATION_BEGIN_REQUEST == 150,
+               "Unexpected registration-begin message value");
+_Static_assert(FTAP_MSG_REGISTRATION_ABORT_RESULT == 155,
+               "Unexpected registration-abort message value");
 _Static_assert(FTAP_FIELD_ACCESS_TOKEN == 60,
                "Unexpected access-token field value");
 _Static_assert(FTAP_FIELD_API_SESSION_ID == 61,
                "Unexpected API-session field value");
+_Static_assert(FTAP_FIELD_REGISTRATION_ID == 62,
+               "Unexpected registration-id field value");
+_Static_assert(FTAP_FIELD_REGISTRATION_REASON == 64,
+               "Unexpected registration-reason field value");
+_Static_assert(FTAP_ERR_LOGIN_NAME_UNAVAILABLE == 13,
+               "Unexpected login-name error value");
+_Static_assert(FTAP_ERR_PASSWORD_POLICY == 14,
+               "Unexpected password-policy error value");
+_Static_assert(FTAP_STATE_REGISTERING != FTAP_STATE_AUTHENTICATING,
+               "Registration and authentication states must differ");
 _Static_assert(FTAP_STATE_SESSION_BOUND != FTAP_STATE_SERVICE_BOUND,
                "Session and service states must differ");
 

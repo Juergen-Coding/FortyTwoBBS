@@ -11,6 +11,7 @@
 
 void authd_password_worker_stub_reset(unsigned int delay_ms);
 size_t authd_password_worker_stub_call_count(void);
+size_t authd_password_worker_stub_generate_call_count(void);
 size_t authd_password_worker_stub_max_parallel(void);
 
 #endif /* FORTYTWO_AUTHD_PASSWORD_WORKER_STUB_H */

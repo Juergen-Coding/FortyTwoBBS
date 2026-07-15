@@ -47,6 +47,7 @@ PASSWORD_SOURCE := src/authd_password.c
 WORKER_POOL_SOURCE := src/authd_worker_pool.c
 IDENTITY_SOURCE := src/authd_identity.c
 THROTTLE_SOURCE := src/authd_throttle.c
+REGISTRATION_LIMIT_SOURCE := src/authd_registration_limit.c
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -56,6 +57,7 @@ AUTHD_PRODUCTION_SOURCES := \
 	$(AUTHD_COMMON_SOURCES) \
 	$(IDENTITY_SOURCE) \
 	$(THROTTLE_SOURCE) \
+	$(REGISTRATION_LIMIT_SOURCE) \
 	$(DATABASE_SOURCE) \
 	$(PASSWORD_SOURCE) \
 	$(WORKER_POOL_SOURCE)
@@ -63,6 +65,7 @@ AUTHD_TEST_SOURCES := \
 	$(AUTHD_COMMON_SOURCES) \
 	$(IDENTITY_SOURCE) \
 	$(THROTTLE_SOURCE) \
+	$(REGISTRATION_LIMIT_SOURCE) \
 	$(WORKER_POOL_SOURCE) \
 	tests/authd_password_worker_stub.c \
 	tests/authd_database_stub.c
@@ -74,16 +77,19 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
 	$(NORMAL_DIR)/authd_throttle_test \
+	$(NORMAL_DIR)/authd_registration_limit_test \
 	$(NORMAL_DIR)/authd_password_test \
 	$(NORMAL_DIR)/authd_worker_pool_test \
 	$(NORMAL_DIR)/authd_worker_pool_password_integration_test \
 	$(NORMAL_DIR)/authd_peer_test \
 	$(NORMAL_DIR)/authd_database_validation_test \
 	$(NORMAL_DIR)/authd_database_mock_test \
+	$(NORMAL_DIR)/authd_database_registration_mock_test \
 	$(NORMAL_DIR)/authd_database_connection_test \
-	$(NORMAL_DIR)/authd_integration_test
+	$(NORMAL_DIR)/authd_integration_test \
+	$(NORMAL_DIR)/authd_registration_server_integration_test
 
-.PHONY: all authd login test database-login-integration-test database-throttle-integration-test database-session-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
+.PHONY: all authd login test database-login-integration-test database-throttle-integration-test database-session-integration-test database-registration-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
 
 all: authd login test
 
@@ -100,16 +106,21 @@ test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
 	$(NORMAL_DIR)/authd_throttle_test
+	$(NORMAL_DIR)/authd_registration_limit_test
 	$(NORMAL_DIR)/authd_password_test
 	$(NORMAL_DIR)/authd_worker_pool_test
 	$(NORMAL_DIR)/authd_worker_pool_password_integration_test
 	$(NORMAL_DIR)/authd_peer_test
+	python3 tests/migration_0009_test.py
 	$(NORMAL_DIR)/authd_database_validation_test
 	$(NORMAL_DIR)/authd_database_mock_test
+	$(NORMAL_DIR)/authd_database_registration_mock_test
 	$(NORMAL_DIR)/authd_database_connection_test
 	$(NORMAL_DIR)/authd_integration_test $(NORMAL_DIR)/fortytwo-authd-test \
 		$(abspath $(NORMAL_DIR)/fortytwo-login) \
 		$(abspath $(NORMAL_DIR)/fortytwo-session-child-test)
+	$(NORMAL_DIR)/authd_registration_server_integration_test \
+		$(abspath $(NORMAL_DIR)/fortytwo-authd-test)
 
 check-libpq:
 	@test -n "$(LIBPQ_CFLAGS)" -o -n "$(LIBPQ_LIBS)" || { \
@@ -133,7 +144,8 @@ $(NORMAL_DIR)/fortytwo-login \
 $(NORMAL_DIR)/fortytwo-session-child-test \
 $(NORMAL_DIR)/authd_database_login_integration_test \
 $(NORMAL_DIR)/authd_database_throttle_integration_test \
-$(NORMAL_DIR)/authd_database_session_integration_test: $(PUBLIC_HEADERS)
+$(NORMAL_DIR)/authd_database_session_integration_test \
+$(NORMAL_DIR)/authd_database_registration_integration_test: $(PUBLIC_HEADERS)
 
 $(NORMAL_DIR)/ftap_protocol_compile_test: tests/ftap_protocol_compile_test.c | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $< -o $@
@@ -169,6 +181,9 @@ $(NORMAL_DIR)/authd_identity_test: tests/authd_identity_test.c $(IDENTITY_SOURCE
 $(NORMAL_DIR)/authd_throttle_test: tests/authd_throttle_test.c $(THROTTLE_SOURCE) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THROTTLE_SOURCE) $< -o $@
 
+$(NORMAL_DIR)/authd_registration_limit_test: tests/authd_registration_limit_test.c $(REGISTRATION_LIMIT_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(REGISTRATION_LIMIT_SOURCE) $< -o $@
+
 $(NORMAL_DIR)/authd_password_test: tests/authd_password_test.c $(PASSWORD_SOURCE) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PASSWORD_SOURCE) $< $(SODIUM_LIBS) -o $@
 
@@ -187,6 +202,10 @@ $(NORMAL_DIR)/authd_database_validation_test: tests/authd_database_validation_te
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(DATABASE_VALIDATION_SOURCE) $< -o $@
 
 $(NORMAL_DIR)/authd_database_mock_test: tests/authd_database_mock_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
+		$< $(LIBPQ_WRAP_FLAGS) -o $@
+
+$(NORMAL_DIR)/authd_database_registration_mock_test: tests/authd_database_registration_mock_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		$< $(LIBPQ_WRAP_FLAGS) -o $@
 
@@ -218,8 +237,19 @@ database-session-integration-test: check-libpq $(NORMAL_DIR)/authd_database_sess
 	tests/run_authd_database_session_integration.sh \
 		$(NORMAL_DIR)/authd_database_session_integration_test
 
+$(NORMAL_DIR)/authd_database_registration_integration_test: tests/authd_database_registration_integration_test.c src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
+		$< $(LIBPQ_LIBS) -o $@
+
+database-registration-integration-test: check-libpq $(NORMAL_DIR)/authd_database_registration_integration_test
+	tests/run_authd_database_registration_integration.sh \
+		$(NORMAL_DIR)/authd_database_registration_integration_test
+
 $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -lutil -o $@
+
+$(NORMAL_DIR)/authd_registration_server_integration_test: tests/authd_registration_server_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
 
 sanitize-test: check-libpq check-libsodium
 	mkdir -p $(SANITIZER_DIR)
@@ -254,6 +284,9 @@ sanitize-test: check-libpq check-libsodium
 		$(THROTTLE_SOURCE) tests/authd_throttle_test.c \
 		-o $(SANITIZER_DIR)/authd_throttle_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(REGISTRATION_LIMIT_SOURCE) tests/authd_registration_limit_test.c \
+		-o $(SANITIZER_DIR)/authd_registration_limit_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(PASSWORD_SOURCE) tests/authd_password_test.c $(SODIUM_LIBS) \
 		-o $(SANITIZER_DIR)/authd_password_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
@@ -276,11 +309,18 @@ sanitize-test: check-libpq check-libsodium
 		-o $(SANITIZER_DIR)/authd_database_mock_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
+		tests/authd_database_registration_mock_test.c $(LIBPQ_WRAP_FLAGS) \
+		-o $(SANITIZER_DIR)/authd_database_registration_mock_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		src/authd_config.c $(IDENTITY_SOURCE) $(THROTTLE_SOURCE) $(DATABASE_SOURCE) \
 		tests/authd_database_connection_test.c $(LIBPQ_LIBS) \
 		-o $(SANITIZER_DIR)/authd_database_connection_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(PROTOCOL_SOURCES) tests/authd_integration_test.c -lutil \
 		-o $(SANITIZER_DIR)/authd_integration_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(PROTOCOL_SOURCES) tests/authd_registration_server_integration_test.c \
+		-o $(SANITIZER_DIR)/authd_registration_server_integration_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/ftap_protocol_compile_test
@@ -301,6 +341,9 @@ sanitize-test: check-libpq check-libsodium
 		$(SANITIZER_DIR)/authd_throttle_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_registration_limit_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_password_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
@@ -311,12 +354,16 @@ sanitize-test: check-libpq check-libsodium
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_peer_test
+	python3 tests/migration_0009_test.py
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_database_validation_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_database_mock_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_database_registration_mock_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_database_connection_test
@@ -326,6 +373,10 @@ sanitize-test: check-libpq check-libsodium
 		$(SANITIZER_DIR)/fortytwo-authd-test \
 		$(abspath $(SANITIZER_DIR)/fortytwo-login) \
 		$(abspath $(SANITIZER_DIR)/fortytwo-session-child-test)
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/authd_registration_server_integration_test \
+		$(abspath $(SANITIZER_DIR)/fortytwo-authd-test)
 
 thread-sanitize-test:
 	mkdir -p $(SANITIZER_DIR)

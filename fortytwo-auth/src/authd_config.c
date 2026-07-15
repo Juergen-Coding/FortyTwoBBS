@@ -228,6 +228,20 @@ authd_config_defaults(authd_config_t *config)
         AUTHD_THROTTLE_DEFAULT_WINDOW_SECONDS;
     config->password_throttle_seconds =
         AUTHD_THROTTLE_DEFAULT_DURATION_SECONDS;
+
+    /* Self-registration remains disabled until explicitly enabled. */
+    config->registration_enabled = false;
+    config->registration_min_password_bytes =
+        AUTHD_REGISTRATION_DEFAULT_MIN_PASSWORD_BYTES;
+    config->registration_timeout_seconds =
+        AUTHD_REGISTRATION_DEFAULT_TIMEOUT_SECONDS;
+    config->registration_max_pending =
+        AUTHD_REGISTRATION_DEFAULT_MAX_PENDING;
+    config->registration_ip_attempts =
+        AUTHD_REGISTRATION_DEFAULT_IP_ATTEMPTS;
+    config->registration_ip_window_seconds =
+        AUTHD_REGISTRATION_DEFAULT_IP_WINDOW_SECONDS;
+
     (void)snprintf(config->db_host, sizeof(config->db_host), "%s",
                    "/var/run/postgresql");
     (void)snprintf(config->db_name, sizeof(config->db_name), "%s",
@@ -274,6 +288,12 @@ authd_config_parse(authd_config_t *config,
         OPTION_PASSWORD_FAILURE_THRESHOLD,
         OPTION_PASSWORD_FAILURE_WINDOW,
         OPTION_PASSWORD_THROTTLE_SECONDS,
+        OPTION_REGISTRATION_ENABLED,
+        OPTION_REGISTRATION_MIN_PASSWORD_BYTES,
+        OPTION_REGISTRATION_TIMEOUT_SECONDS,
+        OPTION_REGISTRATION_MAX_PENDING,
+        OPTION_REGISTRATION_IP_ATTEMPTS,
+        OPTION_REGISTRATION_IP_WINDOW_SECONDS,
         OPTION_DB_HOST,
         OPTION_DB_PORT,
         OPTION_DB_NAME,
@@ -301,6 +321,18 @@ authd_config_parse(authd_config_t *config,
          OPTION_PASSWORD_FAILURE_WINDOW},
         {"password-throttle-seconds", required_argument, NULL,
          OPTION_PASSWORD_THROTTLE_SECONDS},
+        {"registration-enabled", no_argument, NULL,
+         OPTION_REGISTRATION_ENABLED},
+        {"registration-min-password-bytes", required_argument, NULL,
+         OPTION_REGISTRATION_MIN_PASSWORD_BYTES},
+        {"registration-timeout-seconds", required_argument, NULL,
+         OPTION_REGISTRATION_TIMEOUT_SECONDS},
+        {"registration-max-pending", required_argument, NULL,
+         OPTION_REGISTRATION_MAX_PENDING},
+        {"registration-ip-attempts", required_argument, NULL,
+         OPTION_REGISTRATION_IP_ATTEMPTS},
+        {"registration-ip-window-seconds", required_argument, NULL,
+         OPTION_REGISTRATION_IP_WINDOW_SECONDS},
         {"db-host", required_argument, NULL, OPTION_DB_HOST},
         {"db-port", required_argument, NULL, OPTION_DB_PORT},
         {"db-name", required_argument, NULL, OPTION_DB_NAME},
@@ -486,6 +518,78 @@ authd_config_parse(authd_config_t *config,
                 return AUTHD_CONFIG_ERROR;
             }
             break;
+        case OPTION_REGISTRATION_ENABLED:
+            config->registration_enabled = true;
+            break;
+        case OPTION_REGISTRATION_MIN_PASSWORD_BYTES:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_REGISTRATION_MIN_PASSWORD_BYTES,
+                    AUTHD_REGISTRATION_MAX_PASSWORD_BYTES,
+                    &config->registration_min_password_bytes)) {
+                set_error(error, error_size,
+                          "--registration-min-password-bytes must be between %"
+                          PRIu32 " and %" PRIu32,
+                          AUTHD_REGISTRATION_MIN_PASSWORD_BYTES,
+                          AUTHD_REGISTRATION_MAX_PASSWORD_BYTES);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_REGISTRATION_TIMEOUT_SECONDS:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_REGISTRATION_MIN_TIMEOUT_SECONDS,
+                    AUTHD_REGISTRATION_MAX_TIMEOUT_SECONDS,
+                    &config->registration_timeout_seconds)) {
+                set_error(error, error_size,
+                          "--registration-timeout-seconds must be between %"
+                          PRIu32 " and %" PRIu32,
+                          AUTHD_REGISTRATION_MIN_TIMEOUT_SECONDS,
+                          AUTHD_REGISTRATION_MAX_TIMEOUT_SECONDS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_REGISTRATION_MAX_PENDING:
+            if (!parse_size_value(
+                    optarg,
+                    AUTHD_REGISTRATION_MIN_PENDING,
+                    AUTHD_REGISTRATION_MAX_PENDING,
+                    &config->registration_max_pending)) {
+                set_error(error, error_size,
+                          "--registration-max-pending must be between %u and %u",
+                          AUTHD_REGISTRATION_MIN_PENDING,
+                          AUTHD_REGISTRATION_MAX_PENDING);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_REGISTRATION_IP_ATTEMPTS:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_REGISTRATION_MIN_IP_ATTEMPTS,
+                    AUTHD_REGISTRATION_MAX_IP_ATTEMPTS,
+                    &config->registration_ip_attempts)) {
+                set_error(error, error_size,
+                          "--registration-ip-attempts must be between %" PRIu32
+                          " and %" PRIu32,
+                          AUTHD_REGISTRATION_MIN_IP_ATTEMPTS,
+                          AUTHD_REGISTRATION_MAX_IP_ATTEMPTS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
+        case OPTION_REGISTRATION_IP_WINDOW_SECONDS:
+            if (!parse_u32_value(
+                    optarg,
+                    AUTHD_REGISTRATION_MIN_IP_WINDOW_SECONDS,
+                    AUTHD_REGISTRATION_MAX_IP_WINDOW_SECONDS,
+                    &config->registration_ip_window_seconds)) {
+                set_error(error, error_size,
+                          "--registration-ip-window-seconds must be between %"
+                          PRIu32 " and %" PRIu32,
+                          AUTHD_REGISTRATION_MIN_IP_WINDOW_SECONDS,
+                          AUTHD_REGISTRATION_MAX_IP_WINDOW_SECONDS);
+                return AUTHD_CONFIG_ERROR;
+            }
+            break;
         case OPTION_DB_HOST: {
             size_t length = strlen(optarg);
             if (length == 0U || length > AUTHD_DB_HOST_MAX) {
@@ -620,6 +724,17 @@ authd_config_print_usage(FILE *stream, const char *program_name)
         "                             Failure window (1..86400; default: 900)\n"
         "      --password-throttle-seconds N\n"
         "                             Temporary throttle (1..86400; default: 900)\n"
+        "      --registration-enabled Enable Telnet self-registration\n"
+        "      --registration-min-password-bytes N\n"
+        "                             New-password minimum (12..1024; default: 12)\n"
+        "      --registration-timeout-seconds N\n"
+        "                             Pending lifetime (60..86400; default: 600)\n"
+        "      --registration-max-pending N\n"
+        "                             Global pending limit (1..1024; default: 16)\n"
+        "      --registration-ip-attempts N\n"
+        "                             Begin attempts per IP (1..100; default: 3)\n"
+        "      --registration-ip-window-seconds N\n"
+        "                             Per-IP window (1..86400; default: 900)\n"
         "      --db-host PATH         PostgreSQL Unix-socket directory\n"
         "      --db-port N            PostgreSQL port (1..65535)\n"
         "      --db-name NAME         PostgreSQL database name\n"
@@ -678,6 +793,18 @@ authd_config_print_effective(FILE *stream, const authd_config_t *config)
                   config->password_failure_window_seconds);
     (void)fprintf(stream, "password_throttle_seconds=%" PRIu32 "\n",
                   config->password_throttle_seconds);
+    (void)fprintf(stream, "registration_enabled=%s\n",
+                  config->registration_enabled ? "yes" : "no");
+    (void)fprintf(stream, "registration_min_password_bytes=%" PRIu32 "\n",
+                  config->registration_min_password_bytes);
+    (void)fprintf(stream, "registration_timeout_seconds=%" PRIu32 "\n",
+                  config->registration_timeout_seconds);
+    (void)fprintf(stream, "registration_max_pending=%zu\n",
+                  config->registration_max_pending);
+    (void)fprintf(stream, "registration_ip_attempts=%" PRIu32 "\n",
+                  config->registration_ip_attempts);
+    (void)fprintf(stream, "registration_ip_window_seconds=%" PRIu32 "\n",
+                  config->registration_ip_window_seconds);
     (void)fprintf(stream, "db_host=%s\n", config->db_host);
     (void)fprintf(stream, "db_port=%" PRIu16 "\n", config->db_port);
     (void)fprintf(stream, "db_name=%s\n", config->db_name);

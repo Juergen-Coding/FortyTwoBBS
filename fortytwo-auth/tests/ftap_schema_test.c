@@ -612,6 +612,448 @@ test_legacy_name_result_contract(void)
 }
 
 static void
+test_registration_begin_contract(void)
+{
+    uint8_t payload[1024];
+    uint8_t user_id[FTAP_UUID_SIZE] = { 0 };
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_validation_error_t error;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"new.user", 8,
+                     FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"New User", 8,
+                     FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PASSWORD, 0,
+                     (const uint8_t *)"twelve-bytes", 12,
+                     FTAP_PASSWORD_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PROTOCOL, 0,
+                     (const uint8_t *)FTAP_PROTOCOL_TELNET,
+                     strlen(FTAP_PROTOCOL_TELNET), FTAP_PROTOCOL_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_SOURCE_IP, 0,
+                     (const uint8_t *)"192.0.2.10", 10,
+                     FTAP_IP_ADDRESS_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_AUTH_METHOD, 0,
+                     (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+                     strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_REGISTRATION_BEGIN_REQUEST, 0,
+                         (uint32_t)writer.length, 20);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_HELLO_COMPLETE, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_STATE);
+
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_HELLO_COMPLETE, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_FORBIDDEN_FIELD);
+    CHECK(error.field_type == FTAP_FIELD_USER_ID);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"new.user", 8,
+                     FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)" New User", 9,
+                     FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PASSWORD, 0,
+                     (const uint8_t *)"twelve-bytes", 12,
+                     FTAP_PASSWORD_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PROTOCOL, 0,
+                     (const uint8_t *)FTAP_PROTOCOL_TELNET,
+                     strlen(FTAP_PROTOCOL_TELNET), FTAP_PROTOCOL_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_SOURCE_IP, 0,
+                     (const uint8_t *)"192.0.2.10", 10,
+                     FTAP_IP_ADDRESS_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_AUTH_METHOD, 0,
+                     (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+                     strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_HELLO_COMPLETE, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_DISPLAY_NAME);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"new.user", 8,
+                     FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"New User", 8,
+                     FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PASSWORD, 0,
+                     (const uint8_t *)"twelve-bytes", 12,
+                     FTAP_PASSWORD_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PROTOCOL, 0,
+                     (const uint8_t *)FTAP_PROTOCOL_SSH,
+                     strlen(FTAP_PROTOCOL_SSH), FTAP_PROTOCOL_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_SOURCE_IP, 0,
+                     (const uint8_t *)"192.0.2.10", 10,
+                     FTAP_IP_ADDRESS_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_AUTH_METHOD, 0,
+                     (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+                     strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_HELLO_COMPLETE, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_PROTOCOL);
+}
+
+static void
+test_registration_begin_result_contract(void)
+{
+    uint8_t payload[512];
+    uint8_t registration_id[FTAP_UUID_SIZE] = { 1 };
+    uint8_t user_id[FTAP_UUID_SIZE] = { 2 };
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_validation_error_t error;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_STATE_PENDING_LEGACY,
+                     strlen(FTAP_REGISTRATION_STATE_PENDING_LEGACY),
+                     FTAP_REGISTRATION_STATE_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"new.user", 8,
+                     FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"New User", 8,
+                     FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LEGACY_NAME, 0,
+                     (const uint8_t *)"newuser2", 8,
+                     FTAP_LEGACY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_ACCOUNT_STATE, 0,
+                     (const uint8_t *)FTAP_ACCOUNT_STATE_PENDING,
+                     strlen(FTAP_ACCOUNT_STATE_PENDING),
+                     FTAP_ACCOUNT_STATE_MAX),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_REGISTRATION_BEGIN_RESULT,
+                         FTAP_FRAME_FLAG_RESPONSE,
+                         (uint32_t)writer.length, 21);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_HELLO_COMPLETE, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_STATE);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_STATE_COMPLETED,
+                     strlen(FTAP_REGISTRATION_STATE_COMPLETED),
+                     FTAP_REGISTRATION_STATE_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"new.user", 8,
+                     FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"New User", 8,
+                     FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LEGACY_NAME, 0,
+                     (const uint8_t *)"newuser2", 8,
+                     FTAP_LEGACY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_ACCOUNT_STATE, 0,
+                     (const uint8_t *)FTAP_ACCOUNT_STATE_PENDING,
+                     strlen(FTAP_ACCOUNT_STATE_PENDING),
+                     FTAP_ACCOUNT_STATE_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_REGISTRATION_STATE);
+}
+
+static void
+test_registration_commit_contract(void)
+{
+    uint8_t payload[1024];
+    uint8_t registration_id[FTAP_UUID_SIZE] = { 3 };
+    uint8_t user_id[FTAP_UUID_SIZE] = { 4 };
+    uint8_t session_id[FTAP_UUID_SIZE] = { 5 };
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_validation_error_t error;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_REGISTRATION_COMMIT_REQUEST, 0,
+                         (uint32_t)writer.length, 22);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_STATE_COMPLETED,
+                     strlen(FTAP_REGISTRATION_STATE_COMPLETED),
+                     FTAP_REGISTRATION_STATE_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_SESSION_ID, 0, session_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LOGIN_NAME, 0,
+                     (const uint8_t *)"new.user", 8,
+                     FTAP_LOGIN_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+                     (const uint8_t *)"New User", 8,
+                     FTAP_DISPLAY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_LEGACY_NAME, 0,
+                     (const uint8_t *)"newuser2", 8,
+                     FTAP_LEGACY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_ACCOUNT_STATE, 0,
+                     (const uint8_t *)FTAP_ACCOUNT_STATE_ACTIVE,
+                     strlen(FTAP_ACCOUNT_STATE_ACTIVE),
+                     FTAP_ACCOUNT_STATE_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_PROTOCOL, 0,
+                     (const uint8_t *)FTAP_PROTOCOL_TELNET,
+                     strlen(FTAP_PROTOCOL_TELNET), FTAP_PROTOCOL_NAME_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_AUTH_METHOD, 0,
+                     (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+                     strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u64(
+                     &writer, FTAP_FIELD_AUTH_EPOCH, 0, 1),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u64(
+                     &writer, FTAP_FIELD_AUTHZ_REVISION, 0, 2),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_CAPABILITY, 0,
+                     (const uint8_t *)"terminal.login.telnet", 21,
+                     FTAP_CAPABILITY_NAME_MAX),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_REGISTRATION_COMMIT_RESULT,
+                         FTAP_FRAME_FLAG_RESPONSE,
+                         (uint32_t)writer.length, 22);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+}
+
+static void
+test_registration_abort_contract(void)
+{
+    uint8_t payload[256];
+    uint8_t registration_id[FTAP_UUID_SIZE] = { 6 };
+    uint8_t user_id[FTAP_UUID_SIZE] = { 7 };
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+    ftap_validation_error_t error;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_REASON, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_REASON_CLIENT_CANCELLED,
+                     strlen(FTAP_REGISTRATION_REASON_CLIENT_CANCELLED),
+                     FTAP_REGISTRATION_REASON_MAX),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_REGISTRATION_ABORT_REQUEST, 0,
+                         (uint32_t)writer.length, 23);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_REASON, 0,
+                     (const uint8_t *)"made_up_reason", 14,
+                     FTAP_REGISTRATION_REASON_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_REGISTRATION_REASON);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_REASON, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN,
+                     strlen(FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN),
+                     FTAP_REGISTRATION_REASON_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_REGISTRATION_REASON);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_REASON, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN,
+                     strlen(FTAP_REGISTRATION_REASON_DAEMON_SHUTDOWN),
+                     FTAP_REGISTRATION_REASON_MAX),
+                 FTAP_STATUS_OK);
+    header.payload_length = (uint32_t)writer.length;
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_ERR_INVALID_VALUE);
+    CHECK(error.field_type == FTAP_FIELD_REGISTRATION_REASON);
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_REGISTRATION_ID, 0, registration_id),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_text(
+                     &writer, FTAP_FIELD_REGISTRATION_STATE, 0,
+                     (const uint8_t *)FTAP_REGISTRATION_STATE_ABORTED,
+                     strlen(FTAP_REGISTRATION_STATE_ABORTED),
+                     FTAP_REGISTRATION_STATE_MAX),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_uuid(
+                     &writer, FTAP_FIELD_USER_ID, 0, user_id),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_REGISTRATION_ABORT_RESULT,
+                         FTAP_FRAME_FLAG_RESPONSE,
+                         (uint32_t)writer.length, 23);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_REGISTERING, &header,
+                                       payload, writer.length, &error),
+                 FTAP_STATUS_OK);
+}
+
+static void
+test_registration_error_codes(void)
+{
+    uint8_t payload[64];
+    ftap_tlv_writer_t writer;
+    ftap_frame_header_t header;
+
+    CHECK_STATUS(ftap_tlv_writer_init(&writer, payload, sizeof(payload)),
+                 FTAP_STATUS_OK);
+    CHECK_STATUS(ftap_tlv_writer_put_u32(
+                     &writer, FTAP_FIELD_ERROR_CODE, 0,
+                     FTAP_ERR_PASSWORD_POLICY),
+                 FTAP_STATUS_OK);
+    header = make_header(FTAP_MSG_ERROR,
+                         FTAP_FRAME_FLAG_RESPONSE | FTAP_FRAME_FLAG_ERROR,
+                         (uint32_t)writer.length, 24);
+    CHECK_STATUS(ftap_validate_message(FTAP_STATE_HELLO_COMPLETE, &header,
+                                       payload, writer.length, NULL),
+                 FTAP_STATUS_OK);
+}
+
+static void
 test_account_state_is_reserved(void)
 {
     uint8_t payload[64];
@@ -648,6 +1090,11 @@ main(void)
     test_bounded_resource_fields();
     test_reason_limits_and_syntax();
     test_legacy_name_result_contract();
+    test_registration_begin_contract();
+    test_registration_begin_result_contract();
+    test_registration_commit_contract();
+    test_registration_abort_contract();
+    test_registration_error_codes();
     test_account_state_is_reserved();
 
     if (failures != 0U) {

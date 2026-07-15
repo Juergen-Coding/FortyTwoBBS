@@ -25,7 +25,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define FORTYTWO_LOGIN_VERSION "0.1.2"
+#define FORTYTWO_LOGIN_VERSION "0.1.3"
 #define LOGIN_LINE_BUFFER_SIZE (FTAP_LOGIN_NAME_MAX + 2U)
 #define PASSWORD_BUFFER_SIZE (FTAP_PASSWORD_MAX + 2U)
 
