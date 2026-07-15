@@ -356,6 +356,7 @@ parse_error_frame(const ftap_received_frame_t *frame,
     ftap_client_error_clear(error);
     if (error != NULL) {
         error->status = FTAP_STATUS_ERR_INVALID_VALUE;
+        error->server_error = true;
     }
     status = ftap_tlv_reader_init(&reader, frame->payload,
                                   frame->payload_length);
@@ -809,6 +810,584 @@ ftap_client_authenticate_password(
     }
 
     client->state = FTAP_STATE_SESSION_BOUND;
+    ftap_client_error_clear(error);
+    return 0;
+}
+
+
+static bool
+field_text_equals(const ftap_tlv_t *field, const char *expected)
+{
+    size_t expected_length;
+
+    if (field == NULL || expected == NULL) {
+        return false;
+    }
+    expected_length = strlen(expected);
+    return (size_t)field->length == expected_length &&
+           memcmp(field->value, expected, expected_length) == 0;
+}
+
+static void
+mark_outcome_unknown(ftap_client_error_t *error)
+{
+    if (error != NULL && !error->server_error) {
+        error->outcome_unknown = true;
+    }
+}
+
+/* Decode and retain the exact pending identity returned by Begin. */
+static int
+parse_registration_begin_context(
+    const ftap_received_frame_t *frame,
+    ftap_registration_context_t *registration,
+    ftap_client_error_t *error)
+{
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    bool seen[7] = {false};
+    size_t index;
+
+    memset(registration, 0, sizeof(*registration));
+    status = ftap_tlv_reader_init(&reader, frame->payload,
+                                  frame->payload_length);
+    if (status != FTAP_STATUS_OK) {
+        set_local_error(error, status, EPROTO,
+                        "invalid FTAP registration begin result");
+        return -1;
+    }
+
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            set_local_error(error, status, EPROTO,
+                            "invalid FTAP registration begin field");
+            memset(registration, 0, sizeof(*registration));
+            return -1;
+        }
+        switch (field.type) {
+        case FTAP_FIELD_REGISTRATION_ID:
+            status = ftap_tlv_get_uuid(&field,
+                                       registration->registration_id);
+            seen[0] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_REGISTRATION_STATE:
+            status = field_text_equals(
+                         &field,
+                         FTAP_REGISTRATION_STATE_PENDING_LEGACY)
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[1] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_USER_ID:
+            status = ftap_tlv_get_uuid(&field, registration->user_id);
+            seen[2] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_LOGIN_NAME:
+            status = copy_text_field(&field, registration->login_name,
+                                     sizeof(registration->login_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            seen[3] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_DISPLAY_NAME:
+            status = copy_text_field(&field, registration->display_name,
+                                     sizeof(registration->display_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            seen[4] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_LEGACY_NAME:
+            status = copy_text_field(&field, registration->legacy_name,
+                                     sizeof(registration->legacy_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            seen[5] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_ACCOUNT_STATE:
+            status = field_text_equals(&field, FTAP_ACCOUNT_STATE_PENDING)
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[6] = status == FTAP_STATUS_OK;
+            break;
+        default:
+            status = FTAP_STATUS_ERR_INVALID_MESSAGE;
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            set_local_error(error, status, EPROTO,
+                            "invalid FTAP registration begin value");
+            memset(registration, 0, sizeof(*registration));
+            return -1;
+        }
+    }
+
+    for (index = 0U; index < sizeof(seen) / sizeof(seen[0]); ++index) {
+        if (!seen[index]) {
+            set_local_error(error, FTAP_STATUS_ERR_MISSING_FIELD, EPROTO,
+                            "incomplete FTAP registration begin result");
+            memset(registration, 0, sizeof(*registration));
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/* Commit must return the same pending identity plus one bound terminal session. */
+static int
+parse_registration_commit_context(
+    const ftap_received_frame_t *frame,
+    const ftap_registration_context_t *registration,
+    ftap_terminal_context_t *context,
+    ftap_client_error_t *error)
+{
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    bool seen[12] = {false};
+    size_t index;
+
+    memset(registration_id, 0, sizeof(registration_id));
+    memset(context, 0, sizeof(*context));
+    status = ftap_tlv_reader_init(&reader, frame->payload,
+                                  frame->payload_length);
+    if (status != FTAP_STATUS_OK) {
+        set_local_error(error, status, EPROTO,
+                        "invalid FTAP registration commit result");
+        return -1;
+    }
+
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            set_local_error(error, status, EPROTO,
+                            "invalid FTAP registration commit field");
+            memset(context, 0, sizeof(*context));
+            return -1;
+        }
+        switch (field.type) {
+        case FTAP_FIELD_REGISTRATION_ID:
+            status = ftap_tlv_get_uuid(&field, registration_id);
+            seen[0] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_REGISTRATION_STATE:
+            status = field_text_equals(
+                         &field, FTAP_REGISTRATION_STATE_COMPLETED)
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[1] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_USER_ID:
+            status = ftap_tlv_get_uuid(&field, context->user_id);
+            seen[2] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_SESSION_ID:
+            status = ftap_tlv_get_uuid(&field, context->session_id);
+            seen[3] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_LOGIN_NAME:
+            status = copy_text_field(&field, context->login_name,
+                                     sizeof(context->login_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            seen[4] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_DISPLAY_NAME:
+            status = copy_text_field(&field, context->display_name,
+                                     sizeof(context->display_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            seen[5] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_LEGACY_NAME:
+            status = copy_text_field(&field, context->legacy_name,
+                                     sizeof(context->legacy_name))
+                         ? FTAP_STATUS_OK : FTAP_STATUS_ERR_LENGTH;
+            seen[6] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_ACCOUNT_STATE:
+            status = field_text_equals(&field, FTAP_ACCOUNT_STATE_ACTIVE)
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[7] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_PROTOCOL:
+            status = copy_text_field(&field, context->protocol,
+                                     sizeof(context->protocol)) &&
+                     strcmp(context->protocol, FTAP_PROTOCOL_TELNET) == 0
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[8] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_AUTH_METHOD:
+            status = copy_text_field(&field, context->auth_method,
+                                     sizeof(context->auth_method)) &&
+                     strcmp(context->auth_method,
+                            FTAP_AUTH_METHOD_PASSWORD) == 0
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[9] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_AUTH_EPOCH:
+            status = ftap_tlv_get_u64(&field, &context->auth_epoch);
+            seen[10] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_AUTHZ_REVISION:
+            status = ftap_tlv_get_u64(&field, &context->authz_revision);
+            seen[11] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_CAPABILITY:
+            status = FTAP_STATUS_OK;
+            break;
+        default:
+            status = FTAP_STATUS_ERR_INVALID_MESSAGE;
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            set_local_error(error, status, EPROTO,
+                            "invalid FTAP registration commit value");
+            memset(context, 0, sizeof(*context));
+            return -1;
+        }
+    }
+
+    for (index = 0U; index < sizeof(seen) / sizeof(seen[0]); ++index) {
+        if (!seen[index]) {
+            set_local_error(error, FTAP_STATUS_ERR_MISSING_FIELD, EPROTO,
+                            "incomplete FTAP registration commit result");
+            memset(context, 0, sizeof(*context));
+            return -1;
+        }
+    }
+    if (memcmp(registration_id, registration->registration_id,
+               FTAP_UUID_SIZE) != 0 ||
+        memcmp(context->user_id, registration->user_id,
+               FTAP_UUID_SIZE) != 0 ||
+        strcmp(context->login_name, registration->login_name) != 0 ||
+        strcmp(context->display_name, registration->display_name) != 0 ||
+        strcmp(context->legacy_name, registration->legacy_name) != 0) {
+        set_local_error(error, FTAP_STATUS_ERR_INVALID_VALUE, EPROTO,
+                        "FTAP registration commit identity mismatch");
+        memset(context, 0, sizeof(*context));
+        return -1;
+    }
+    return 0;
+}
+
+static int
+parse_registration_abort_result(
+    const ftap_received_frame_t *frame,
+    const ftap_registration_context_t *registration,
+    ftap_client_error_t *error)
+{
+    ftap_tlv_reader_t reader;
+    ftap_tlv_t field;
+    ftap_status_t status;
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    uint8_t user_id[FTAP_UUID_SIZE];
+    bool seen[3] = {false};
+    size_t index;
+
+    memset(registration_id, 0, sizeof(registration_id));
+    memset(user_id, 0, sizeof(user_id));
+    status = ftap_tlv_reader_init(&reader, frame->payload,
+                                  frame->payload_length);
+    if (status != FTAP_STATUS_OK) {
+        set_local_error(error, status, EPROTO,
+                        "invalid FTAP registration abort result");
+        return -1;
+    }
+
+    for (;;) {
+        status = ftap_tlv_reader_next(&reader, &field);
+        if (status == FTAP_STATUS_DONE) {
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            set_local_error(error, status, EPROTO,
+                            "invalid FTAP registration abort field");
+            return -1;
+        }
+        switch (field.type) {
+        case FTAP_FIELD_REGISTRATION_ID:
+            status = ftap_tlv_get_uuid(&field, registration_id);
+            seen[0] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_REGISTRATION_STATE:
+            status = field_text_equals(
+                         &field, FTAP_REGISTRATION_STATE_ABORTED)
+                         ? FTAP_STATUS_OK
+                         : FTAP_STATUS_ERR_INVALID_VALUE;
+            seen[1] = status == FTAP_STATUS_OK;
+            break;
+        case FTAP_FIELD_USER_ID:
+            status = ftap_tlv_get_uuid(&field, user_id);
+            seen[2] = status == FTAP_STATUS_OK;
+            break;
+        default:
+            status = FTAP_STATUS_ERR_INVALID_MESSAGE;
+            break;
+        }
+        if (status != FTAP_STATUS_OK) {
+            set_local_error(error, status, EPROTO,
+                            "invalid FTAP registration abort value");
+            return -1;
+        }
+    }
+
+    for (index = 0U; index < sizeof(seen) / sizeof(seen[0]); ++index) {
+        if (!seen[index]) {
+            set_local_error(error, FTAP_STATUS_ERR_MISSING_FIELD, EPROTO,
+                            "incomplete FTAP registration abort result");
+            return -1;
+        }
+    }
+    if (memcmp(registration_id, registration->registration_id,
+               FTAP_UUID_SIZE) != 0 ||
+        memcmp(user_id, registration->user_id, FTAP_UUID_SIZE) != 0) {
+        set_local_error(error, FTAP_STATUS_ERR_INVALID_VALUE, EPROTO,
+                        "FTAP registration abort identity mismatch");
+        return -1;
+    }
+    return 0;
+}
+
+static bool
+registration_abort_reason_is_allowed(const char *reason)
+{
+    return reason == NULL ||
+           strcmp(reason, FTAP_REGISTRATION_REASON_CLIENT_CANCELLED) == 0 ||
+           strcmp(reason, FTAP_REGISTRATION_REASON_LEGACY_WRITE_FAILED) == 0;
+}
+
+int
+ftap_client_registration_begin(
+    ftap_client_t *client,
+    const char *login_name,
+    const char *display_name,
+    const uint8_t *password,
+    size_t password_length,
+    const ftap_registration_metadata_t *metadata,
+    ftap_registration_context_t *result,
+    ftap_client_error_t *error)
+{
+    uint8_t payload[FTAP_MAX_PAYLOAD_SIZE];
+    ftap_tlv_writer_t writer;
+    ftap_received_frame_t response;
+    ftap_status_t status;
+    uint64_t request_id;
+
+    if (result != NULL) {
+        memset(result, 0, sizeof(*result));
+    }
+    if (client == NULL || client->state != FTAP_STATE_HELLO_COMPLETE ||
+        login_name == NULL || display_name == NULL || password == NULL ||
+        password_length == 0U || metadata == NULL ||
+        metadata->protocol == NULL ||
+        strcmp(metadata->protocol, FTAP_PROTOCOL_TELNET) != 0 ||
+        metadata->source_ip == NULL || result == NULL) {
+        set_local_error(error, FTAP_STATUS_ERR_ARGUMENT, EINVAL,
+                        "invalid FTAP registration begin argument");
+        return -1;
+    }
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_LOGIN_NAME, 0,
+            (const uint8_t *)login_name, strlen(login_name),
+            FTAP_LOGIN_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_DISPLAY_NAME, 0,
+            (const uint8_t *)display_name, strlen(display_name),
+            FTAP_DISPLAY_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_PASSWORD, 0, password, password_length,
+            FTAP_PASSWORD_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_PROTOCOL, 0,
+            (const uint8_t *)metadata->protocol, strlen(metadata->protocol),
+            FTAP_PROTOCOL_NAME_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_SOURCE_IP, 0,
+            (const uint8_t *)metadata->source_ip,
+            strlen(metadata->source_ip), FTAP_IP_ADDRESS_MAX);
+    }
+    if (status == FTAP_STATUS_OK && metadata->tty_device != NULL) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_TTY_DEVICE, 0,
+            (const uint8_t *)metadata->tty_device,
+            strlen(metadata->tty_device), FTAP_TTY_DEVICE_MAX);
+    }
+    if (status == FTAP_STATUS_OK && metadata->node_id != NULL) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_NODE_ID, 0,
+            (const uint8_t *)metadata->node_id, strlen(metadata->node_id),
+            FTAP_NODE_ID_MAX);
+    }
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_AUTH_METHOD, 0,
+            (const uint8_t *)FTAP_AUTH_METHOD_PASSWORD,
+            strlen(FTAP_AUTH_METHOD_PASSWORD), FTAP_AUTH_METHOD_MAX);
+    }
+    if (status != FTAP_STATUS_OK) {
+        secure_wipe(payload, sizeof(payload));
+        set_local_error(error, status, EINVAL,
+                        "cannot build FTAP registration begin request");
+        return -1;
+    }
+
+    request_id = next_request_id(client);
+    if (send_frame(client, FTAP_MSG_REGISTRATION_BEGIN_REQUEST, request_id,
+                   payload, writer.length, error) != 0) {
+        secure_wipe(payload, sizeof(payload));
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+    secure_wipe(payload, sizeof(payload));
+    client->state = FTAP_STATE_REGISTERING;
+    if (wait_for_response(client, FTAP_MSG_REGISTRATION_BEGIN_RESULT,
+                          request_id, &response, error) != 0 ||
+        parse_registration_begin_context(&response, result, error) != 0) {
+        memset(result, 0, sizeof(*result));
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+
+    ftap_client_error_clear(error);
+    return 0;
+}
+
+int
+ftap_client_registration_commit(
+    ftap_client_t *client,
+    const ftap_registration_context_t *registration,
+    ftap_terminal_context_t *result,
+    ftap_client_error_t *error)
+{
+    uint8_t payload[FTAP_TLV_HEADER_SIZE + FTAP_UUID_SIZE];
+    ftap_tlv_writer_t writer;
+    ftap_received_frame_t response;
+    ftap_status_t status;
+    uint64_t request_id;
+
+    if (result != NULL) {
+        memset(result, 0, sizeof(*result));
+    }
+    if (client == NULL || client->state != FTAP_STATE_REGISTERING ||
+        registration == NULL || result == NULL) {
+        set_local_error(error, FTAP_STATUS_ERR_INVALID_STATE, EINVAL,
+                        "no pending FTAP registration to commit");
+        return -1;
+    }
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(
+            &writer, FTAP_FIELD_REGISTRATION_ID, 0,
+            registration->registration_id);
+    }
+    if (status != FTAP_STATUS_OK) {
+        set_local_error(error, status, EINVAL,
+                        "cannot build FTAP registration commit request");
+        return -1;
+    }
+
+    request_id = next_request_id(client);
+    if (send_frame(client, FTAP_MSG_REGISTRATION_COMMIT_REQUEST, request_id,
+                   payload, writer.length, error) != 0) {
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+    if (wait_for_response(client, FTAP_MSG_REGISTRATION_COMMIT_RESULT,
+                          request_id, &response, error) != 0) {
+        mark_outcome_unknown(error);
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+    if (parse_registration_commit_context(&response, registration,
+                                          result, error) != 0) {
+        mark_outcome_unknown(error);
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+
+    client->state = FTAP_STATE_SESSION_BOUND;
+    ftap_client_error_clear(error);
+    return 0;
+}
+
+int
+ftap_client_registration_abort(
+    ftap_client_t *client,
+    const ftap_registration_context_t *registration,
+    const char *reason,
+    ftap_client_error_t *error)
+{
+    uint8_t payload[FTAP_TLV_HEADER_SIZE + FTAP_UUID_SIZE +
+                    FTAP_TLV_HEADER_SIZE + FTAP_REGISTRATION_REASON_MAX];
+    ftap_tlv_writer_t writer;
+    ftap_received_frame_t response;
+    ftap_status_t status;
+    uint64_t request_id;
+
+    if (client == NULL || client->state != FTAP_STATE_REGISTERING ||
+        registration == NULL ||
+        !registration_abort_reason_is_allowed(reason)) {
+        set_local_error(error, FTAP_STATUS_ERR_INVALID_STATE, EINVAL,
+                        "no pending FTAP registration to abort");
+        return -1;
+    }
+
+    status = ftap_tlv_writer_init(&writer, payload, sizeof(payload));
+    if (status == FTAP_STATUS_OK) {
+        status = ftap_tlv_writer_put_uuid(
+            &writer, FTAP_FIELD_REGISTRATION_ID, 0,
+            registration->registration_id);
+    }
+    if (status == FTAP_STATUS_OK && reason != NULL) {
+        status = ftap_tlv_writer_put_text(
+            &writer, FTAP_FIELD_REGISTRATION_REASON, 0,
+            (const uint8_t *)reason, strlen(reason),
+            FTAP_REGISTRATION_REASON_MAX);
+    }
+    if (status != FTAP_STATUS_OK) {
+        set_local_error(error, status, EINVAL,
+                        "cannot build FTAP registration abort request");
+        return -1;
+    }
+
+    request_id = next_request_id(client);
+    if (send_frame(client, FTAP_MSG_REGISTRATION_ABORT_REQUEST, request_id,
+                   payload, writer.length, error) != 0) {
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+    if (wait_for_response(client, FTAP_MSG_REGISTRATION_ABORT_RESULT,
+                          request_id, &response, error) != 0) {
+        mark_outcome_unknown(error);
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+    if (parse_registration_abort_result(&response, registration, error) != 0) {
+        mark_outcome_unknown(error);
+        client->state = FTAP_STATE_CLOSING;
+        return -1;
+    }
+
+    client->state = FTAP_STATE_HELLO_COMPLETE;
     ftap_client_error_clear(error);
     return 0;
 }

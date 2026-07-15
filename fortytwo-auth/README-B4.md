@@ -477,3 +477,44 @@ the real event-loop daemon with deterministic workers and covers:
 
 The test is part of both `make test` and `make sanitize-test`.  The latter runs
 the daemon and the complete registration state machine under ASan and UBSan.
+
+### FTAP registration client lifecycle
+
+The synchronous FTAP client now exposes the three operations required by the
+visible Telnet registration flow:
+
+```text
+ftap_client_registration_begin
+ftap_client_registration_commit
+ftap_client_registration_abort
+```
+
+Begin transmits the canonical registration inputs and Telnet metadata, wipes
+both the request payload and the encoded frame, changes the client to
+`REGISTERING` before validating the server response, and retains the exact
+registration UUID, user UUID, canonical login name, display name and legacy
+key returned by PostgreSQL Begin.
+
+Commit and Abort accept only that retained snapshot.  Their result parsers
+compare the returned registration and user identities byte-for-byte with the
+pending context; Commit additionally verifies the login, display and legacy
+names before exposing the new terminal session.  A successful Commit changes
+the client to `SESSION_BOUND`; a confirmed Abort returns the same socket to
+`HELLO_COMPLETE`.
+
+Only `client_cancelled` and `legacy_write_failed` can be sent by this client as
+registration-abort reasons.  Server-only lifecycle reasons remain unavailable
+to callers.
+
+`ftap_client_error_t` distinguishes a validated FTAP `ERROR` response from a
+transport or response-validation failure.  For Commit and Abort, the latter is
+reported as `outcome_unknown` once the complete request has been sent.  The
+caller must therefore not assume that a timed-out Commit failed and must retain
+its legacy provisioning marker for reconciliation instead of blindly removing
+the new record.
+
+The dedicated socket-pair test covers successful Begin/Commit, successful
+Begin/Abort, server-side password-policy rejection, exact pending-identity
+binding, invalid client abort reasons, state changes, and the unknown-outcome
+classification for an inconsistent Commit response.  It runs in both
+`make test` and `make sanitize-test`.

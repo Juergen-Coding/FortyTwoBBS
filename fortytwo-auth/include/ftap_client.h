@@ -9,6 +9,7 @@
 
 #include "ftap_codec.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -27,6 +28,8 @@ typedef struct ftap_client_error {
     int system_errno;
     uint32_t protocol_error;
     uint32_t retry_after_ms;
+    bool server_error;
+    bool outcome_unknown;
     char text[FTAP_CLIENT_ERROR_TEXT_SIZE];
 } ftap_client_error_t;
 
@@ -48,6 +51,21 @@ typedef struct ftap_password_metadata {
     const char *tty_device;
     const char *node_id;
 } ftap_password_metadata_t;
+
+typedef struct ftap_registration_metadata {
+    const char *protocol;
+    const char *source_ip;
+    const char *tty_device;
+    const char *node_id;
+} ftap_registration_metadata_t;
+
+typedef struct ftap_registration_context {
+    uint8_t registration_id[FTAP_UUID_SIZE];
+    uint8_t user_id[FTAP_UUID_SIZE];
+    char login_name[FTAP_LOGIN_NAME_MAX + 1U];
+    char display_name[FTAP_DISPLAY_NAME_MAX + 1U];
+    char legacy_name[FTAP_LEGACY_NAME_MAX + 1U];
+} ftap_registration_context_t;
 
 void ftap_client_init(ftap_client_t *client, uint32_t timeout_ms);
 void ftap_client_error_clear(ftap_client_error_t *error);
@@ -73,6 +91,28 @@ int ftap_client_authenticate_password(
     size_t password_length,
     const ftap_password_metadata_t *metadata,
     ftap_terminal_context_t *result,
+    ftap_client_error_t *error);
+
+int ftap_client_registration_begin(
+    ftap_client_t *client,
+    const char *login_name,
+    const char *display_name,
+    const uint8_t *password,
+    size_t password_length,
+    const ftap_registration_metadata_t *metadata,
+    ftap_registration_context_t *result,
+    ftap_client_error_t *error);
+
+int ftap_client_registration_commit(
+    ftap_client_t *client,
+    const ftap_registration_context_t *registration,
+    ftap_terminal_context_t *result,
+    ftap_client_error_t *error);
+
+int ftap_client_registration_abort(
+    ftap_client_t *client,
+    const ftap_registration_context_t *registration,
+    const char *reason,
     ftap_client_error_t *error);
 
 int ftap_client_session_context(ftap_client_t *client,

@@ -74,6 +74,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_protocol_compile_test \
 	$(NORMAL_DIR)/ftap_codec_test \
 	$(NORMAL_DIR)/ftap_schema_test \
+	$(NORMAL_DIR)/ftap_client_registration_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
 	$(NORMAL_DIR)/authd_throttle_test \
@@ -103,6 +104,7 @@ test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/ftap_protocol_compile_test
 	$(NORMAL_DIR)/ftap_codec_test
 	$(NORMAL_DIR)/ftap_schema_test
+	$(NORMAL_DIR)/ftap_client_registration_test
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
 	$(NORMAL_DIR)/authd_throttle_test
@@ -155,6 +157,9 @@ $(NORMAL_DIR)/ftap_codec_test: tests/ftap_codec_test.c src/ftap_codec.c | $(NORM
 
 $(NORMAL_DIR)/ftap_schema_test: tests/ftap_schema_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
+
+$(NORMAL_DIR)/ftap_client_registration_test: tests/ftap_client_registration_test.c $(FTAP_CLIENT_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) $< -o $@
 
 $(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) \
@@ -262,6 +267,9 @@ sanitize-test: check-libpq check-libsodium
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(PROTOCOL_SOURCES) tests/ftap_schema_test.c \
 		-o $(SANITIZER_DIR)/ftap_schema_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(FTAP_CLIENT_SOURCES) tests/ftap_client_registration_test.c \
+		-o $(SANITIZER_DIR)/ftap_client_registration_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
@@ -330,6 +338,9 @@ sanitize-test: check-libpq check-libsodium
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/ftap_schema_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/ftap_client_registration_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_config_test
