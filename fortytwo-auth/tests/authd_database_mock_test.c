@@ -55,7 +55,7 @@ typedef struct fake_scenario {
     bool session_create_found;
     bool session_create_query_error;
     int session_create_null_column;
-    const char *session_create_values[5];
+    const char *session_create_values[6];
     bool session_close_found;
     bool session_close_query_error;
     bool session_close_null;
@@ -133,13 +133,14 @@ reset_scenario(void)
     scenario.login_values[13] = "1720000000000";
     scenario.session_create_found = true;
     scenario.session_create_null_column = -1;
-    scenario.session_create_values[0] =
-        "ffeeddccbbaa99887766554433221100";
+    scenario.session_create_values[0] = "ok";
     scenario.session_create_values[1] =
+        "ffeeddccbbaa99887766554433221100";
+    scenario.session_create_values[2] =
         "00112233445566778899aabbccddeeff";
-    scenario.session_create_values[2] = "7";
-    scenario.session_create_values[3] = "9";
-    scenario.session_create_values[4] = "42";
+    scenario.session_create_values[3] = "7";
+    scenario.session_create_values[4] = "9";
+    scenario.session_create_values[5] = "42";
     scenario.session_close_found = true;
     scenario.session_close_event_id = "43";
     scenario.failure_found = true;
@@ -291,13 +292,16 @@ __wrap_PQexecParams(PGconn *connection,
         assert(strstr(command, "eligible_user") != NULL);
         assert(strstr(command, "FOR UPDATE OF u") != NULL);
         assert(strstr(command, "credential_reset") != NULL);
+        assert(strstr(command, "transport_authorization") != NULL);
         assert(strstr(command, "session_insert") != NULL);
-        assert(strstr(command, "audit_insert") != NULL);
+        assert(strstr(command, "success_audit") != NULL);
+        assert(strstr(command, "denied_audit") != NULL);
         assert(strstr(command, "u.login_name = $8 COLLATE") != NULL);
         assert(strstr(command, "c.password_hash = $9") != NULL);
         assert(strstr(command, "m.legacy_name = $10 COLLATE") != NULL);
+        assert(strstr(command, "capability.capability_name = $11") != NULL);
         assert(strstr(command, "neo67") == NULL);
-        assert(parameter_count == 10);
+        assert(parameter_count == 12);
         assert(strcmp(parameter_values[0],
                       "00112233-4455-6677-8899-aabbccddeeff") == 0);
         assert(strcmp(parameter_values[1], "7") == 0);
@@ -309,6 +313,9 @@ __wrap_PQexecParams(PGconn *connection,
         assert(strcmp(parameter_values[7], "neo67") == 0);
         assert(strncmp(parameter_values[8], "$argon2id$", 10U) == 0);
         assert(strcmp(parameter_values[9], "neo67") == 0);
+        assert(strcmp(parameter_values[10], "terminal.login.ssh") == 0);
+        assert(strcmp(parameter_values[11],
+                      "transport_not_authorized") == 0);
         result->kind = scenario.session_create_query_error ?
             FAKE_RESULT_ERROR : FAKE_RESULT_SESSION_CREATE;
     } else if (strstr(command, "auth.terminal_session_closed") != NULL) {
@@ -413,7 +420,7 @@ __wrap_PQnfields(const PGresult *result)
     case FAKE_RESULT_LOGIN:
         return 14;
     case FAKE_RESULT_SESSION_CREATE:
-        return 5;
+        return 6;
     case FAKE_RESULT_SESSION_CLOSE:
         return 1;
     case FAKE_RESULT_PASSWORD_FAILURE:
@@ -505,7 +512,7 @@ __wrap_PQgetvalue(const PGresult *result, int row, int column)
 
     if (fake->kind == FAKE_RESULT_SESSION_CREATE) {
         assert(row == 0);
-        assert(column >= 0 && column < 5);
+        assert(column >= 0 && column < 6);
         return (char *)scenario.session_create_values[column];
     }
 
@@ -739,25 +746,34 @@ test_password_session_creation(void)
         &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_STALE_STATE);
     scenario.session_create_found = true;
 
+    scenario.session_create_values[0] = "access_denied";
+    scenario.session_create_null_column = 1;
+    assert(authd_database_create_password_session(
+        database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
+        &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_ACCESS_DENIED);
+    assert(strstr(error, "not authorized") != NULL);
+    scenario.session_create_values[0] = "ok";
+    scenario.session_create_null_column = -1;
+
     scenario.session_create_null_column = 0;
     assert(authd_database_create_password_session(
         database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
         &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
     scenario.session_create_null_column = -1;
 
-    scenario.session_create_values[0] =
+    scenario.session_create_values[1] =
         "00000000000000000000000000000000";
     assert(authd_database_create_password_session(
         database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
         &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
-    scenario.session_create_values[0] =
+    scenario.session_create_values[1] =
         "ffeeddccbbaa99887766554433221100";
 
-    scenario.session_create_values[2] = "8";
+    scenario.session_create_values[3] = "8";
     assert(authd_database_create_password_session(
         database, &record, "192.0.2.42", "ssh", "/dev/pts/7", "node-a",
         &session, error, sizeof(error)) == AUTHD_DATABASE_WRITE_INVALID_RECORD);
-    scenario.session_create_values[2] = "7";
+    scenario.session_create_values[3] = "7";
 
     scenario.session_create_query_error = true;
     assert(authd_database_create_password_session(
@@ -801,6 +817,9 @@ test_password_session_creation(void)
     assert(strcmp(authd_database_write_result_name(
                       AUTHD_DATABASE_WRITE_STALE_STATE),
                   "stale_state") == 0);
+    assert(strcmp(authd_database_write_result_name(
+                      AUTHD_DATABASE_WRITE_ACCESS_DENIED),
+                  "access_denied") == 0);
     authd_database_close(database);
 }
 

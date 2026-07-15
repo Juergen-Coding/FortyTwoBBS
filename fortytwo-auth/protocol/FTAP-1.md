@@ -597,9 +597,23 @@ Der Auth-Daemon:
 2. wendet Rate-Limits an,
 3. prüft das Passwort über Argon2id,
 4. prüft Kontostatus und `throttled_until`,
-5. erzeugt bei Erfolg eine Terminal-Sitzung,
-6. bindet diese Sitzung an die bestehende Socket-Verbindung,
-7. löscht den Klartextpasswortpuffer.
+5. prüft die zum angeforderten Transport gehörende Capability,
+6. erzeugt bei Erfolg eine Terminal-Sitzung,
+7. bindet diese Sitzung an die bestehende Socket-Verbindung,
+8. löscht den Klartextpasswortpuffer.
+
+Transport und erforderliche Capability sind verbindlich zugeordnet:
+
+```text
+telnet -> terminal.login.telnet
+ssh    -> terminal.login.ssh
+local  -> terminal.login.local
+```
+
+Fehlt nach erfolgreicher Passwortprüfung die erforderliche Capability, wird
+keine Terminal-Sitzung erzeugt. Der Daemon schreibt ein internes
+`auth.login_rejected`-Audit mit dem Grund `transport_not_authorized` und
+antwortet mit `FTAP_ERR_ACCESS_DENIED`.
 
 Bei Erfolg enthält `AUTH_PASSWORD_RESULT` mindestens:
 
@@ -863,6 +877,10 @@ Extern sichtbare Loginfehler unterscheiden grundsätzlich nicht zwischen:
 - unbekanntem Benutzer,
 - falschem Passwort,
 - gesperrtem Konto.
+
+Eine transportbezogene Ablehnung über `FTAP_ERR_ACCESS_DENIED` darf erst nach
+korrekter Passwortprüfung verständlich benannt werden. Dadurch gibt die
+Meldung keine Information über unbekannte Konten oder falsche Passwörter preis.
 
 Internes Audit darf die genaue Ursache enthalten.
 

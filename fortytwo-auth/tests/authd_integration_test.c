@@ -1112,9 +1112,11 @@ test_password_login_outcomes(const char *daemon_path, const char *directory)
     expect_login_error(fixture.socket_path, UINT64_C(1061),
                        "stale", "secret", FTAP_ERR_INVALID_CREDENTIALS);
     expect_login_error(fixture.socket_path, UINT64_C(1071),
+                       "nossh", "secret", FTAP_ERR_ACCESS_DENIED);
+    expect_login_error(fixture.socket_path, UINT64_C(1081),
                        "sessionerror", "secret",
                        FTAP_ERR_DATABASE_UNAVAILABLE);
-    expect_login_error(fixture.socket_path, UINT64_C(1081),
+    expect_login_error(fixture.socket_path, UINT64_C(1091),
                        "invalidhash", "secret", FTAP_ERR_INTERNAL);
 
     stop_daemon(fixture.daemon, true);
@@ -1135,9 +1137,11 @@ test_password_login_outcomes(const char *daemon_path, const char *directory)
     assert(count_text_occurrences(fixture.event_path,
                                   "rejection:stale_login_state") == 1U);
     assert(count_text_occurrences(fixture.event_path,
+                                  "rejection:transport_not_authorized") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
                                   "password_verify:dummy") == 3U);
     assert(count_text_occurrences(fixture.event_path,
-                                  "password_verify:real") == 5U);
+                                  "password_verify:real") == 6U);
     finish_login_fixture(&fixture, false);
 }
 
@@ -1630,6 +1634,36 @@ test_login_adapter_uniform_failure(const char *daemon_path,
 }
 
 static void
+test_login_adapter_ssh_not_enabled(const char *daemon_path,
+                                   const char *login_path,
+                                   const char *session_child_path,
+                                   const char *directory)
+{
+    login_fixture_t fixture;
+    login_pty_result_t result;
+
+    assert(setenv("FORTYTWO_TEST_PASSWORD_DELAY_MS", "20", 1) == 0);
+    start_login_fixture(&fixture, daemon_path, directory,
+                        "ssh-not-enabled");
+    run_login_adapter_pty(login_path, fixture.socket_path, directory,
+                          session_child_path, "nossh", "secret", &result);
+    assert(WIFEXITED(result.wait_status));
+    assert(WEXITSTATUS(result.wait_status) == 1);
+    assert(output_contains(
+        result.output, result.output_length,
+        "SSH access is not enabled for this account."));
+    assert(!output_contains(result.output, result.output_length, "secret"));
+
+    stop_daemon(fixture.daemon, true);
+    assert(count_text_occurrences(
+        fixture.event_path,
+        "rejection:transport_not_authorized") == 1U);
+    assert(count_text_occurrences(fixture.event_path,
+                                  "session_create:") == 0U);
+    finish_login_fixture(&fixture, false);
+}
+
+static void
 test_login_adapter_exec_failure(const char *daemon_path,
                                 const char *login_path,
                                 const char *directory)
@@ -1692,6 +1726,7 @@ main(int argc, char *argv[])
     test_login_adapter_fd_handoff(argv[1], argv[2], argv[3], directory);
     test_same_legacy_user_is_serialized(argv[1], argv[2], argv[3], directory);
     test_login_adapter_uniform_failure(argv[1], argv[2], argv[3], directory);
+    test_login_adapter_ssh_not_enabled(argv[1], argv[2], argv[3], directory);
     test_login_adapter_exec_failure(argv[1], argv[2], directory);
 
     {

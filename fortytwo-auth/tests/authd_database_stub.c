@@ -179,6 +179,8 @@ authd_database_lookup_login(authd_database_t *database,
         seed = UINT8_C(6);
     } else if (strcmp(canonical_login_name, "invalidhash") == 0) {
         seed = UINT8_C(7);
+    } else if (strcmp(canonical_login_name, "nossh") == 0) {
+        seed = UINT8_C(8);
     }
 
     fill_uuid(record->user_id, seed);
@@ -279,7 +281,6 @@ authd_database_create_password_session(
     size_t error_size)
 {
     (void)source_ip;
-    (void)protocol;
     (void)tty_device;
     (void)node_id;
     if (error != NULL && error_size > 0U) {
@@ -295,6 +296,14 @@ authd_database_create_password_session(
     if (strcmp(record->login_name, "sessionerror") == 0) {
         set_error(error, error_size, "test session creation failure");
         return AUTHD_DATABASE_WRITE_ERROR;
+    }
+    if (strcmp(record->login_name, "nossh") == 0 &&
+        strcmp(protocol, FTAP_PROTOCOL_SSH) == 0) {
+        database->failed_count = 0U;
+        record_event("rejection", "transport_not_authorized");
+        set_error(error, error_size,
+                  "transport is not authorized for this account");
+        return AUTHD_DATABASE_WRITE_ACCESS_DENIED;
     }
 
     memset(session, 0, sizeof(*session));
@@ -396,6 +405,8 @@ authd_database_write_result_name(authd_database_write_result_t result)
         return "not_found";
     case AUTHD_DATABASE_WRITE_STALE_STATE:
         return "stale_state";
+    case AUTHD_DATABASE_WRITE_ACCESS_DENIED:
+        return "access_denied";
     case AUTHD_DATABASE_WRITE_INVALID_ARGUMENT:
         return "invalid_argument";
     case AUTHD_DATABASE_WRITE_INVALID_RECORD:

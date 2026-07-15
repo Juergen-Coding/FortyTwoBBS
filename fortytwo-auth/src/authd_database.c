@@ -1129,12 +1129,28 @@ optional_session_text_is_valid(const char *text, size_t maximum_length)
     return length > 0U && length <= maximum_length;
 }
 
+/* Map the validated terminal protocol to its required capability. */
+static const char *
+transport_login_capability(const char *protocol)
+{
+    if (strcmp(protocol, FTAP_PROTOCOL_TELNET) == 0) {
+        return "terminal.login.telnet";
+    }
+    if (strcmp(protocol, FTAP_PROTOCOL_SSH) == 0) {
+        return "terminal.login.ssh";
+    }
+    if (strcmp(protocol, FTAP_PROTOCOL_LOCAL) == 0) {
+        return "terminal.login.local";
+    }
+    return NULL;
+}
+
 /*
- * Commit a successful password login as one data-modifying statement. The
- * locking user selection rechecks the current security state after the
- * expensive Argon2id work. Credential reset, session insertion, and success
- * audit are then chained through RETURNING rows, so any failure rolls back the
- * complete statement and no partial authenticated state can remain.
+ * Commit a verified password result as one data-modifying statement. The
+ * locking user selection rechecks the current security state after Argon2id.
+ * Credential reset, transport authorization, session insertion, and either
+ * success or denial audit are chained through RETURNING rows, so no partial
+ * authenticated state can remain.
  */
 authd_database_write_result_t
 authd_database_create_password_session(
@@ -1171,15 +1187,28 @@ authd_database_create_password_session(
         "WHERE c.user_id = u.user_id AND c.must_change = FALSE "
         "AND c.password_hash = $9::pg_catalog.text "
         "RETURNING c.user_id, u.auth_epoch, u.authz_revision), "
+        "transport_authorization AS MATERIALIZED ("
+        "SELECT c.user_id, c.auth_epoch, c.authz_revision, "
+        "EXISTS ("
+        "SELECT 1 FROM public.bbs_user_roles AS ur "
+        "JOIN public.bbs_role_capabilities AS rc "
+        "ON rc.role_id = ur.role_id "
+        "JOIN public.bbs_capabilities AS capability "
+        "ON capability.capability_id = rc.capability_id "
+        "WHERE ur.user_id = c.user_id "
+        "AND capability.capability_name = $11::pg_catalog.text"
+        ") AS allowed "
+        "FROM credential_reset AS c), "
         "session_insert AS ("
         "INSERT INTO public.bbs_terminal_sessions "
         "(user_id, protocol, auth_method, source_ip, tty_device, node_id, "
         "auth_epoch) "
-        "SELECT c.user_id, $4::pg_catalog.text, 'password', "
+        "SELECT a.user_id, $4::pg_catalog.text, 'password', "
         "$5::pg_catalog.inet, $6::pg_catalog.text, $7::pg_catalog.text, "
-        "c.auth_epoch FROM credential_reset AS c "
+        "a.auth_epoch FROM transport_authorization AS a "
+        "WHERE a.allowed "
         "RETURNING session_id, user_id, auth_epoch), "
-        "audit_insert AS ("
+        "success_audit AS ("
         "INSERT INTO public.bbs_audit_events "
         "(actor_user_id, subject_user_id, session_id, event_type, "
         "source_ip, detail) "
@@ -1189,28 +1218,59 @@ authd_database_create_password_session(
         "'login_name', $8::pg_catalog.text, "
         "'legacy_name', $10::pg_catalog.text, "
         "'protocol', $4::pg_catalog.text, "
+        "'required_capability', $11::pg_catalog.text, "
         "'auth_method', 'password', "
         "'auth_epoch', s.auth_epoch, "
-        "'authz_revision', c.authz_revision, "
+        "'authz_revision', a.authz_revision, "
         "'tty_device', $6::pg_catalog.text, "
         "'node_id', $7::pg_catalog.text) "
         "FROM session_insert AS s "
-        "JOIN credential_reset AS c USING (user_id) "
-        "RETURNING event_id, session_id) "
-        "SELECT "
+        "JOIN transport_authorization AS a USING (user_id) "
+        "RETURNING event_id, session_id), "
+        "denied_audit AS ("
+        "INSERT INTO public.bbs_audit_events "
+        "(subject_user_id, event_type, source_ip, detail) "
+        "SELECT a.user_id, 'auth.login_rejected', $5::pg_catalog.inet, "
+        "pg_catalog.jsonb_build_object("
+        "'reason', $12::pg_catalog.text, "
+        "'login_name', $8::pg_catalog.text, "
+        "'legacy_name', $10::pg_catalog.text, "
+        "'protocol', $4::pg_catalog.text, "
+        "'required_capability', $11::pg_catalog.text, "
+        "'auth_method', 'password', "
+        "'auth_epoch', a.auth_epoch, "
+        "'authz_revision', a.authz_revision, "
+        "'tty_device', $6::pg_catalog.text, "
+        "'node_id', $7::pg_catalog.text) "
+        "FROM transport_authorization AS a "
+        "WHERE NOT a.allowed "
+        "RETURNING event_id, subject_user_id) "
+        "SELECT 'ok'::pg_catalog.text, "
         "pg_catalog.encode(pg_catalog.uuid_send(s.session_id), 'hex'), "
         "pg_catalog.encode(pg_catalog.uuid_send(s.user_id), 'hex'), "
         "s.auth_epoch::pg_catalog.text, "
-        "c.authz_revision::pg_catalog.text, "
-        "a.event_id::pg_catalog.text "
+        "a.authz_revision::pg_catalog.text, "
+        "success.event_id::pg_catalog.text "
         "FROM session_insert AS s "
-        "JOIN credential_reset AS c USING (user_id) "
-        "JOIN audit_insert AS a USING (session_id)";
-    const char *parameter_values[10];
+        "JOIN transport_authorization AS a USING (user_id) "
+        "JOIN success_audit AS success USING (session_id) "
+        "UNION ALL "
+        "SELECT 'access_denied'::pg_catalog.text, NULL::pg_catalog.text, "
+        "pg_catalog.encode(pg_catalog.uuid_send(a.user_id), 'hex'), "
+        "a.auth_epoch::pg_catalog.text, "
+        "a.authz_revision::pg_catalog.text, "
+        "denied.event_id::pg_catalog.text "
+        "FROM denied_audit AS denied "
+        "JOIN transport_authorization AS a "
+        "ON a.user_id = denied.subject_user_id";
+    const char *parameter_values[12];
     char user_id_text[37];
     char auth_epoch_text[32];
     char authz_revision_text[32];
+    const char *required_capability;
+    const char *denial_reason;
     PGresult *result;
+    uint8_t returned_user_id[FTAP_UUID_SIZE];
     uint64_t auth_epoch;
     uint64_t authz_revision;
     uint64_t event_id;
@@ -1223,6 +1283,10 @@ authd_database_create_password_session(
         memset(session, 0, sizeof(*session));
     }
 
+    required_capability = transport_login_capability(protocol);
+    denial_reason = authd_login_rejection_reason_name(
+        AUTHD_LOGIN_REJECTION_TRANSPORT_NOT_AUTHORIZED);
+
     /* Reject stale or malformed snapshots before acquiring a database lock. */
     if (database == NULL || database->connection == NULL || record == NULL ||
         session == NULL || !uuid_is_valid(record->user_id) ||
@@ -1231,6 +1295,7 @@ authd_database_create_password_session(
         authd_login_record_availability(record) != AUTHD_LOGIN_AVAILABLE ||
         !authd_source_ip_is_valid(source_ip) ||
         !authd_login_protocol_is_valid(protocol) ||
+        required_capability == NULL || strcmp(denial_reason, "invalid") == 0 ||
         !optional_session_text_is_valid(tty_device, FTAP_TTY_DEVICE_MAX) ||
         !optional_session_text_is_valid(node_id, FTAP_NODE_ID_MAX)) {
         set_error(error, error_size,
@@ -1261,8 +1326,10 @@ authd_database_create_password_session(
     parameter_values[7] = record->login_name;
     parameter_values[8] = record->password_hash;
     parameter_values[9] = record->legacy_name;
+    parameter_values[10] = required_capability;
+    parameter_values[11] = denial_reason;
 
-    result = PQexecParams(database->connection, sql, 10, NULL,
+    result = PQexecParams(database->connection, sql, 12, NULL,
                           parameter_values, NULL, NULL, 0);
     if (result == NULL) {
         copy_libpq_error(error, error_size,
@@ -1271,7 +1338,7 @@ authd_database_create_password_session(
         return AUTHD_DATABASE_WRITE_ERROR;
     }
     if (PQresultStatus(result) != PGRES_TUPLES_OK ||
-        PQnfields(result) != 5) {
+        PQnfields(result) != 6) {
         copy_result_error(error, error_size,
                           "password session creation failed", result);
         PQclear(result);
@@ -1287,18 +1354,40 @@ authd_database_create_password_session(
         return AUTHD_DATABASE_WRITE_STALE_STATE;
     }
     if (rows != 1 || PQgetisnull(result, 0, 0) ||
-        PQgetisnull(result, 0, 1) || PQgetisnull(result, 0, 2) ||
-        PQgetisnull(result, 0, 3) || PQgetisnull(result, 0, 4) ||
-        !parse_uuid_hex(PQgetvalue(result, 0, 0), session->session_id) ||
-        !parse_uuid_hex(PQgetvalue(result, 0, 1), session->user_id) ||
-        !uuid_is_valid(session->session_id) ||
-        !parse_u64_strict(PQgetvalue(result, 0, 2), &auth_epoch) ||
-        !parse_u64_strict(PQgetvalue(result, 0, 3), &authz_revision) ||
-        !parse_u64_strict(PQgetvalue(result, 0, 4), &event_id) ||
+        PQgetisnull(result, 0, 2) || PQgetisnull(result, 0, 3) ||
+        PQgetisnull(result, 0, 4) || PQgetisnull(result, 0, 5) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 2), returned_user_id) ||
+        !uuid_is_valid(returned_user_id) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 3), &auth_epoch) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 4), &authz_revision) ||
+        !parse_u64_strict(PQgetvalue(result, 0, 5), &event_id) ||
         auth_epoch == 0U || authz_revision == 0U || event_id == 0U ||
-        memcmp(session->user_id, record->user_id, FTAP_UUID_SIZE) != 0 ||
+        memcmp(returned_user_id, record->user_id, FTAP_UUID_SIZE) != 0 ||
         auth_epoch != record->auth_epoch ||
         authz_revision != record->authz_revision) {
+        set_error(error, error_size,
+                  "password session creation returned an invalid record");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_INVALID_RECORD;
+    }
+
+    if (strcmp(PQgetvalue(result, 0, 0), "access_denied") == 0) {
+        if (!PQgetisnull(result, 0, 1)) {
+            set_error(error, error_size,
+                      "password session denial returned a session id");
+            PQclear(result);
+            return AUTHD_DATABASE_WRITE_INVALID_RECORD;
+        }
+        set_error(error, error_size,
+                  "transport is not authorized for this account");
+        PQclear(result);
+        return AUTHD_DATABASE_WRITE_ACCESS_DENIED;
+    }
+
+    if (strcmp(PQgetvalue(result, 0, 0), "ok") != 0 ||
+        PQgetisnull(result, 0, 1) ||
+        !parse_uuid_hex(PQgetvalue(result, 0, 1), session->session_id) ||
+        !uuid_is_valid(session->session_id)) {
         memset(session, 0, sizeof(*session));
         set_error(error, error_size,
                   "password session creation returned an invalid record");
@@ -1306,6 +1395,7 @@ authd_database_create_password_session(
         return AUTHD_DATABASE_WRITE_INVALID_RECORD;
     }
 
+    memcpy(session->user_id, returned_user_id, FTAP_UUID_SIZE);
     session->auth_epoch = auth_epoch;
     session->authz_revision = authz_revision;
     PQclear(result);
@@ -1536,6 +1626,8 @@ authd_database_write_result_name(authd_database_write_result_t result)
         return "not_found";
     case AUTHD_DATABASE_WRITE_STALE_STATE:
         return "stale_state";
+    case AUTHD_DATABASE_WRITE_ACCESS_DENIED:
+        return "access_denied";
     case AUTHD_DATABASE_WRITE_INVALID_ARGUMENT:
         return "invalid_argument";
     case AUTHD_DATABASE_WRITE_INVALID_RECORD:

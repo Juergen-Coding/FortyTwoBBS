@@ -19,6 +19,11 @@ static const uint8_t expected_user_id[FTAP_UUID_SIZE] = {
     0x86, 0x66, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77
 };
 
+static const uint8_t expected_no_ssh_user_id[FTAP_UUID_SIZE] = {
+    0x44, 0x44, 0x44, 0x44, 0x55, 0x55, 0x46, 0x66,
+    0x87, 0x77, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88
+};
+
 int
 main(void)
 {
@@ -26,8 +31,10 @@ main(void)
     authd_database_t *database = NULL;
     authd_database_info_t info;
     authd_login_record_t record;
+    authd_login_record_t no_ssh_record;
     authd_terminal_session_result_t session;
     authd_terminal_session_result_t created_session;
+    authd_terminal_session_result_t no_ssh_telnet_session;
     char canonical[AUTHD_LOGIN_NAME_BUFFER_SIZE];
     char error[AUTHD_DATABASE_ERROR_MAX];
 
@@ -105,6 +112,74 @@ main(void)
         }
     }
 
+    /*
+     * Correct credentials without the SSH capability must reset the password
+     * failure window, write a denial audit, and create no terminal session.
+     * The same account remains authorized for Telnet through bbs_user.
+     */
+    assert(authd_login_name_canonicalize(
+        "B43_No_SSH_Test",
+        strlen("B43_No_SSH_Test"),
+        canonical));
+    assert(strcmp(canonical, "b43_no_ssh_test") == 0);
+    {
+        authd_database_lookup_result_t lookup_result;
+
+        lookup_result = authd_database_lookup_login(
+            database, canonical, &no_ssh_record, error, sizeof(error));
+        if (lookup_result != AUTHD_DATABASE_LOOKUP_OK) {
+            (void)fprintf(stderr,
+                          "no-SSH fixture lookup failed: %s: %s\n",
+                          authd_database_lookup_result_name(lookup_result),
+                          error[0] != '\0' ? error : "no detail");
+            authd_database_close(database);
+            return 1;
+        }
+    }
+    assert(memcmp(no_ssh_record.user_id, expected_no_ssh_user_id,
+                  sizeof(expected_no_ssh_user_id)) == 0);
+    assert(strcmp(no_ssh_record.legacy_name, "b43nosh") == 0);
+    assert(no_ssh_record.auth_epoch == UINT64_C(43));
+    assert(no_ssh_record.authz_revision == UINT64_C(1));
+    assert(no_ssh_record.failed_count == UINT32_C(3));
+
+    {
+        authd_database_write_result_t write_result;
+
+        write_result = authd_database_create_password_session(
+            database, &no_ssh_record, "192.0.2.100", "ssh",
+            "/dev/pts/43", "node-no-ssh-test", &session,
+            error, sizeof(error));
+        if (write_result != AUTHD_DATABASE_WRITE_ACCESS_DENIED) {
+            (void)fprintf(stderr,
+                          "missing SSH capability was not rejected: %s: %s\n",
+                          authd_database_write_result_name(write_result),
+                          error[0] != '\0' ? error : "no detail");
+            authd_database_close(database);
+            return 1;
+        }
+    }
+    assert(strstr(error, "not authorized") != NULL);
+
+    {
+        authd_database_write_result_t write_result;
+
+        write_result = authd_database_create_password_session(
+            database, &no_ssh_record, "192.0.2.100", "telnet",
+            "/dev/pts/43", "node-no-ssh-test", &no_ssh_telnet_session,
+            error, sizeof(error));
+        if (write_result != AUTHD_DATABASE_WRITE_OK) {
+            (void)fprintf(stderr,
+                          "Telnet role did not authorize the fixture: %s: %s\n",
+                          authd_database_write_result_name(write_result),
+                          error[0] != '\0' ? error : "no detail");
+            authd_database_close(database);
+            return 1;
+        }
+    }
+    assert(memcmp(no_ssh_telnet_session.user_id, expected_no_ssh_user_id,
+                  sizeof(expected_no_ssh_user_id)) == 0);
+
     /* The runtime role must also close and audit the bound socket lifecycle. */
     {
         authd_database_write_result_t write_result;
@@ -124,6 +199,22 @@ main(void)
                    database, created_session.session_id,
                    "integration_test_complete", error, sizeof(error)) ==
                AUTHD_DATABASE_WRITE_NOT_FOUND);
+    }
+
+    {
+        authd_database_write_result_t write_result;
+
+        write_result = authd_database_close_terminal_session(
+            database, no_ssh_telnet_session.session_id,
+            "integration_test_complete", error, sizeof(error));
+        if (write_result != AUTHD_DATABASE_WRITE_OK) {
+            (void)fprintf(stderr,
+                          "no-SSH Telnet session close failed: %s: %s\n",
+                          authd_database_write_result_name(write_result),
+                          error[0] != '\0' ? error : "no detail");
+            authd_database_close(database);
+            return 1;
+        }
     }
 
     authd_database_close(database);

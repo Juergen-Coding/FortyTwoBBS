@@ -25,7 +25,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define FORTYTWO_LOGIN_VERSION "0.1.1"
+#define FORTYTWO_LOGIN_VERSION "0.1.2"
 #define LOGIN_LINE_BUFFER_SIZE (FTAP_LOGIN_NAME_MAX + 2U)
 #define PASSWORD_BUFFER_SIZE (FTAP_PASSWORD_MAX + 2U)
 
@@ -392,12 +392,22 @@ derive_tty_device(const login_options_t *options,
 }
 
 static void
-print_client_error(const ftap_client_error_t *error)
+print_client_error(const ftap_client_error_t *error, const char *protocol)
 {
     if (error != NULL &&
         (error->protocol_error == FTAP_ERR_INVALID_CREDENTIALS ||
          error->protocol_error == FTAP_ERR_ACCOUNT_UNAVAILABLE)) {
         (void)fputs("Login failed.\r\n", stderr);
+        return;
+    }
+    if (error != NULL && error->protocol_error == FTAP_ERR_ACCESS_DENIED) {
+        if (protocol != NULL && strcmp(protocol, FTAP_PROTOCOL_SSH) == 0) {
+            (void)fputs(
+                "SSH access is not enabled for this account.\r\n",
+                stderr);
+        } else {
+            (void)fputs("Access denied.\r\n", stderr);
+        }
         return;
     }
     if (error != NULL && error->protocol_error == FTAP_ERR_RATE_LIMITED) {
@@ -556,18 +566,21 @@ run_login(const login_options_t *options)
 
     if (ftap_client_connect(&client, options->socket_path, &error) != 0 ||
         ftap_client_hello(&client, "fortytwo-login",
-                          FORTYTWO_LOGIN_VERSION, &error) != 0 ||
-        ftap_client_authenticate_password(
+                          FORTYTWO_LOGIN_VERSION, &error) != 0) {
+        print_client_error(&error, NULL);
+        goto done;
+    }
+    if (ftap_client_authenticate_password(
             &client, login_name, (const uint8_t *)password,
             strlen(password), &metadata, &result, &error) != 0) {
-        print_client_error(&error);
+        print_client_error(&error, options->protocol);
         goto done;
     }
     secure_wipe(password, sizeof(password));
     secure_wipe(login_name, sizeof(login_name));
 
     if (ftap_client_move_to_inherited_fd(&client, &error) != 0) {
-        print_client_error(&error);
+        print_client_error(&error, NULL);
         (void)ftap_client_session_close(&client, "handoff_failed", NULL);
         goto done;
     }

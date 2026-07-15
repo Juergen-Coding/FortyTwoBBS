@@ -43,6 +43,11 @@ static const authd_migration_record_t required_migrations[] = {
         UINT32_C(7),
         "0007_legacy_mbse_binding.sql",
         "e52dda0b652b47c93faeeb31a7cf4f0b467f0a3136241b5888641929e470fda3"
+    },
+    {
+        UINT32_C(8),
+        "0008_transport_capabilities.sql",
+        "59fd903315fa67bbeb5d6357c4aa48b1d0d29a396d3b54598768368f267fe4b2"
     }
 };
 

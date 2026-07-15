@@ -227,3 +227,72 @@ active.
 `unix/mblogin.c` is unchanged. The old `mbnewusr` path is not restored to the
 runtime package; registration remains an internal FortyTwo identity workflow
 without Linux account creation.
+
+## B4.3.1 transport capabilities
+
+B4.3.1 identifies the daemon as `fortytwo-authd 0.2.4` and the terminal
+adapter as `fortytwo-login 0.1.2`. FTAP remains at version 1.2 because this
+step uses the already specified `FTAP_ERR_ACCESS_DENIED` result and does not
+change the wire schema.
+
+Migration `0008_transport_capabilities.sql` separates the general active
+account state from transport-specific authorization. It creates the roles
+`bbs_user`, `ssh_access`, and `sysop` together with these capabilities:
+
+```text
+terminal.login.telnet
+terminal.login.ssh
+terminal.login.local
+admin.user.ssh_access
+```
+
+Existing active identities receive `bbs_user` and `ssh_access` once so the
+verified B4.2 Telnet and SSH behavior remains available. A later Telnet
+registration receives only `bbs_user`; SSH must be granted separately.
+
+After a password has been verified, the database now locks and rechecks the
+user snapshot, resets the persistent password-failure window, resolves the
+capability required by the requested protocol, and performs one of two atomic
+outcomes:
+
+- an authorized login creates and audits a terminal session;
+- a missing transport capability creates no session and writes an
+  `auth.login_rejected` event with reason `transport_not_authorized`.
+
+Both paths are part of the same data-modifying SQL statement. A capability
+change that increments `authz_revision` cannot be confused with a valid stale
+snapshot, and an audit failure rolls back the complete outcome.
+
+The daemon maps the denial to `FTAP_ERR_ACCESS_DENIED`. For an SSH password
+login, `fortytwo-login` displays:
+
+```text
+SSH access is not enabled for this account.
+```
+
+This precise text is emitted only after a valid password reached the
+transport-authorization decision. Unknown users, wrong passwords, and
+unavailable accounts continue to produce the uniform `Login failed.` text.
+
+The normal and sanitizer test suites cover:
+
+- migration 0008 checksum validation;
+- role-to-capability mapping;
+- authorized SSH session creation;
+- denied SSH with no terminal session;
+- atomic denial audit and password-failure reset;
+- continued Telnet access through `bbs_user`;
+- the user-facing SSH denial message.
+
+New migrations after schema-history bootstrap are applied with:
+
+```text
+fortytwo-auth/migrations/apply_migration.sh MIGRATION_FILE
+```
+
+The helper verifies the existing history, checks the numbered filename and
+transaction boundary, calculates the SHA-256 checksum, inserts the migration
+history row before the migration's final `COMMIT`, and then verifies the
+complete history again. SQL application and checksum registration therefore
+cannot be accidentally separated as they were during the first manual B4.3
+migration test.

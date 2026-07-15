@@ -1253,6 +1253,13 @@ complete_password_login(authd_client_t *client,
             return 0;
         }
 
+        if (result == AUTHD_DATABASE_WRITE_ACCESS_DENIED) {
+            /* The database statement already wrote the denial audit. */
+            login_attempt_clear(attempt);
+            client->state = FTAP_STATE_CLOSING;
+            return queue_error(client, request_id, FTAP_ERR_ACCESS_DENIED);
+        }
+
         if (result == AUTHD_DATABASE_WRITE_STALE_STATE) {
             int audit_result = audit_login_rejection(
                 context, attempt, AUTHD_LOGIN_REJECTION_STALE_STATE);
