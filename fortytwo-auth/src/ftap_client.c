@@ -1313,7 +1313,9 @@ ftap_client_registration_commit(
     }
     if (wait_for_response(client, FTAP_MSG_REGISTRATION_COMMIT_RESULT,
                           request_id, &response, error) != 0) {
-        mark_outcome_unknown(error);
+        if (error == NULL || !error->server_error) {
+            mark_outcome_unknown(error);
+        }
         client->state = FTAP_STATE_CLOSING;
         return -1;
     }
@@ -1377,7 +1379,9 @@ ftap_client_registration_abort(
     }
     if (wait_for_response(client, FTAP_MSG_REGISTRATION_ABORT_RESULT,
                           request_id, &response, error) != 0) {
-        mark_outcome_unknown(error);
+        if (error == NULL || !error->server_error) {
+            mark_outcome_unknown(error);
+        }
         client->state = FTAP_STATE_CLOSING;
         return -1;
     }

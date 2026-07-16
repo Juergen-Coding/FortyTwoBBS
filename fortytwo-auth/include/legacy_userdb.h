@@ -79,6 +79,8 @@ typedef enum legacy_userdb_status {
     LEGACY_USERDB_VERIFY_FAILED,
     LEGACY_USERDB_RENAME_FAILED,
     LEGACY_USERDB_CONTEXT_INVALID,
+    LEGACY_USERDB_COMMIT_STATE_INVALID,
+    LEGACY_USERDB_FINALIZE_FAILED,
     LEGACY_USERDB_ROLLBACK_UNSAFE,
     LEGACY_USERDB_ROLLBACK_FAILED
 } legacy_userdb_status_t;
@@ -153,6 +155,7 @@ typedef struct legacy_userdb_registration {
  */
 typedef struct legacy_userdb_prepared_registration {
     bool prepared;
+    bool commit_started;
     uint8_t registration_id[LEGACY_USERDB_UUID_SIZE];
     uint8_t user_id[LEGACY_USERDB_UUID_SIZE];
     char legacy_name[LEGACY_USERDB_LEGACY_NAME_MAX + 1U];
@@ -211,6 +214,26 @@ int legacy_userdb_prepare_registration(
     legacy_userdb_error_t *error);
 
 /*
+ * Cross the irreversible local Commit boundary. After this succeeds, the
+ * prepared registration must be retained for reconciliation and may no longer
+ * be removed by the pre-Commit rollback operation.
+ */
+int legacy_userdb_mark_commit_started(
+    legacy_userdb_prepared_registration_t *prepared,
+    legacy_userdb_error_t *error);
+
+/*
+ * After a confirmed FTAP Commit, durably transition the local marker from
+ * prepared to committed. Failure never removes the local record or directory.
+ */
+int legacy_userdb_finalize_committed(
+    const char *mbse_root,
+    const char *bbs_users_directory,
+    const legacy_userdb_provision_policy_t *policy,
+    legacy_userdb_prepared_registration_t *prepared,
+    legacy_userdb_error_t *error);
+
+/*
  * This operation is permitted only before a registration Commit request has
  * begun. It is fail-closed and removes data only after exact marker, inode,
  * length and record-byte verification.
@@ -232,7 +255,10 @@ typedef enum legacy_userdb_test_fault {
     LEGACY_USERDB_TEST_FAULT_READBACK_MISMATCH,
     LEGACY_USERDB_TEST_FAULT_POSTAPPEND_NAME_COLLISION,
     LEGACY_USERDB_TEST_FAULT_RENAME,
-    LEGACY_USERDB_TEST_FAULT_USERS_DIRECTORY_SYNC
+    LEGACY_USERDB_TEST_FAULT_USERS_DIRECTORY_SYNC,
+    LEGACY_USERDB_TEST_FAULT_COMMITTED_MARKER_WRITE,
+    LEGACY_USERDB_TEST_FAULT_COMMITTED_MARKER_RENAME,
+    LEGACY_USERDB_TEST_FAULT_COMMITTED_DIRECTORY_SYNC
 } legacy_userdb_test_fault_t;
 
 void legacy_userdb_test_set_fault(legacy_userdb_test_fault_t fault);

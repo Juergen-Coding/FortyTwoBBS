@@ -872,6 +872,147 @@ write_file_bytes(const char *path, const char *buffer, size_t length)
 }
 
 static void
+assert_marker_state(const provision_fixture_t *fixture,
+                    const legacy_userdb_registration_t *registration,
+                    const char *state)
+{
+    char user_path[PATH_MAX];
+    char marker_path[PATH_MAX];
+    char marker[512];
+    char expected[64];
+    size_t marker_length;
+
+    path_for(user_path, fixture->users_directory, registration->legacy_name);
+    path_for(marker_path, user_path, LEGACY_USERDB_MARKER_FILE);
+    read_file_bytes(marker_path, marker, sizeof(marker) - 1U, &marker_length);
+    marker[marker_length] = '\0';
+    assert(snprintf(expected, sizeof(expected), "state=%s\n", state) > 0);
+    assert(strstr(marker, expected) != NULL);
+}
+
+static void
+test_commit_boundary_and_finalize(void)
+{
+    provision_fixture_t fixture;
+    legacy_userdb_provision_policy_t policy = default_policy();
+    legacy_userdb_registration_t registration = default_registration();
+    legacy_userdb_prepared_registration_t prepared;
+    legacy_userdb_error_t error;
+    char user_path[PATH_MAX];
+
+    make_fixture(&fixture);
+    assert(legacy_userdb_prepare_registration(
+               fixture.root, fixture.users_directory, &policy, &registration,
+               &prepared, &error) == 0);
+    assert(prepared.prepared);
+    assert(!prepared.commit_started);
+    assert(legacy_userdb_mark_commit_started(&prepared, &error) == 0);
+    assert(prepared.commit_started);
+    assert(error.status == LEGACY_USERDB_OK);
+
+    assert(legacy_userdb_rollback_precommit(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == -1);
+    assert(error.status == LEGACY_USERDB_ROLLBACK_UNSAFE);
+    assert(error.repair_required);
+    assert(file_size(fixture.users_file) ==
+           fixture.original_size + (off_t)LEGACY_USERDB_RECORD_SIZE);
+
+    assert(legacy_userdb_finalize_committed(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == 0);
+    assert(error.status == LEGACY_USERDB_OK);
+    assert(!prepared.prepared);
+    assert_marker_state(&fixture, &registration, "committed");
+    path_for(user_path, fixture.users_directory, registration.legacy_name);
+    assert(path_exists(user_path));
+    assert(file_size(fixture.users_file) ==
+           fixture.original_size + (off_t)LEGACY_USERDB_RECORD_SIZE);
+    assert(legacy_userdb_rollback_precommit(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == 0);
+    assert(path_exists(user_path));
+    remove_fixture(&fixture);
+}
+
+static void
+test_finalize_requires_commit_boundary(void)
+{
+    provision_fixture_t fixture;
+    legacy_userdb_provision_policy_t policy = default_policy();
+    legacy_userdb_registration_t registration = default_registration();
+    legacy_userdb_prepared_registration_t prepared;
+    legacy_userdb_error_t error;
+
+    make_fixture(&fixture);
+    assert(legacy_userdb_prepare_registration(
+               fixture.root, fixture.users_directory, &policy, &registration,
+               &prepared, &error) == 0);
+    assert(legacy_userdb_finalize_committed(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == -1);
+    assert(error.status == LEGACY_USERDB_COMMIT_STATE_INVALID);
+    assert(error.repair_required);
+    assert_marker_state(&fixture, &registration, "prepared");
+    assert(legacy_userdb_rollback_precommit(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == 0);
+    assert_clean_after_failure(&fixture, &registration);
+    remove_fixture(&fixture);
+}
+
+static void
+expect_finalize_retry(legacy_userdb_test_fault_t fault,
+                      bool marker_may_already_be_committed)
+{
+    provision_fixture_t fixture;
+    legacy_userdb_provision_policy_t policy = default_policy();
+    legacy_userdb_registration_t registration = default_registration();
+    legacy_userdb_prepared_registration_t prepared;
+    legacy_userdb_error_t error;
+
+    make_fixture(&fixture);
+    assert(legacy_userdb_prepare_registration(
+               fixture.root, fixture.users_directory, &policy, &registration,
+               &prepared, &error) == 0);
+    assert(legacy_userdb_mark_commit_started(&prepared, &error) == 0);
+    legacy_userdb_test_set_fault(fault);
+    assert(legacy_userdb_finalize_committed(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == -1);
+    legacy_userdb_test_set_fault(LEGACY_USERDB_TEST_FAULT_NONE);
+    assert(error.status == LEGACY_USERDB_FINALIZE_FAILED);
+    assert(error.repair_required);
+    assert(prepared.prepared && prepared.commit_started);
+    assert(file_size(fixture.users_file) ==
+           fixture.original_size + (off_t)LEGACY_USERDB_RECORD_SIZE);
+    if (!marker_may_already_be_committed) {
+        assert_marker_state(&fixture, &registration, "prepared");
+    }
+    assert(legacy_userdb_rollback_precommit(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == -1);
+    assert(error.status == LEGACY_USERDB_ROLLBACK_UNSAFE);
+    assert(legacy_userdb_finalize_committed(
+               fixture.root, fixture.users_directory, &policy, &prepared,
+               &error) == 0);
+    assert(!prepared.prepared);
+    assert_marker_state(&fixture, &registration, "committed");
+    remove_fixture(&fixture);
+}
+
+static void
+test_finalize_faults_are_nondestructive_and_retryable(void)
+{
+    expect_finalize_retry(
+        LEGACY_USERDB_TEST_FAULT_COMMITTED_MARKER_WRITE, false);
+    expect_finalize_retry(
+        LEGACY_USERDB_TEST_FAULT_COMMITTED_MARKER_RENAME, false);
+    expect_finalize_retry(
+        LEGACY_USERDB_TEST_FAULT_COMMITTED_DIRECTORY_SYNC, true);
+}
+
+static void
 test_rollback_rejects_marker_mismatch(void)
 {
     provision_fixture_t fixture;
@@ -1191,6 +1332,9 @@ main(void)
     test_database_validation();
     test_directory_policy_and_input_validation();
     test_global_lock_serializes();
+    test_commit_boundary_and_finalize();
+    test_finalize_requires_commit_boundary();
+    test_finalize_faults_are_nondestructive_and_retryable();
     test_rollback_rejects_marker_mismatch();
     test_rollback_rejects_record_or_length_change();
     test_rollback_rejects_storage_path_replacement();

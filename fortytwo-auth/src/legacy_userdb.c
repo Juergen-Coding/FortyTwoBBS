@@ -181,6 +181,10 @@ legacy_userdb_status_name(legacy_userdb_status_t status)
         return "rename_failed";
     case LEGACY_USERDB_CONTEXT_INVALID:
         return "context_invalid";
+    case LEGACY_USERDB_COMMIT_STATE_INVALID:
+        return "commit_state_invalid";
+    case LEGACY_USERDB_FINALIZE_FAILED:
+        return "finalize_failed";
     case LEGACY_USERDB_ROLLBACK_UNSAFE:
         return "rollback_unsafe";
     case LEGACY_USERDB_ROLLBACK_FAILED:

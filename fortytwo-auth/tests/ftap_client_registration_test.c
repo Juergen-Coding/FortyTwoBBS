@@ -28,7 +28,9 @@ typedef enum server_script {
     SERVER_COMMIT_SUCCESS = 0,
     SERVER_ABORT_SUCCESS,
     SERVER_BEGIN_PASSWORD_ERROR,
-    SERVER_COMMIT_IDENTITY_MISMATCH
+    SERVER_COMMIT_IDENTITY_MISMATCH,
+    SERVER_COMMIT_ERROR,
+    SERVER_ABORT_ERROR
 } server_script_t;
 
 static const uint8_t registration_id[FTAP_UUID_SIZE] = {
@@ -330,17 +332,27 @@ run_server(int fd, server_script_t script)
     assert(send_all(fd, response, length) == 0);
     assert(receive_frame(fd, &request) == 0);
 
-    if (script == SERVER_ABORT_SUCCESS) {
+    if (script == SERVER_ABORT_SUCCESS || script == SERVER_ABORT_ERROR) {
         assert_registration_id_request(
             &request, FTAP_MSG_REGISTRATION_ABORT_REQUEST,
             FTAP_REGISTRATION_REASON_LEGACY_WRITE_FAILED);
-        length = build_abort_result(response, request.header.request_id);
+        if (script == SERVER_ABORT_ERROR) {
+            length = build_error(response, request.header.request_id,
+                                 FTAP_ERR_INVALID_STATE);
+        } else {
+            length = build_abort_result(response, request.header.request_id);
+        }
     } else {
         assert_registration_id_request(
             &request, FTAP_MSG_REGISTRATION_COMMIT_REQUEST, NULL);
-        length = build_commit_result(
-            response, request.header.request_id,
-            script == SERVER_COMMIT_IDENTITY_MISMATCH);
+        if (script == SERVER_COMMIT_ERROR) {
+            length = build_error(response, request.header.request_id,
+                                 FTAP_ERR_ACCOUNT_UNAVAILABLE);
+        } else {
+            length = build_commit_result(
+                response, request.header.request_id,
+                script == SERVER_COMMIT_IDENTITY_MISMATCH);
+        }
     }
     assert(send_all(fd, response, length) == 0);
     (void)close(fd);
@@ -479,6 +491,51 @@ test_begin_server_error(void)
 }
 
 static void
+test_commit_server_error_is_definitive(void)
+{
+    int sockets[2];
+    pid_t child = start_server(sockets, SERVER_COMMIT_ERROR);
+    ftap_client_t client;
+    ftap_client_error_t error;
+    ftap_registration_context_t registration;
+    ftap_terminal_context_t context;
+
+    prepare_client(&client, sockets[0]);
+    begin_registration(&client, &registration, &error);
+    assert(ftap_client_registration_commit(
+               &client, &registration, &context, &error) != 0);
+    assert(client.state == FTAP_STATE_CLOSING);
+    assert(error.server_error);
+    assert(!error.outcome_unknown);
+    assert(error.protocol_error == FTAP_ERR_ACCOUNT_UNAVAILABLE);
+    ftap_client_close(&client);
+    wait_server(child);
+}
+
+static void
+test_abort_server_error_is_definitive(void)
+{
+    int sockets[2];
+    pid_t child = start_server(sockets, SERVER_ABORT_ERROR);
+    ftap_client_t client;
+    ftap_client_error_t error;
+    ftap_registration_context_t registration;
+
+    prepare_client(&client, sockets[0]);
+    begin_registration(&client, &registration, &error);
+    assert(ftap_client_registration_abort(
+               &client, &registration,
+               FTAP_REGISTRATION_REASON_LEGACY_WRITE_FAILED,
+               &error) != 0);
+    assert(client.state == FTAP_STATE_CLOSING);
+    assert(error.server_error);
+    assert(!error.outcome_unknown);
+    assert(error.protocol_error == FTAP_ERR_INVALID_STATE);
+    ftap_client_close(&client);
+    wait_server(child);
+}
+
+static void
 test_commit_identity_mismatch_is_unknown(void)
 {
     int sockets[2];
@@ -522,6 +579,8 @@ main(void)
     test_commit_success();
     test_abort_success();
     test_begin_server_error();
+    test_commit_server_error_is_definitive();
+    test_abort_server_error_is_definitive();
     test_commit_identity_mismatch_is_unknown();
     test_argument_guards();
     (void)puts("FTAP client registration tests: OK");

@@ -87,6 +87,9 @@ _Static_assert(offsetof(struct userrec, Charset) == 578U,
 #define LEGACY_MAIL_DIRECTORY_MODE ((mode_t)0700)
 #define LEGACY_MARKER_MODE ((mode_t)0600)
 #define LEGACY_MARKER_BUFFER_SIZE 320U
+#define LEGACY_MARKER_STATE_PREPARED "prepared"
+#define LEGACY_MARKER_STATE_COMMITTED "committed"
+#define LEGACY_COMMITTED_MARKER_TEMP ".fortytwo-registration.committed.tmp"
 #define LEGACY_STAGING_NAME_SIZE \
     (sizeof(LEGACY_USERDB_STAGING_PREFIX) - 1U + 32U + 1U)
 #define LEGACY_RECORD_MARKER_SIZE \
@@ -359,6 +362,7 @@ build_names(const uint8_t registration_id[LEGACY_USERDB_UUID_SIZE],
 
 static int
 build_marker(const legacy_userdb_prepared_registration_t *prepared,
+             const char *state,
              char marker[LEGACY_MARKER_BUFFER_SIZE],
              size_t *marker_length)
 {
@@ -366,6 +370,11 @@ build_marker(const legacy_userdb_prepared_registration_t *prepared,
     char user_text[LEGACY_USERDB_UUID_TEXT_SIZE];
     int length;
 
+    if (strcmp(state, LEGACY_MARKER_STATE_PREPARED) != 0 &&
+        strcmp(state, LEGACY_MARKER_STATE_COMMITTED) != 0) {
+        errno = EINVAL;
+        return -1;
+    }
     format_uuid_text(prepared->registration_id, registration_text);
     format_uuid_text(prepared->user_id, user_text);
     length = snprintf(marker, LEGACY_MARKER_BUFFER_SIZE,
@@ -374,9 +383,9 @@ build_marker(const legacy_userdb_prepared_registration_t *prepared,
                       "user_id=%s\n"
                       "legacy_name=%s\n"
                       "record_number=%zu\n"
-                      "state=prepared\n",
+                      "state=%s\n",
                       registration_text, user_text, prepared->legacy_name,
-                      prepared->record_number);
+                      prepared->record_number, state);
     if (length < 0 || (size_t)length >= LEGACY_MARKER_BUFFER_SIZE) {
         errno = EOVERFLOW;
         return -1;
@@ -2130,7 +2139,8 @@ rollback_locked(provision_handles_t *handles,
 
     build_names(prepared->registration_id, staging_name, record_marker);
     (void)record_marker;
-    if (build_marker(prepared, marker, &marker_length) != 0) {
+    if (build_marker(prepared, LEGACY_MARKER_STATE_PREPARED,
+                     marker, &marker_length) != 0) {
         provision_set_error(error, LEGACY_USERDB_CONTEXT_INVALID, errno,
                             prepared->record_number, true,
                             "cannot rebuild registration marker");
@@ -2467,7 +2477,8 @@ legacy_userdb_prepare_registration(
         handles.users_directory_status.st_mode & (mode_t)07777;
     memcpy(context.record_bytes, &record, sizeof(record));
 
-    if (build_marker(&context, marker, &marker_length) != 0) {
+    if (build_marker(&context, LEGACY_MARKER_STATE_PREPARED,
+                     marker, &marker_length) != 0) {
         provision_set_error(error, LEGACY_USERDB_INVALID_REGISTRATION, errno,
                             record_count, false,
                             "cannot build registration marker");
@@ -2626,6 +2637,272 @@ done:
 }
 
 /*
+ * Cross the irreversible coordinator boundary before any FTAP Commit bytes are
+ * sent.  From this point onward the local proof remains available only for
+ * finalization or later reconciliation, never for automatic rollback.
+ */
+int
+legacy_userdb_mark_commit_started(
+    legacy_userdb_prepared_registration_t *prepared,
+    legacy_userdb_error_t *error)
+{
+    legacy_userdb_error_clear(error);
+    if (!prepared_context_is_valid(prepared)) {
+        provision_set_error(error, LEGACY_USERDB_CONTEXT_INVALID, EINVAL,
+                            LEGACY_USERDB_NO_RECORD,
+                            prepared != NULL && prepared->prepared,
+                            "invalid legacy commit-boundary context");
+        return -1;
+    }
+    prepared->commit_started = true;
+    return 0;
+}
+
+static int
+write_committed_marker(int users_directory_fd,
+                       const legacy_userdb_prepared_registration_t *prepared,
+                       const char *prepared_marker,
+                       size_t prepared_marker_length,
+                       const char *committed_marker,
+                       size_t committed_marker_length)
+{
+    struct stat status;
+    int top_fd = -1;
+    int marker_fd = -1;
+    bool renamed = false;
+    int saved_errno;
+
+    if (verify_exact_registration_tree(
+            users_directory_fd, prepared->legacy_name,
+            LEGACY_USER_DIRECTORY_MODE, prepared_marker,
+            prepared_marker_length) != 0) {
+        return -1;
+    }
+    top_fd = open_owned_directory_at(users_directory_fd,
+                                     prepared->legacy_name,
+                                     LEGACY_USER_DIRECTORY_MODE);
+    if (top_fd < 0) {
+        return -1;
+    }
+    marker_fd = openat(top_fd, LEGACY_COMMITTED_MARKER_TEMP,
+                       O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW,
+                       LEGACY_MARKER_MODE);
+    if (marker_fd < 0) {
+        goto failed;
+    }
+#ifdef LEGACY_USERDB_TESTING
+    if (test_fault_once(LEGACY_USERDB_TEST_FAULT_COMMITTED_MARKER_WRITE)) {
+        errno = EIO;
+        goto failed;
+    }
+#endif
+    if (fchmod(marker_fd, LEGACY_MARKER_MODE) != 0 ||
+        write_exact(marker_fd, committed_marker,
+                    committed_marker_length, false) != 0 ||
+        fsync(marker_fd) != 0 || fstat(marker_fd, &status) != 0) {
+        goto failed;
+    }
+    if (!S_ISREG(status.st_mode) || status.st_uid != geteuid() ||
+        status.st_gid != getegid() || status.st_nlink != 1 ||
+        (status.st_mode & (mode_t)07777) != LEGACY_MARKER_MODE ||
+        status.st_size != (off_t)committed_marker_length) {
+        errno = EPERM;
+        goto failed;
+    }
+    if (close(marker_fd) != 0) {
+        marker_fd = -1;
+        goto failed;
+    }
+    marker_fd = -1;
+#ifdef LEGACY_USERDB_TESTING
+    if (test_fault_once(LEGACY_USERDB_TEST_FAULT_COMMITTED_MARKER_RENAME)) {
+        errno = EIO;
+        goto failed;
+    }
+#endif
+    if (renameat(top_fd, LEGACY_COMMITTED_MARKER_TEMP,
+                 top_fd, LEGACY_USERDB_MARKER_FILE) != 0) {
+        goto failed;
+    }
+    renamed = true;
+#ifdef LEGACY_USERDB_TESTING
+    if (test_fault_once(LEGACY_USERDB_TEST_FAULT_COMMITTED_DIRECTORY_SYNC)) {
+        errno = EIO;
+        goto failed;
+    }
+#endif
+    if (fsync(top_fd) != 0 ||
+        marker_matches(top_fd, committed_marker,
+                       committed_marker_length) != 0) {
+        goto failed;
+    }
+    if (close(top_fd) != 0) {
+        return -1;
+    }
+    return 0;
+
+failed:
+    saved_errno = errno;
+    if (marker_fd >= 0) {
+        (void)close(marker_fd);
+    }
+    if (top_fd >= 0) {
+        if (!renamed) {
+            (void)unlinkat(top_fd, LEGACY_COMMITTED_MARKER_TEMP, 0);
+        }
+        (void)close(top_fd);
+    }
+    errno = saved_errno;
+    return -1;
+}
+
+static int
+sync_existing_committed_marker(
+    int users_directory_fd,
+    const legacy_userdb_prepared_registration_t *prepared,
+    const char *committed_marker,
+    size_t committed_marker_length)
+{
+    int top_fd;
+    int saved_errno;
+
+    if (verify_exact_registration_tree(
+            users_directory_fd, prepared->legacy_name,
+            LEGACY_USER_DIRECTORY_MODE, committed_marker,
+            committed_marker_length) != 0) {
+        return -1;
+    }
+    top_fd = open_owned_directory_at(users_directory_fd,
+                                     prepared->legacy_name,
+                                     LEGACY_USER_DIRECTORY_MODE);
+    if (top_fd < 0) {
+        return -1;
+    }
+    if (fsync(top_fd) != 0) {
+        saved_errno = errno;
+        (void)close(top_fd);
+        errno = saved_errno;
+        return -1;
+    }
+    if (close(top_fd) != 0) {
+        return -1;
+    }
+    return verify_exact_registration_tree(
+        users_directory_fd, prepared->legacy_name,
+        LEGACY_USER_DIRECTORY_MODE, committed_marker,
+        committed_marker_length);
+}
+
+/*
+ * Confirm only the persistent marker after PostgreSQL has returned a valid
+ * Commit result.  The record and user tree are never removed on failure.
+ */
+int
+legacy_userdb_finalize_committed(
+    const char *mbse_root,
+    const char *bbs_users_directory,
+    const legacy_userdb_provision_policy_t *policy,
+    legacy_userdb_prepared_registration_t *prepared,
+    legacy_userdb_error_t *error)
+{
+    provision_handles_t handles;
+    char prepared_marker[LEGACY_MARKER_BUFFER_SIZE];
+    char committed_marker[LEGACY_MARKER_BUFFER_SIZE];
+    size_t prepared_marker_length = 0U;
+    size_t committed_marker_length = 0U;
+    int result = -1;
+
+    handles_init(&handles);
+    legacy_userdb_error_clear(error);
+    if (mbse_root == NULL || mbse_root[0] != '/' ||
+        bbs_users_directory == NULL || bbs_users_directory[0] != '/' ||
+        !provision_policy_is_valid(policy) ||
+        !prepared_context_is_valid(prepared) ||
+        !prepared->commit_started) {
+        provision_set_error(error, LEGACY_USERDB_COMMIT_STATE_INVALID, EINVAL,
+                            prepared != NULL ? prepared->record_number
+                                             : LEGACY_USERDB_NO_RECORD,
+                            prepared != NULL && prepared->prepared,
+                            "legacy registration is not at the commit boundary");
+        return -1;
+    }
+    if (build_marker(prepared, LEGACY_MARKER_STATE_PREPARED,
+                     prepared_marker, &prepared_marker_length) != 0 ||
+        build_marker(prepared, LEGACY_MARKER_STATE_COMMITTED,
+                     committed_marker, &committed_marker_length) != 0) {
+        provision_set_error(error, LEGACY_USERDB_FINALIZE_FAILED, errno,
+                            prepared->record_number, true,
+                            "cannot build committed registration marker");
+        return -1;
+    }
+
+    if (open_runtime_lock(mbse_root, policy, &handles, error) != 0 ||
+        open_users_directory(bbs_users_directory, policy, &handles,
+                             error) != 0 ||
+        open_users_database(policy, &handles, error) != 0) {
+        if (error != NULL) {
+            int saved_errno = error->system_errno;
+            provision_set_error(error, LEGACY_USERDB_FINALIZE_FAILED,
+                                saved_errno, prepared->record_number, true,
+                                "cannot safely reacquire legacy storage after commit");
+        }
+        goto done;
+    }
+    if (verify_postappend_database(mbse_root, &handles, prepared,
+                                   LEGACY_USERDB_RECORD_SIZE) != 0 ||
+        verify_users_directory_identity(handles.users_directory_fd,
+                                        prepared) != 0 ||
+        verify_open_users_directory_stable(&handles) != 0 ||
+        verify_active_users_directory_path(bbs_users_directory,
+                                           prepared) != 0) {
+        provision_set_error(error, LEGACY_USERDB_FINALIZE_FAILED, errno,
+                            prepared->record_number, true,
+                            "legacy storage changed after registration commit");
+        goto done;
+    }
+
+    /* A retry after rename must repeat the directory durability barrier. */
+    if (verify_exact_registration_tree(
+            handles.users_directory_fd, prepared->legacy_name,
+            LEGACY_USER_DIRECTORY_MODE, committed_marker,
+            committed_marker_length) == 0) {
+        if (sync_existing_committed_marker(
+                handles.users_directory_fd, prepared, committed_marker,
+                committed_marker_length) != 0 ||
+            verify_postappend_database(mbse_root, &handles, prepared,
+                                       LEGACY_USERDB_RECORD_SIZE) != 0) {
+            provision_set_error(
+                error, LEGACY_USERDB_FINALIZE_FAILED, errno,
+                prepared->record_number, true,
+                "cannot confirm committed legacy marker durability");
+            goto done;
+        }
+    } else if (write_committed_marker(
+                   handles.users_directory_fd, prepared,
+                   prepared_marker, prepared_marker_length,
+                   committed_marker, committed_marker_length) != 0 ||
+               verify_postappend_database(
+                   mbse_root, &handles, prepared,
+                   LEGACY_USERDB_RECORD_SIZE) != 0 ||
+               verify_exact_registration_tree(
+                   handles.users_directory_fd, prepared->legacy_name,
+                   LEGACY_USER_DIRECTORY_MODE, committed_marker,
+                   committed_marker_length) != 0) {
+        provision_set_error(error, LEGACY_USERDB_FINALIZE_FAILED, errno,
+                            prepared->record_number, true,
+                            "cannot durably finalize committed legacy registration");
+        goto done;
+    }
+
+    legacy_userdb_prepared_registration_clear(prepared);
+    result = 0;
+
+done:
+    handles_close(&handles);
+    return result;
+}
+
+/*
  * Public rollback entry point for callers that have not begun an FTAP Commit
  * request.  A completed or uncertain Commit must instead be reconciled and
  * must never call this destructive pre-commit path.
@@ -2646,6 +2923,12 @@ legacy_userdb_rollback_precommit(
     legacy_userdb_error_clear(error);
     if (prepared != NULL && !prepared->prepared) {
         return 0;
+    }
+    if (prepared != NULL && prepared->prepared && prepared->commit_started) {
+        provision_set_error(error, LEGACY_USERDB_ROLLBACK_UNSAFE, EPERM,
+                            prepared->record_number, true,
+                            "FTAP commit boundary already crossed; rollback forbidden");
+        return -1;
     }
     if (mbse_root == NULL || mbse_root[0] != '/' ||
         bbs_users_directory == NULL || bbs_users_directory[0] != '/' ||

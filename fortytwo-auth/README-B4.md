@@ -507,11 +507,13 @@ registration-abort reasons.  Server-only lifecycle reasons remain unavailable
 to callers.
 
 `ftap_client_error_t` distinguishes a validated FTAP `ERROR` response from a
-transport or response-validation failure.  For Commit and Abort, the latter is
-reported as `outcome_unknown` once the complete request has been sent.  The
-caller must therefore not assume that a timed-out Commit failed and must retain
-its legacy provisioning marker for reconciliation instead of blindly removing
-the new record.
+transport or response-validation failure.  A well-formed server `ERROR` is a
+definitive negative response and does not set `outcome_unknown`.  For Commit
+and Abort, only transport loss or an unusable final response is reported as
+`outcome_unknown` once the complete request has been sent.  The caller must
+therefore not assume that a timed-out Commit failed and must retain its legacy
+provisioning marker for reconciliation instead of blindly removing the new
+record.
 
 The dedicated socket-pair test covers successful Begin/Commit, successful
 Begin/Abort, server-side password-policy rejection, exact pending-identity
@@ -568,10 +570,10 @@ the build until the access register and allowlist are deliberately reviewed.
 
 ### Controlled local legacy provisioning
 
-The legacy gateway now has a separate append-only provisioning path.  It is
-still not connected to the FTAP client or the visible NEW dialog.  Its purpose
-is to prove the complete local filesystem transaction in isolation before a
-PostgreSQL Commit can depend on it.
+The legacy gateway now has a separate append-only provisioning path.  The
+filesystem transaction remains independently testable; the registration
+coordinator described below now connects it to FTAP.  The visible NEW dialog
+is still a later step.
 
 `legacy_userdb_prepare_registration()` accepts only an already validated
 registration snapshot: binary registration and user UUIDs, the server-selected
@@ -680,3 +682,93 @@ Every injected pre-commit failure either restores
 the original file length and removes the staging tree or reports a retained
 state that requires reconciliation.  The suite runs under both the normal and
 ASan/UBSan targets.
+
+### FTAP and legacy registration coordinator
+
+The new `registration_coordinator` module is the single owner of the cross-
+system lifecycle:
+
+```text
+FTAP Begin
+-> durable local legacy prepare
+-> irreversible commit boundary
+-> FTAP Commit
+-> durable marker transition to committed
+```
+
+The coordinator accepts an already connected, HELLO-complete FTAP client, the
+registration inputs, explicit legacy defaults and the two trusted filesystem
+paths.  The password is passed only to `ftap_client_registration_begin()`; the
+local registration structure and retained proof context contain no password
+field.
+
+After Begin, only the server-returned registration UUID, user UUID, display
+name and server-selected legacy key are used for local provisioning.  The
+canonical login snapshot remains in the FTAP registration context, while
+caller-provided spelling is never used to construct a legacy path or record
+after PostgreSQL has canonicalized the request.
+
+Before calling the Commit operation, the coordinator invokes
+`legacy_userdb_mark_commit_started()`.  This sets an explicit in-memory
+irreversibility bit in the retained proof context.  From that point onward
+`legacy_userdb_rollback_precommit()` refuses deletion with
+`rollback_unsafe`, even when the server later returns a definitive Commit
+error.  This deliberately conservative rule prevents a future caller from
+removing local data after any Commit request may have reached PostgreSQL.
+
+Failure handling is split at that boundary:
+
+```text
+Begin fails
+    -> no local operation
+
+local prepare or commit-guard fails
+    -> exact pre-commit rollback when a local proof exists
+    -> FTAP Abort(legacy_write_failed)
+
+Commit fails or its outcome is unknown
+    -> no Abort
+    -> no local rollback
+    -> prepared marker and exact proof retained for reconciliation
+
+Commit succeeds
+    -> terminal session returned immediately
+    -> marker best-effort transitioned from state=prepared to state=committed
+```
+
+A confirmed Commit remains a successful registration even when marker
+finalization fails.  The result then carries `marker_pending`,
+`repair_required`, the non-secret retained proof and the finalization error so
+the caller can start the already bound BBS session while an administrator or
+later reconciler completes the bookkeeping.
+
+Committed-marker finalization verifies the same database inode, exact final
+598-byte record, users-directory identity and exact marked tree.  It writes a
+mode-0600 temporary marker, fsyncs it, atomically replaces the prepared marker,
+fsyncs the user directory and verifies `state=committed`.  The operation is
+idempotent after a crash between replacement and acknowledgement: an already
+valid committed marker is accepted on retry after repeating the user-directory
+`fsync` durability barrier.  No finalization failure removes or modifies the
+user record or user directory.
+
+The coordinator unit suite scripts every external boundary and covers:
+
+- full Begin/prepare/guard/Commit/finalize success;
+- Begin rejection without any local call;
+- clean and retained local-prepare failures;
+- successful retry cleanup and fail-closed rollback failure;
+- confirmed and unknown Abort failure;
+- commit-guard failure before any Commit bytes are sent;
+- definitive Commit rejection and unknown Commit outcome;
+- the invariant that neither Commit failure path calls Abort or rollback;
+- successful Commit with non-destructive marker-finalization failure;
+- use of the server snapshot rather than caller spelling for local provisioning.
+
+The legacy fixture suite additionally covers the commit-boundary rollback
+guard, successful marker transition, finalization before the boundary,
+injected marker write/rename/directory-sync failures, and retry after the
+marker was replaced but the previous sync acknowledgement was lost.  A real
+socket-pair integration test combines the production FTAP client, coordinator
+and filesystem provisioner for success, lost Commit response, and local
+collision/Abort paths.  All three suites run in the normal and ASan/UBSan
+targets.

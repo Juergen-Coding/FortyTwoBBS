@@ -53,6 +53,7 @@ LEGACY_USERDB_PROVISION_SOURCE := src/legacy_userdb_provision.c
 LEGACY_USERDB_SOURCES := \
 	$(LEGACY_USERDB_READ_SOURCE) \
 	$(LEGACY_USERDB_PROVISION_SOURCE)
+REGISTRATION_COORDINATOR_SOURCE := src/registration_coordinator.c
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -82,6 +83,8 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_client_registration_test \
 	$(NORMAL_DIR)/legacy_userdb_test \
 	$(NORMAL_DIR)/legacy_userdb_provision_test \
+	$(NORMAL_DIR)/registration_coordinator_test \
+	$(NORMAL_DIR)/registration_coordinator_integration_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
 	$(NORMAL_DIR)/authd_throttle_test \
@@ -114,6 +117,8 @@ test: check-libpq check-libsodium users-data-access-check $(NORMAL_DIR)/fortytwo
 	$(NORMAL_DIR)/ftap_client_registration_test
 	$(NORMAL_DIR)/legacy_userdb_test
 	$(NORMAL_DIR)/legacy_userdb_provision_test
+	$(NORMAL_DIR)/registration_coordinator_test
+	$(NORMAL_DIR)/registration_coordinator_integration_test
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
 	$(NORMAL_DIR)/authd_throttle_test
@@ -179,6 +184,13 @@ $(NORMAL_DIR)/legacy_userdb_test: tests/legacy_userdb_test.c $(LEGACY_USERDB_REA
 $(NORMAL_DIR)/legacy_userdb_provision_test: tests/legacy_userdb_provision_test.c $(LEGACY_USERDB_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) -DLEGACY_USERDB_TESTING $(BASE_CFLAGS) \
 		$(LEGACY_USERDB_SOURCES) $< -o $@
+
+$(NORMAL_DIR)/registration_coordinator_test: tests/registration_coordinator_test.c $(REGISTRATION_COORDINATOR_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(REGISTRATION_COORDINATOR_SOURCE) $< -o $@
+
+$(NORMAL_DIR)/registration_coordinator_integration_test: tests/registration_coordinator_integration_test.c $(REGISTRATION_COORDINATOR_SOURCE) $(FTAP_CLIENT_SOURCES) $(LEGACY_USERDB_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) \
+		$(LEGACY_USERDB_SOURCES) $(REGISTRATION_COORDINATOR_SOURCE) $< -o $@
 
 $(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) \
@@ -295,6 +307,14 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 	$(CC) $(CPPFLAGS) -DLEGACY_USERDB_TESTING $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(LEGACY_USERDB_SOURCES) tests/legacy_userdb_provision_test.c \
 		-o $(SANITIZER_DIR)/legacy_userdb_provision_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(REGISTRATION_COORDINATOR_SOURCE) tests/registration_coordinator_test.c \
+		-o $(SANITIZER_DIR)/registration_coordinator_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(FTAP_CLIENT_SOURCES) $(LEGACY_USERDB_SOURCES) \
+		$(REGISTRATION_COORDINATOR_SOURCE) \
+		tests/registration_coordinator_integration_test.c \
+		-o $(SANITIZER_DIR)/registration_coordinator_integration_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
@@ -374,6 +394,12 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 		$(SANITIZER_DIR)/legacy_userdb_provision_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/registration_coordinator_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/registration_coordinator_integration_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_config_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
@@ -451,7 +477,7 @@ analyze: check-libpq check-libsodium
 	@set -e; \
 	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		src/ftap_client.c src/fortytwo_login.c $(LEGACY_USERDB_SOURCES) \
-		$(MBSE_SESSION_SOURCE); do \
+		$(REGISTRATION_COORDINATOR_SOURCE) $(MBSE_SESSION_SOURCE); do \
 		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) "$$source" \
 			-o /dev/null; \
 	done
