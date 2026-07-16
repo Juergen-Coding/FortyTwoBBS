@@ -48,7 +48,11 @@ WORKER_POOL_SOURCE := src/authd_worker_pool.c
 IDENTITY_SOURCE := src/authd_identity.c
 THROTTLE_SOURCE := src/authd_throttle.c
 REGISTRATION_LIMIT_SOURCE := src/authd_registration_limit.c
-LEGACY_USERDB_SOURCE := src/legacy_userdb.c
+LEGACY_USERDB_READ_SOURCE := src/legacy_userdb.c
+LEGACY_USERDB_PROVISION_SOURCE := src/legacy_userdb_provision.c
+LEGACY_USERDB_SOURCES := \
+	$(LEGACY_USERDB_READ_SOURCE) \
+	$(LEGACY_USERDB_PROVISION_SOURCE)
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -77,6 +81,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_schema_test \
 	$(NORMAL_DIR)/ftap_client_registration_test \
 	$(NORMAL_DIR)/legacy_userdb_test \
+	$(NORMAL_DIR)/legacy_userdb_provision_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
 	$(NORMAL_DIR)/authd_throttle_test \
@@ -108,6 +113,7 @@ test: check-libpq check-libsodium users-data-access-check $(NORMAL_DIR)/fortytwo
 	$(NORMAL_DIR)/ftap_schema_test
 	$(NORMAL_DIR)/ftap_client_registration_test
 	$(NORMAL_DIR)/legacy_userdb_test
+	$(NORMAL_DIR)/legacy_userdb_provision_test
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
 	$(NORMAL_DIR)/authd_throttle_test
@@ -167,8 +173,12 @@ $(NORMAL_DIR)/ftap_schema_test: tests/ftap_schema_test.c $(PROTOCOL_SOURCES) | $
 $(NORMAL_DIR)/ftap_client_registration_test: tests/ftap_client_registration_test.c $(FTAP_CLIENT_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) $< -o $@
 
-$(NORMAL_DIR)/legacy_userdb_test: tests/legacy_userdb_test.c $(LEGACY_USERDB_SOURCE) | $(NORMAL_DIR)
-	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(LEGACY_USERDB_SOURCE) $< -o $@
+$(NORMAL_DIR)/legacy_userdb_test: tests/legacy_userdb_test.c $(LEGACY_USERDB_READ_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(LEGACY_USERDB_READ_SOURCE) $< -o $@
+
+$(NORMAL_DIR)/legacy_userdb_provision_test: tests/legacy_userdb_provision_test.c $(LEGACY_USERDB_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) -DLEGACY_USERDB_TESTING $(BASE_CFLAGS) \
+		$(LEGACY_USERDB_SOURCES) $< -o $@
 
 $(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) \
@@ -280,8 +290,11 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 		$(FTAP_CLIENT_SOURCES) tests/ftap_client_registration_test.c \
 		-o $(SANITIZER_DIR)/ftap_client_registration_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
-		$(LEGACY_USERDB_SOURCE) tests/legacy_userdb_test.c \
+		$(LEGACY_USERDB_READ_SOURCE) tests/legacy_userdb_test.c \
 		-o $(SANITIZER_DIR)/legacy_userdb_test
+	$(CC) $(CPPFLAGS) -DLEGACY_USERDB_TESTING $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(LEGACY_USERDB_SOURCES) tests/legacy_userdb_provision_test.c \
+		-o $(SANITIZER_DIR)/legacy_userdb_provision_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
@@ -356,6 +369,9 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/legacy_userdb_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/legacy_userdb_provision_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_config_test
@@ -434,7 +450,7 @@ thread-sanitize-test:
 analyze: check-libpq check-libsodium
 	@set -e; \
 	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
-		src/ftap_client.c src/fortytwo_login.c $(LEGACY_USERDB_SOURCE) \
+		src/ftap_client.c src/fortytwo_login.c $(LEGACY_USERDB_SOURCES) \
 		$(MBSE_SESSION_SOURCE); do \
 		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) "$$source" \
 			-o /dev/null; \

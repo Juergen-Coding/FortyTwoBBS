@@ -436,12 +436,27 @@ test_busy_lock(void)
     legacy_userdb_error_t error;
     int ready_pipe[2];
     int release_pipe[2];
+    struct flock same_process_lock;
+    int same_process_fd;
     pid_t child;
     int status;
 
     init_record(&record, "locked", "Locked User", NULL);
     make_test_root(&root);
     create_users_file(&root, &record, 1U, 8, 598, 0U);
+
+    same_process_fd = open(root.users_path, O_RDWR | O_CLOEXEC);
+    assert(same_process_fd >= 0);
+    memset(&same_process_lock, 0, sizeof(same_process_lock));
+    same_process_lock.l_type = F_WRLCK;
+    same_process_lock.l_whence = SEEK_SET;
+    assert(fcntl(same_process_fd, F_OFD_SETLK,
+                 &same_process_lock) == 0);
+    assert(legacy_userdb_inspect(root.path, &policy, NULL, &result,
+                                 &error) == -1);
+    assert(error.status == LEGACY_USERDB_BUSY);
+    assert(close(same_process_fd) == 0);
+
     assert(pipe(ready_pipe) == 0);
     assert(pipe(release_pipe) == 0);
 

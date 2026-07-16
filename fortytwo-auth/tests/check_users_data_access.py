@@ -25,6 +25,7 @@ SOURCE_DIRS = (
 GATEWAY_PATHS = {
     "fortytwo-auth/include/legacy_userdb.h",
     "fortytwo-auth/src/legacy_userdb.c",
+    "fortytwo-auth/src/legacy_userdb_provision.c",
 }
 
 

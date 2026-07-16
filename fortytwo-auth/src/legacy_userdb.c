@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +17,12 @@
 #include "../../lib/users.h"
 #pragma pack(pop)
 
+#if !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || \
+    __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+#error "legacy users.data gateway requires the little-endian MBSE ABI"
+#endif
+
+_Static_assert(CHAR_BIT == 8, "legacy users.data requires 8-bit bytes");
 _Static_assert(sizeof(struct userhdr) == LEGACY_USERDB_HEADER_SIZE,
                "legacy users.data header layout changed");
 _Static_assert(sizeof(struct userrec) == LEGACY_USERDB_RECORD_SIZE,
@@ -28,6 +35,10 @@ _Static_assert(offsetof(struct userrec, sHandle) == 510U,
                "legacy handle offset changed");
 _Static_assert(offsetof(struct userrec, Password) == 563U,
                "legacy cleartext-password offset changed");
+
+#ifndef F_OFD_SETLK
+#error "legacy users.data gateway requires Linux open-file-description locks"
+#endif
 
 typedef struct legacy_name_entry {
     char name[LEGACY_USERDB_LEGACY_NAME_MAX + 1U];
@@ -130,6 +141,50 @@ legacy_userdb_status_name(legacy_userdb_status_t status)
         return "memory_failed";
     case LEGACY_USERDB_CHANGED_DURING_SCAN:
         return "changed_during_scan";
+    case LEGACY_USERDB_INVALID_REGISTRATION:
+        return "invalid_registration";
+    case LEGACY_USERDB_ABI_MISMATCH:
+        return "abi_mismatch";
+    case LEGACY_USERDB_OPEN_RUNTIME_FAILED:
+        return "open_runtime_failed";
+    case LEGACY_USERDB_RUNTIME_POLICY_MISMATCH:
+        return "runtime_policy_mismatch";
+    case LEGACY_USERDB_CREATE_LOCK_FAILED:
+        return "create_lock_failed";
+    case LEGACY_USERDB_GLOBAL_BUSY:
+        return "global_busy";
+    case LEGACY_USERDB_OPEN_USERS_DIRECTORY_FAILED:
+        return "open_users_directory_failed";
+    case LEGACY_USERDB_USERS_DIRECTORY_POLICY_MISMATCH:
+        return "users_directory_policy_mismatch";
+    case LEGACY_USERDB_NAME_COLLISION:
+        return "name_collision";
+    case LEGACY_USERDB_REGISTRATION_EXISTS:
+        return "registration_exists";
+    case LEGACY_USERDB_TARGET_EXISTS:
+        return "target_exists";
+    case LEGACY_USERDB_STAGING_EXISTS:
+        return "staging_exists";
+    case LEGACY_USERDB_CREATE_DIRECTORY_FAILED:
+        return "create_directory_failed";
+    case LEGACY_USERDB_CREATE_MARKER_FAILED:
+        return "create_marker_failed";
+    case LEGACY_USERDB_WRITE_MARKER_FAILED:
+        return "write_marker_failed";
+    case LEGACY_USERDB_WRITE_FAILED:
+        return "write_failed";
+    case LEGACY_USERDB_SYNC_FAILED:
+        return "sync_failed";
+    case LEGACY_USERDB_VERIFY_FAILED:
+        return "verify_failed";
+    case LEGACY_USERDB_RENAME_FAILED:
+        return "rename_failed";
+    case LEGACY_USERDB_CONTEXT_INVALID:
+        return "context_invalid";
+    case LEGACY_USERDB_ROLLBACK_UNSAFE:
+        return "rollback_unsafe";
+    case LEGACY_USERDB_ROLLBACK_FAILED:
+        return "rollback_failed";
     default:
         return "unknown";
     }
@@ -419,7 +474,8 @@ open_users_file(const char *mbse_root,
     memset(&lock, 0, sizeof(lock));
     lock.l_type = F_RDLCK;
     lock.l_whence = SEEK_SET;
-    if (fcntl(users_fd, F_SETLK, &lock) != 0) {
+    /* OFD locks also serialize independent threads in one auth process. */
+    if (fcntl(users_fd, F_OFD_SETLK, &lock) != 0) {
         legacy_userdb_status_t status =
             errno == EACCES || errno == EAGAIN
                 ? LEGACY_USERDB_BUSY : LEGACY_USERDB_LOCK_FAILED;

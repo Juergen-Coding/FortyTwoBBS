@@ -526,7 +526,9 @@ than another direct `fopen()` call in `fortytwo-login`.  The public
 `legacy_userdb` module opens the trusted MBSE root, `etc` directory and
 `users.data` one component at a time with `O_NOFOLLOW`, validates the file
 owner, group, exact permission mode and link count, and takes a shared advisory
-record lock before reading any bytes.
+open-file-description lock before reading any bytes.  These Linux OFD locks
+also serialize independent threads in one process and do not disappear when an
+unrelated descriptor for the same file is closed.
 
 The gateway contains compile-time assertions for the active packed MBSE ABI:
 
@@ -563,3 +565,118 @@ check.  Every literal `users.data` or `users.temp` reference outside the
 central gateway must match the reviewed allowlist exactly.  Removing a legacy
 access therefore reduces the recorded count; adding a new direct access fails
 the build until the access register and allowlist are deliberately reviewed.
+
+### Controlled local legacy provisioning
+
+The legacy gateway now has a separate append-only provisioning path.  It is
+still not connected to the FTAP client or the visible NEW dialog.  Its purpose
+is to prove the complete local filesystem transaction in isolation before a
+PostgreSQL Commit can depend on it.
+
+`legacy_userdb_prepare_registration()` accepts only an already validated
+registration snapshot: binary registration and user UUIDs, the server-selected
+one-to-eight character legacy key, the display name, registration time, and the
+small set of explicit MBSE defaults needed for the first session.  The function
+never accepts or stores a password.
+
+The constructed 598-byte record is zero-initialized and sets only reviewed
+fields.  Provisioning is compiled only for the reviewed little-endian 8-bit-byte
+ABI, and it checks the raw option-bit bytes so a compiler with incompatible C
+bit-field allocation fails before any append.  In particular:
+
+```text
+Name             server-selected legacy key
+sUserName        validated display name
+sHandle          empty
+Password         15 NUL bytes
+xPassword        0
+Security          explicit new-user security tuple
+ExpirySec         same tuple
+sExpiryDate       00-00-0000
+tFirstLoginDate   registration time
+tLastLoginDate    0
+tLastPwdChange    registration time
+iLastFileArea     1
+iLastMsgArea      1
+GraphMode         enabled
+HotKeys           enabled
+Cls / More        enabled
+ieASCII8 / ieNEWS enabled
+```
+
+The registration UUID is rendered without hyphens into the record comment as
+`FT42REG:<32 lowercase hex characters>`.  This is a reconciliation marker, not
+an authentication token.
+
+Before touching the database file, the provisioner acquires an exclusive Linux
+OFD `fcntl()` lock at:
+
+```text
+$MBSE_ROOT/tmp/fortytwo-registration/users-data.lock
+```
+
+Independent threads and independent processes therefore serialize on the same
+runtime lock.  It then opens the configured users directory component by
+component from `/`
+with `O_DIRECTORY|O_NOFOLLOW`, checks its owner, group and exact mode, opens
+`users.data` for read/write under an exclusive advisory lock, repeats the full
+8/598 validation and collision scan, and records the storage identities and
+owner/group/mode metadata.  Both the proposed legacy key and display name are
+checked against all three historical identifier fields (`Name`, `sUserName`
+and non-empty `sHandle`).  A record carrying the same `FT42REG` registration
+marker is treated as retained state requiring reconciliation rather than as a
+new registration attempt.
+
+The local transaction is:
+
+```text
+create private .ft42reg-<registration-id> staging directory
+create Maildir/{cur,new,tmp}
+write and fsync .fortytwo-registration mode 0600
+fsync the staging tree and users directory
+append exactly one 598-byte record
+fdatasync users.data
+read the appended bytes back and compare them byte-for-byte
+repeat the full identifier, marker, duplicate-name and record validation
+recheck active MBSE/users paths, metadata and exact file length
+promote the private staging directory from 0700 to final mode 0770
+rename the staging directory with RENAME_NOREPLACE to <legacy-name>
+fsync the users directory
+repeat active-path, metadata, exact-length and full-record-set checks
+```
+
+The unpublished staging directory is mode `0700`; the final user directory is
+mode `0770`.  `Maildir` and its three children remain mode `0700`.  The marker
+file contains only format version, registration UUID, user UUID, legacy key,
+record number and `state=prepared`.  Before rollback can delete anything, the
+complete marked tree must still contain exactly the marker plus `Maildir`, and
+`Maildir` must contain exactly the three empty `cur`, `new` and `tmp`
+directories.
+
+`legacy_userdb_rollback_precommit()` is deliberately limited to the period
+before any FTAP Commit request begins.  Its context retains the original file
+length, storage device/inode identities, the exact appended record bytes, and
+the two UUIDs.  Rollback proceeds only when the database is still the same
+inode, the record is still the exact final record, and the directory marker is
+byte-identical.  The final directory is first moved back to its private staging
+name, then the database is truncated and synchronized, and finally the known
+bounded directory tree is removed.  Unexpected files, marker changes, a later
+record append, a configured-path replacement, an inode replacement or any
+other ambiguity cause a fail-closed
+`rollback_unsafe` result with `repair_required` instead of destructive guessing.
+
+The provisioning fixture suite covers the successful record and directory
+layout, exact password absence, explicit rollback, name and target collisions,
+directory-policy rejection, global lock serialization, partial record writes,
+record-sync failure, readback mismatch, marker-write failure, rename failure,
+post-rename directory-sync failure, marker tampering, record tampering and a
+later file-length change.  It also verifies same-process thread-style OFD lock
+conflicts and rejects replacement of either active storage path.  Cross-field
+identifier collisions, duplicate registration markers, storage metadata
+changes, corrupted rollback contexts, malformed databases, a post-append collision and
+unexpected directory entries are also covered.  The supplied real 606-byte
+legacy file was exercised through prepare and rollback on an isolated copy.
+Every injected pre-commit failure either restores
+the original file length and removes the staging tree or reports a retained
+state that requires reconciliation.  The suite runs under both the normal and
+ASan/UBSan targets.
