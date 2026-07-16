@@ -48,6 +48,7 @@ WORKER_POOL_SOURCE := src/authd_worker_pool.c
 IDENTITY_SOURCE := src/authd_identity.c
 THROTTLE_SOURCE := src/authd_throttle.c
 REGISTRATION_LIMIT_SOURCE := src/authd_registration_limit.c
+LEGACY_USERDB_SOURCE := src/legacy_userdb.c
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -75,6 +76,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/ftap_codec_test \
 	$(NORMAL_DIR)/ftap_schema_test \
 	$(NORMAL_DIR)/ftap_client_registration_test \
+	$(NORMAL_DIR)/legacy_userdb_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
 	$(NORMAL_DIR)/authd_throttle_test \
@@ -90,7 +92,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/authd_integration_test \
 	$(NORMAL_DIR)/authd_registration_server_integration_test
 
-.PHONY: all authd login test database-login-integration-test database-throttle-integration-test database-session-integration-test database-registration-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
+.PHONY: all authd login test users-data-access-check database-login-integration-test database-throttle-integration-test database-session-integration-test database-registration-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
 
 all: authd login test
 
@@ -98,13 +100,14 @@ authd: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd
 
 login: $(NORMAL_DIR)/fortytwo-login
 
-test: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd \
+test: check-libpq check-libsodium users-data-access-check $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_DIR)/fortytwo-login \
 	$(NORMAL_DIR)/fortytwo-session-child-test $(NORMAL_TESTS)
 	$(NORMAL_DIR)/ftap_protocol_compile_test
 	$(NORMAL_DIR)/ftap_codec_test
 	$(NORMAL_DIR)/ftap_schema_test
 	$(NORMAL_DIR)/ftap_client_registration_test
+	$(NORMAL_DIR)/legacy_userdb_test
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
 	$(NORMAL_DIR)/authd_throttle_test
@@ -136,6 +139,9 @@ check-libsodium:
 		exit 1; \
 	}
 
+users-data-access-check:
+	python3 tests/check_users_data_access.py
+
 $(NORMAL_DIR):
 	mkdir -p $@
 
@@ -160,6 +166,9 @@ $(NORMAL_DIR)/ftap_schema_test: tests/ftap_schema_test.c $(PROTOCOL_SOURCES) | $
 
 $(NORMAL_DIR)/ftap_client_registration_test: tests/ftap_client_registration_test.c $(FTAP_CLIENT_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) $< -o $@
+
+$(NORMAL_DIR)/legacy_userdb_test: tests/legacy_userdb_test.c $(LEGACY_USERDB_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(LEGACY_USERDB_SOURCE) $< -o $@
 
 $(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) \
@@ -256,7 +265,7 @@ $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_
 $(NORMAL_DIR)/authd_registration_server_integration_test: tests/authd_registration_server_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
 
-sanitize-test: check-libpq check-libsodium
+sanitize-test: check-libpq check-libsodium users-data-access-check
 	mkdir -p $(SANITIZER_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		tests/ftap_protocol_compile_test.c \
@@ -270,6 +279,9 @@ sanitize-test: check-libpq check-libsodium
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(FTAP_CLIENT_SOURCES) tests/ftap_client_registration_test.c \
 		-o $(SANITIZER_DIR)/ftap_client_registration_test
+	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(LEGACY_USERDB_SOURCE) tests/legacy_userdb_test.c \
+		-o $(SANITIZER_DIR)/legacy_userdb_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
@@ -341,6 +353,9 @@ sanitize-test: check-libpq check-libsodium
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/ftap_client_registration_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/legacy_userdb_test
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_config_test
@@ -419,7 +434,8 @@ thread-sanitize-test:
 analyze: check-libpq check-libsodium
 	@set -e; \
 	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
-		src/ftap_client.c src/fortytwo_login.c $(MBSE_SESSION_SOURCE); do \
+		src/ftap_client.c src/fortytwo_login.c $(LEGACY_USERDB_SOURCE) \
+		$(MBSE_SESSION_SOURCE); do \
 		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) "$$source" \
 			-o /dev/null; \
 	done

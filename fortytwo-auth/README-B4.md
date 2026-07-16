@@ -518,3 +518,48 @@ Begin/Abort, server-side password-policy rejection, exact pending-identity
 binding, invalid client abort reasons, state changes, and the unknown-outcome
 classification for an inconsistent Commit response.  It runs in both
 `make test` and `make sanitize-test`.
+
+### Read-only legacy users.data gateway
+
+The first `users.data` replacement boundary is now a read-only gateway rather
+than another direct `fopen()` call in `fortytwo-login`.  The public
+`legacy_userdb` module opens the trusted MBSE root, `etc` directory and
+`users.data` one component at a time with `O_NOFOLLOW`, validates the file
+owner, group, exact permission mode and link count, and takes a shared advisory
+record lock before reading any bytes.
+
+The gateway contains compile-time assertions for the active packed MBSE ABI:
+
+```text
+header size       8 bytes
+user record     598 bytes
+legacy name      offset 36
+visible handle  offset 510
+clear password  offset 563
+```
+
+A scan fails closed when the stored header does not match that exact build,
+the file ends with a partial record, the configured record limit is exceeded,
+a searched text field lacks a NUL terminator, two records contain the same
+legacy name under deterministic ASCII case folding, or the file metadata
+changes during the scan.  It can report collisions for the server-reserved
+legacy key and for the proposed display name against both `sUserName` and
+`sHandle`.  Non-ASCII display-name bytes remain byte-exact during this
+temporary collision check; ASCII letters are compared case-insensitively.
+
+The module is still deliberately read-only.  It does not append a record,
+create a user directory, or alter PostgreSQL.  Those operations will build on
+this validated boundary in the next provisioning section.
+
+A dedicated fixture suite covers the real 8/598 layout, header and length
+corruption, symlink and directory substitution, owner/group/mode/link policy,
+unterminated legacy fields, duplicate names, display and handle collisions,
+record limits, input validation, and a competing write lock.  The supplied
+606-byte runtime fixture was also accepted as one valid record without logging
+any user contents.
+
+`make test` and `make sanitize-test` now also run a direct-access baseline
+check.  Every literal `users.data` or `users.temp` reference outside the
+central gateway must match the reviewed allowlist exactly.  Removing a legacy
+access therefore reduces the recorded count; adding a new direct access fails
+the build until the access register and allowlist are deliberately reviewed.

@@ -1,0 +1,25 @@
+# Direct literal references outside the central legacy_userdb gateway.
+# Removing a legacy access requires reducing the exact count here.
+lib/dbuser.c 1
+lib/jammsg.c 2
+lib/users.h 1
+mbfido/mbmsg.c 1
+mbfido/scan.c 1
+mbnntp/auth.c 3
+mbnntp/rfc2ftn.c 1
+mbsebbs/bye.c 4
+mbsebbs/change.c 1
+mbsebbs/dispfile.c 1
+mbsebbs/exitinfo.c 2
+mbsebbs/fortytwo_session.h 1
+mbsebbs/funcs.c 1
+mbsebbs/mail.c 1
+mbsebbs/misc.c 2
+mbsebbs/newuser.c 2
+mbsebbs/user.c 2
+mbsebbs/userlist.c 1
+mbsebbs/whoson.c 2
+mbsetup/m_limits.c 1
+mbsetup/m_users.c 9
+mbutils/mbuser.c 2
+unix/mblogin.c 2
