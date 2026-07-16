@@ -6,6 +6,9 @@
 
 #include "ftap_client.h"
 #include "ftap_protocol.h"
+#include "legacy_userdb.h"
+#include "registration_coordinator.h"
+#include "terminal_gate.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -23,11 +26,16 @@
 #include <sys/syscall.h>
 #endif
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
-#define FORTYTWO_LOGIN_VERSION "0.1.3"
+#define FORTYTWO_LOGIN_VERSION "0.1.4"
 #define LOGIN_LINE_BUFFER_SIZE (FTAP_LOGIN_NAME_MAX + 2U)
+#define DISPLAY_LINE_BUFFER_SIZE (LEGACY_USERDB_DISPLAY_NAME_MAX + 2U)
 #define PASSWORD_BUFFER_SIZE (FTAP_PASSWORD_MAX + 2U)
+#define DEFAULT_LEGACY_LANGUAGE 1
+#define DEFAULT_LEGACY_CHARSET LEGACY_USERDB_CHARSET_NONE
+#define DEFAULT_LEGACY_PROTOCOL "Zmodem"
 
 typedef struct login_options {
     const char *socket_path;
@@ -37,7 +45,11 @@ typedef struct login_options {
     const char *node_id;
     const char *mbse_root;
     const char *program;
+    const char *bbs_users_directory;
     uint32_t timeout_ms;
+    uint32_t legacy_security_level;
+    bool registration_enabled;
+    bool legacy_security_level_set;
 } login_options_t;
 
 typedef struct saved_environment {
@@ -79,6 +91,9 @@ print_usage(FILE *stream, const char *program_name)
         "  --tty-device NAME   terminal device recorded for the session\n"
         "  --node-id NAME      optional terminal node identifier\n"
         "  --program PATH      program started after login\n"
+        "  --enable-registration  enable NEW on Telnet (off by default)\n"
+        "  --bbs-users-directory PATH  legacy user directory (required for NEW)\n"
+        "  --legacy-security-level N  site new-user level (required for NEW)\n"
         "  --timeout-ms N      FTAP operation timeout (default: %u)\n"
         "  --version           print version\n"
         "  --help              print this help\n",
@@ -122,6 +137,9 @@ parse_options(int argc, char **argv, login_options_t *options)
         OPTION_NODE_ID,
         OPTION_MBSE_ROOT,
         OPTION_PROGRAM,
+        OPTION_ENABLE_REGISTRATION,
+        OPTION_BBS_USERS_DIRECTORY,
+        OPTION_LEGACY_SECURITY_LEVEL,
         OPTION_TIMEOUT,
         OPTION_VERSION
     };
@@ -133,6 +151,9 @@ parse_options(int argc, char **argv, login_options_t *options)
         {"node-id", required_argument, NULL, OPTION_NODE_ID},
         {"mbse-root", required_argument, NULL, OPTION_MBSE_ROOT},
         {"program", required_argument, NULL, OPTION_PROGRAM},
+        {"enable-registration", no_argument, NULL, OPTION_ENABLE_REGISTRATION},
+        {"bbs-users-directory", required_argument, NULL, OPTION_BBS_USERS_DIRECTORY},
+        {"legacy-security-level", required_argument, NULL, OPTION_LEGACY_SECURITY_LEVEL},
         {"timeout-ms", required_argument, NULL, OPTION_TIMEOUT},
         {"version", no_argument, NULL, OPTION_VERSION},
         {"help", no_argument, NULL, 'h'},
@@ -167,6 +188,28 @@ parse_options(int argc, char **argv, login_options_t *options)
         case OPTION_PROGRAM:
             options->program = optarg;
             break;
+        case OPTION_ENABLE_REGISTRATION:
+            options->registration_enabled = true;
+            break;
+        case OPTION_BBS_USERS_DIRECTORY:
+            options->bbs_users_directory = optarg;
+            break;
+        case OPTION_LEGACY_SECURITY_LEVEL: {
+            char *end = NULL;
+            unsigned long parsed;
+
+            errno = 0;
+            parsed = strtoul(optarg, &end, 10);
+            if (errno != 0 || end == optarg || *end != '\0' ||
+                parsed == 0UL || parsed > UINT32_MAX) {
+                (void)fprintf(stderr,
+                              "fortytwo-login: invalid legacy security level\n");
+                return -1;
+            }
+            options->legacy_security_level = (uint32_t)parsed;
+            options->legacy_security_level_set = true;
+            break;
+        }
         case OPTION_TIMEOUT:
             if (!parse_timeout(optarg, &options->timeout_ms)) {
                 (void)fprintf(stderr, "fortytwo-login: invalid timeout\n");
@@ -189,6 +232,26 @@ parse_options(int argc, char **argv, login_options_t *options)
         options->mbse_root == NULL || options->mbse_root[0] != '/' ||
         options->socket_path == NULL || options->socket_path[0] != '/') {
         print_usage(stderr, argv[0]);
+        return -1;
+    }
+    if (options->registration_enabled &&
+        strcmp(options->protocol, FTAP_PROTOCOL_TELNET) != 0) {
+        (void)fprintf(stderr,
+                      "fortytwo-login: registration is Telnet-only\n");
+        return -1;
+    }
+    if (options->registration_enabled &&
+        (options->bbs_users_directory == NULL ||
+         !options->legacy_security_level_set)) {
+        (void)fprintf(stderr,
+                      "fortytwo-login: registration requires users directory "
+                      "and security level\n");
+        return -1;
+    }
+    if (options->bbs_users_directory != NULL &&
+        options->bbs_users_directory[0] != '/') {
+        (void)fprintf(stderr,
+                      "fortytwo-login: users directory must be absolute\n");
         return -1;
     }
     if (options->program != NULL && options->program[0] != '/') {
@@ -224,7 +287,7 @@ read_line(const char *prompt, char *buffer, size_t buffer_size)
 
 /* Disable echo only while the password bytes are read from the terminal. */
 static bool
-read_password(char *buffer, size_t buffer_size)
+read_password(const char *prompt, char *buffer, size_t buffer_size)
 {
     static const int signals[] = {
         SIGINT, SIGQUIT, SIGTERM, SIGHUP, SIGTSTP
@@ -285,7 +348,7 @@ read_password(char *buffer, size_t buffer_size)
     password_signal_number = 0;
     if (sigprocmask(SIG_SETMASK, &previous_mask, NULL) == 0) {
         if (password_signal_number == 0) {
-            success = read_line("Password: ", buffer, buffer_size);
+            success = read_line(prompt, buffer, buffer_size);
         }
         if (sigprocmask(SIG_BLOCK, &blocked, NULL) != 0) {
             success = false;
@@ -511,27 +574,176 @@ close_unneeded_descriptors(void)
     }
 }
 
-/* Authenticate once, then replace the adapter while preserving only FD 3. */
+static bool
+ascii_word_is_new(const char *text)
+{
+    return text != NULL && text[0] != '\0' &&
+           (text[0] == 'N' || text[0] == 'n') &&
+           (text[1] == 'E' || text[1] == 'e') &&
+           (text[2] == 'W' || text[2] == 'w') && text[3] == '\0';
+}
+
+static bool
+registration_login_name_is_valid(const char *login_name)
+{
+    size_t length;
+    size_t index;
+
+    if (login_name == NULL) {
+        return false;
+    }
+    length = strlen(login_name);
+    if (length == 0U || length > FTAP_LOGIN_NAME_MAX ||
+        !((login_name[0] >= 'a' && login_name[0] <= 'z') ||
+          (login_name[0] >= '0' && login_name[0] <= '9'))) {
+        return false;
+    }
+    for (index = 1U; index < length; ++index) {
+        unsigned char value = (unsigned char)login_name[index];
+
+        if (!((value >= (unsigned char)'a' &&
+               value <= (unsigned char)'z') ||
+              (value >= (unsigned char)'0' &&
+               value <= (unsigned char)'9') ||
+              value == (unsigned char)'.' ||
+              value == (unsigned char)'_' ||
+              value == (unsigned char)'-')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void
+initialize_legacy_defaults(legacy_userdb_record_defaults_t *defaults,
+                           uint32_t security_level)
+{
+    memset(defaults, 0, sizeof(*defaults));
+    defaults->security_level = security_level;
+    defaults->language = DEFAULT_LEGACY_LANGUAGE;
+    defaults->charset = DEFAULT_LEGACY_CHARSET;
+    defaults->message_editor = LEGACY_USERDB_EDITOR_FULLSCREEN;
+    defaults->protocol = DEFAULT_LEGACY_PROTOCOL;
+    defaults->email = true;
+    defaults->mail_scan = true;
+    defaults->new_file_scan = true;
+}
+
+static void
+print_registration_error(const fortytwo_registration_error_t *error)
+{
+    if (error != NULL && error->outcome_unknown) {
+        (void)fputs(
+            "Registration outcome is uncertain. Do not retry immediately; "
+            "please contact the sysop.\r\n",
+            stderr);
+        return;
+    }
+    if (error != NULL && error->repair_required) {
+        (void)fputs(
+            "Registration needs sysop reconciliation. Please do not retry.\r\n",
+            stderr);
+        return;
+    }
+    if (error != NULL &&
+        error->ftap.protocol_error == FTAP_ERR_RATE_LIMITED) {
+        (void)fputs("Registration temporarily unavailable.\r\n", stderr);
+        return;
+    }
+    (void)fputs("Registration could not be completed.\r\n", stderr);
+}
+
+static bool
+collect_registration_input(char login_name[LOGIN_LINE_BUFFER_SIZE],
+                           char display_name[DISPLAY_LINE_BUFFER_SIZE],
+                           char password[PASSWORD_BUFFER_SIZE],
+                           char password_repeat[PASSWORD_BUFFER_SIZE])
+{
+    terminal_gate_status_t challenge_status;
+
+    challenge_status = registration_challenge_run(
+        STDIN_FILENO, STDOUT_FILENO,
+        REGISTRATION_CHALLENGE_DEFAULT_SECONDS,
+        REGISTRATION_CHALLENGE_DEFAULT_ATTEMPTS);
+    if (challenge_status != TERMINAL_GATE_OK) {
+        return false;
+    }
+
+    if (!read_line("New login name: ", login_name,
+                   LOGIN_LINE_BUFFER_SIZE)) {
+        return false;
+    }
+    if (!registration_login_name_is_valid(login_name)) {
+        (void)fputs(
+            "Use 1-32 lowercase letters, digits, dot, underscore or hyphen.\r\n",
+            stderr);
+        return false;
+    }
+    if (!read_line("Display name: ", display_name,
+                   DISPLAY_LINE_BUFFER_SIZE)) {
+        return false;
+    }
+    if (!legacy_userdb_display_name_is_compatible(display_name)) {
+        (void)fputs(
+            "Display name must contain 1-35 UTF-8 bytes without control "
+            "characters or outer spaces.\r\n",
+            stderr);
+        return false;
+    }
+    if (!read_password("New password: ", password,
+                       PASSWORD_BUFFER_SIZE) ||
+        !read_password("Repeat password: ", password_repeat,
+                       PASSWORD_BUFFER_SIZE)) {
+        return false;
+    }
+    if (strcmp(password, password_repeat) != 0) {
+        (void)fputs("Passwords do not match.\r\n", stderr);
+        return false;
+    }
+    return true;
+}
+
+/* Authenticate or register once, then replace the adapter preserving FD 3. */
 static int
 run_login(const login_options_t *options)
 {
     ftap_client_t client;
     ftap_client_error_t error;
     ftap_password_metadata_t metadata;
+    ftap_registration_metadata_t registration_metadata;
     ftap_terminal_context_t result;
+    fortytwo_registration_request_t registration_request;
+    fortytwo_registration_result_t registration_result;
+    fortytwo_registration_error_t registration_error;
+    legacy_userdb_record_defaults_t legacy_defaults;
+    legacy_userdb_provision_policy_t legacy_policy;
     char login_name[LOGIN_LINE_BUFFER_SIZE];
+    char display_name[DISPLAY_LINE_BUFFER_SIZE];
     char password[PASSWORD_BUFFER_SIZE];
+    char password_repeat[PASSWORD_BUFFER_SIZE];
     char source_ip[INET6_ADDRSTRLEN];
     char tty_device[FTAP_TTY_DEVICE_MAX + 1U];
     char default_program[PATH_MAX];
     const char *program = options->program;
+    const char *bbs_users_directory = options->bbs_users_directory;
     char *child_argv[2];
+    bool registration_requested = false;
+    int64_t registration_time = 0;
     int exit_status = 1;
 
     memset(login_name, 0, sizeof(login_name));
+    memset(display_name, 0, sizeof(display_name));
     memset(password, 0, sizeof(password));
+    memset(password_repeat, 0, sizeof(password_repeat));
     memset(&metadata, 0, sizeof(metadata));
+    memset(&registration_metadata, 0, sizeof(registration_metadata));
     memset(&result, 0, sizeof(result));
+    memset(&registration_request, 0, sizeof(registration_request));
+    fortytwo_registration_result_clear(&registration_result);
+    fortytwo_registration_error_clear(&registration_error);
+    initialize_legacy_defaults(&legacy_defaults,
+                               options->legacy_security_level);
+    legacy_userdb_provision_policy_defaults(&legacy_policy);
     ftap_client_init(&client, options->timeout_ms);
     ftap_client_error_clear(&error);
 
@@ -548,9 +760,33 @@ run_login(const login_options_t *options)
         (void)fprintf(stderr, "fortytwo-login: cannot execute %s\n", program);
         goto done;
     }
-    if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO) ||
-        !read_line("Login: ", login_name, sizeof(login_name)) ||
-        !read_password(password, sizeof(password))) {
+    if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO)) {
+        (void)fputs("fortytwo-login: terminal input unavailable\n", stderr);
+        goto done;
+    }
+
+    if (strcmp(options->protocol, FTAP_PROTOCOL_TELNET) == 0 &&
+        terminal_wait_for_double_escape(
+            STDIN_FILENO, STDOUT_FILENO,
+            TERMINAL_GATE_DEFAULT_SECONDS) != TERMINAL_GATE_OK) {
+        goto done;
+    }
+    if (!read_line("Login: ", login_name, sizeof(login_name))) {
+        (void)fputs("fortytwo-login: terminal input failed\n", stderr);
+        goto done;
+    }
+    registration_requested = ascii_word_is_new(login_name);
+    if (registration_requested) {
+        secure_wipe(login_name, sizeof(login_name));
+        if (!options->registration_enabled) {
+            (void)fputs("New user registration is not enabled.\r\n", stderr);
+            goto done;
+        }
+        if (!collect_registration_input(login_name, display_name,
+                                        password, password_repeat)) {
+            goto done;
+        }
+    } else if (!read_password("Password: ", password, sizeof(password))) {
         (void)fputs("fortytwo-login: terminal input failed\n", stderr);
         goto done;
     }
@@ -563,6 +799,21 @@ run_login(const login_options_t *options)
     }
     metadata.tty_device = derive_tty_device(options, tty_device);
     metadata.node_id = options->node_id;
+    registration_metadata.protocol = metadata.protocol;
+    registration_metadata.source_ip = metadata.source_ip;
+    registration_metadata.tty_device = metadata.tty_device;
+    registration_metadata.node_id = metadata.node_id;
+
+    if (registration_requested) {
+        time_t now = time(NULL);
+
+        if (now <= (time_t)0 || (uint64_t)now > (uint64_t)INT32_MAX ||
+            registration_metadata.source_ip == NULL) {
+            (void)fputs("Registration metadata is unavailable.\r\n", stderr);
+            goto done;
+        }
+        registration_time = (int64_t)now;
+    }
 
     if (ftap_client_connect(&client, options->socket_path, &error) != 0 ||
         ftap_client_hello(&client, "fortytwo-login",
@@ -570,14 +821,41 @@ run_login(const login_options_t *options)
         print_client_error(&error, NULL);
         goto done;
     }
-    if (ftap_client_authenticate_password(
-            &client, login_name, (const uint8_t *)password,
-            strlen(password), &metadata, &result, &error) != 0) {
+
+    if (registration_requested) {
+        registration_request.client = &client;
+        registration_request.mbse_root = options->mbse_root;
+        registration_request.bbs_users_directory = bbs_users_directory;
+        registration_request.login_name = login_name;
+        registration_request.display_name = display_name;
+        registration_request.password = (const uint8_t *)password;
+        registration_request.password_length = strlen(password);
+        registration_request.metadata = &registration_metadata;
+        registration_request.registered_at = registration_time;
+        registration_request.legacy_defaults = &legacy_defaults;
+        registration_request.legacy_policy = &legacy_policy;
+
+        if (fortytwo_registration_coordinate(
+                &registration_request, &registration_result,
+                &registration_error) != 0) {
+            print_registration_error(&registration_error);
+            goto done;
+        }
+        result = registration_result.terminal;
+        (void)fputs("Registration complete. Entering FortyTwo BBS...\r\n",
+                    stdout);
+        (void)fflush(stdout);
+    } else if (ftap_client_authenticate_password(
+                   &client, login_name, (const uint8_t *)password,
+                   strlen(password), &metadata, &result, &error) != 0) {
         print_client_error(&error, options->protocol);
         goto done;
     }
+
     secure_wipe(password, sizeof(password));
+    secure_wipe(password_repeat, sizeof(password_repeat));
     secure_wipe(login_name, sizeof(login_name));
+    secure_wipe(display_name, sizeof(display_name));
 
     if (ftap_client_move_to_inherited_fd(&client, &error) != 0) {
         print_client_error(&error, NULL);
@@ -602,8 +880,12 @@ run_login(const login_options_t *options)
 
 done:
     secure_wipe(password, sizeof(password));
+    secure_wipe(password_repeat, sizeof(password_repeat));
     secure_wipe(login_name, sizeof(login_name));
+    secure_wipe(display_name, sizeof(display_name));
     secure_wipe(&result, sizeof(result));
+    secure_wipe(&registration_result, sizeof(registration_result));
+    secure_wipe(&registration_request, sizeof(registration_request));
     ftap_client_close(&client);
     return exit_status;
 }

@@ -39,7 +39,6 @@ PUBLIC_HEADERS := $(wildcard include/*.h)
 
 PROTOCOL_SOURCES := src/ftap_codec.c src/ftap_schema.c
 FTAP_CLIENT_SOURCES := $(PROTOCOL_SOURCES) src/ftap_client.c
-LOGIN_SOURCES := $(FTAP_CLIENT_SOURCES) src/fortytwo_login.c
 MBSE_SESSION_SOURCE := ../mbsebbs/fortytwo_session.c
 DATABASE_VALIDATION_SOURCE := src/authd_database_validation.c
 DATABASE_SOURCE := src/authd_database.c $(DATABASE_VALIDATION_SOURCE)
@@ -54,6 +53,13 @@ LEGACY_USERDB_SOURCES := \
 	$(LEGACY_USERDB_READ_SOURCE) \
 	$(LEGACY_USERDB_PROVISION_SOURCE)
 REGISTRATION_COORDINATOR_SOURCE := src/registration_coordinator.c
+TERMINAL_GATE_SOURCE := src/terminal_gate.c
+LOGIN_SOURCES := \
+	$(FTAP_CLIENT_SOURCES) \
+	$(LEGACY_USERDB_SOURCES) \
+	$(REGISTRATION_COORDINATOR_SOURCE) \
+	$(TERMINAL_GATE_SOURCE) \
+	src/fortytwo_login.c
 AUTHD_COMMON_SOURCES := \
 	$(PROTOCOL_SOURCES) \
 	src/authd_config.c \
@@ -85,6 +91,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/legacy_userdb_provision_test \
 	$(NORMAL_DIR)/registration_coordinator_test \
 	$(NORMAL_DIR)/registration_coordinator_integration_test \
+	$(NORMAL_DIR)/terminal_gate_test \
 	$(NORMAL_DIR)/authd_config_test \
 	$(NORMAL_DIR)/authd_identity_test \
 	$(NORMAL_DIR)/authd_throttle_test \
@@ -110,6 +117,7 @@ login: $(NORMAL_DIR)/fortytwo-login
 
 test: check-libpq check-libsodium users-data-access-check $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_DIR)/fortytwo-login \
+	$(NORMAL_DIR)/fortytwo-login-dialog-test \
 	$(NORMAL_DIR)/fortytwo-session-child-test $(NORMAL_TESTS)
 	$(NORMAL_DIR)/ftap_protocol_compile_test
 	$(NORMAL_DIR)/ftap_codec_test
@@ -119,6 +127,9 @@ test: check-libpq check-libsodium users-data-access-check $(NORMAL_DIR)/fortytwo
 	$(NORMAL_DIR)/legacy_userdb_provision_test
 	$(NORMAL_DIR)/registration_coordinator_test
 	$(NORMAL_DIR)/registration_coordinator_integration_test
+	$(NORMAL_DIR)/terminal_gate_test
+	python3 tests/fortytwo_login_dialog_test.py \
+		$(abspath $(NORMAL_DIR)/fortytwo-login-dialog-test)
 	$(NORMAL_DIR)/authd_config_test
 	$(NORMAL_DIR)/authd_identity_test
 	$(NORMAL_DIR)/authd_throttle_test
@@ -160,6 +171,7 @@ $(NORMAL_TESTS) \
 $(NORMAL_DIR)/fortytwo-authd \
 $(NORMAL_DIR)/fortytwo-authd-test \
 $(NORMAL_DIR)/fortytwo-login \
+$(NORMAL_DIR)/fortytwo-login-dialog-test \
 $(NORMAL_DIR)/fortytwo-session-child-test \
 $(NORMAL_DIR)/authd_database_login_integration_test \
 $(NORMAL_DIR)/authd_database_throttle_integration_test \
@@ -192,6 +204,10 @@ $(NORMAL_DIR)/registration_coordinator_integration_test: tests/registration_coor
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) \
 		$(LEGACY_USERDB_SOURCES) $(REGISTRATION_COORDINATOR_SOURCE) $< -o $@
 
+$(NORMAL_DIR)/terminal_gate_test: tests/terminal_gate_test.c $(TERMINAL_GATE_SOURCE) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) -DTERMINAL_GATE_TESTING $(BASE_CFLAGS) \
+		$(TERMINAL_GATE_SOURCE) $< -lutil -o $@
+
 $(NORMAL_DIR)/fortytwo-authd: src/fortytwo_authd.c $(AUTHD_PRODUCTION_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
@@ -204,6 +220,10 @@ $(NORMAL_DIR)/fortytwo-authd-test: src/fortytwo_authd.c $(AUTHD_TEST_SOURCES) | 
 
 $(NORMAL_DIR)/fortytwo-login: $(LOGIN_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(LOGIN_SOURCES) -o $@
+
+$(NORMAL_DIR)/fortytwo-login-dialog-test: $(LOGIN_SOURCES) | $(NORMAL_DIR)
+	$(CC) $(CPPFLAGS) -DTERMINAL_GATE_TESTING $(BASE_CFLAGS) \
+		$(LOGIN_SOURCES) -o $@
 
 $(NORMAL_DIR)/fortytwo-session-child-test: tests/fortytwo_session_child_test.c $(FTAP_CLIENT_SOURCES) $(MBSE_SESSION_SOURCE) ../mbsebbs/fortytwo_session.h | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(FTAP_CLIENT_SOURCES) $(MBSE_SESSION_SOURCE) $< -o $@
@@ -315,6 +335,9 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 		$(REGISTRATION_COORDINATOR_SOURCE) \
 		tests/registration_coordinator_integration_test.c \
 		-o $(SANITIZER_DIR)/registration_coordinator_integration_test
+	$(CC) $(CPPFLAGS) -DTERMINAL_GATE_TESTING $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(TERMINAL_GATE_SOURCE) tests/terminal_gate_test.c -lutil \
+		-o $(SANITIZER_DIR)/terminal_gate_test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) $(THREAD_FLAGS) \
 		$(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		$(LIBPQ_LIBS) $(SODIUM_LIBS) -o $(SANITIZER_DIR)/fortytwo-authd
@@ -323,6 +346,8 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 		-o $(SANITIZER_DIR)/fortytwo-authd-test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(LOGIN_SOURCES) -o $(SANITIZER_DIR)/fortytwo-login
+	$(CC) $(CPPFLAGS) -DTERMINAL_GATE_TESTING $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
+		$(LOGIN_SOURCES) -o $(SANITIZER_DIR)/fortytwo-login-dialog-test
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		$(FTAP_CLIENT_SOURCES) $(MBSE_SESSION_SOURCE) \
 		tests/fortytwo_session_child_test.c \
@@ -398,6 +423,13 @@ sanitize-test: check-libpq check-libsodium users-data-access-check
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/registration_coordinator_integration_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		$(SANITIZER_DIR)/terminal_gate_test
+	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+	UBSAN_OPTIONS=halt_on_error=1 \
+		python3 tests/fortytwo_login_dialog_test.py \
+		$(abspath $(SANITIZER_DIR)/fortytwo-login-dialog-test)
 	ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
 	UBSAN_OPTIONS=halt_on_error=1 \
 		$(SANITIZER_DIR)/authd_config_test
@@ -477,7 +509,7 @@ analyze: check-libpq check-libsodium
 	@set -e; \
 	for source in $(AUTHD_PRODUCTION_SOURCES) src/fortytwo_authd.c \
 		src/ftap_client.c src/fortytwo_login.c $(LEGACY_USERDB_SOURCES) \
-		$(REGISTRATION_COORDINATOR_SOURCE) $(MBSE_SESSION_SOURCE); do \
+		$(REGISTRATION_COORDINATOR_SOURCE) $(TERMINAL_GATE_SOURCE) $(MBSE_SESSION_SOURCE); do \
 		clang --analyze $(CPPFLAGS) $(BASE_CFLAGS) $(THREAD_FLAGS) "$$source" \
 			-o /dev/null; \
 	done

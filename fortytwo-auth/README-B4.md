@@ -772,3 +772,94 @@ socket-pair integration test combines the production FTAP client, coordinator
 and filesystem provisioner for success, lost Commit response, and local
 collision/Abort paths.  All three suites run in the normal and ASan/UBSan
 targets.
+
+### Telnet presence gate and visible NEW dialog
+
+`fortytwo-login` now owns the visible terminal entry flow.  Telnet sessions
+must first pass a 15-second presence gate:
+
+```text
+Press ESC twice to continue: 15
+```
+
+The adapter temporarily switches only the supplied PTY into byte mode, disables
+local echo and terminal-generated job-control signals, and restores the exact
+terminal flags before displaying `Login:`.  Two adjacent ESC bytes are
+required.  An ANSI cursor sequence such as `ESC [ A` resets the detector and
+therefore cannot satisfy the gate accidentally.  Timeout or carrier loss ends
+the adapter before an FTAP socket is opened.  SSH and local protocol adapters
+skip this Telnet-only gate.
+
+The gate is deliberately a low-cost scanner filter, not an authentication
+factor.  A targeted client can send two ESC bytes.  Password authentication,
+rate limits and the PostgreSQL account state remain the security boundary.
+
+Typing `NEW` (ASCII case-insensitive) selects the Telnet-only registration
+path.  Registration is still fail-closed and needs two independent opt-ins:
+
+```text
+fortytwo-authd --registration-enabled
+fortytwo-login --enable-registration \
+    --bbs-users-directory /absolute/site/path \
+    --legacy-security-level SITE_LEVEL
+```
+
+Without the local adapter option, `NEW` returns an unavailable message and no
+challenge or FTAP request is started.  The trusted users-directory path and
+site-specific security level are mandatory instead of being guessed by the
+binary.
+
+Before collecting identity or password fields, the adapter generates one
+symbol-based logic challenge from kernel randomness.  Eight templates combine
+random values with a shuffled selection of coloured UTF-8 symbols:
+
+```text
+★  ◇  ▲  ▼  ■
+```
+
+Examples include half-value addition, product-plus-value, exact integer
+division, difference of squares and explicitly worded mixed operations.  The
+answer has a shared 30-second deadline and at most two attempts.  Input is read
+byte-wise with only decimal digits and backspace accepted.  The challenge and
+answer are never sent to FTAP or PostgreSQL and are not logged.
+
+This is an additional registration-abuse hurdle rather than a general CAPTCHA.
+A sufficiently targeted parser can still solve the generated tasks.  Its value
+comes from combining randomized ANSI/UTF-8 presentation with the Telnet gate,
+server-side password policy, IP registration limits and the transactional
+registration lifecycle.
+
+After a correct answer, the dialog asks for:
+
+```text
+New login name
+Display name
+New password
+Repeat password
+```
+
+The login name is locally restricted to the canonical 1-32 byte lowercase
+policy before the server performs the authoritative check.  The display name
+must fit the 35-byte legacy compatibility field without truncation.  Both
+password buffers are hidden by terminal echo control and wiped on every exit.
+No FTAP connection is made until the gate, challenge and local input checks
+have completed.
+
+The adapter then calls the production registration coordinator.  On confirmed
+Commit it reuses the normal bound-session FD-3 handoff and directly starts
+`mbsebbs`.  Unknown Commit outcomes and repair-required states produce a
+non-retry warning and retain local evidence for reconciliation.
+
+The initial reviewed legacy compatibility profile keeps language 1, charset 0,
+full-screen editor, `Zmodem`, private email and both login scans enabled.  The
+security level remains an explicit site argument.  Replacing the remaining
+compatibility defaults with a separately versioned site profile is a later
+configuration task; they are not authentication inputs and no password is
+written to the legacy record.
+
+Tests cover the byte-state detector, rejection of ANSI cursor sequences,
+terminal-mode restoration through a real PTY, all eight generated challenge
+templates, answer validation, default-disabled `NEW`, the complete visible
+prompt order, password non-echo, and the unchanged SSH login/FD-3 integration.
+The PTY dialog test uses a test-only deterministic challenge build; production
+binaries always use `getrandom()`.
