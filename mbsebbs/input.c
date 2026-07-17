@@ -558,44 +558,62 @@ void Getnum(char *sStr, int iMaxlen)
  */
 void GetDate(char *sStr, int iMaxlen)
 {
-    unsigned char   ch = 0; 
-    int		    iPos = 0;
+    unsigned char ch = 0;
+    int iPos = 0;
+
+    if (sStr == NULL || iMaxlen <= 0)
+        return;
 
     FLUSHIN();
-    strcpy(sStr, "");
+    sStr[0] = '\0';
 
     alarm_on();
     while (ch != 13) {
+        ch = Readkey();
 
-	ch = Readkey();
+        if ((ch == 8) || (ch == KEY_DEL) || (ch == 127)) {
+            /*
+             * Never decrement below zero.  The historical code wrote to
+             * sStr[-1] when an extra erase key arrived at the beginning.
+             */
+            if (iPos == 0) {
+                PUTCHAR('\007');
+                continue;
+            }
 
-	if ((ch == 8) || (ch == KEY_DEL) || (ch == 127)) {
-	    if (iPos > 0)
-		BackErase();
-	    else
-		PUTCHAR('\007');
+            /*
+             * An automatically inserted separator belongs to the preceding
+             * date component and is removed together with its last digit.
+             */
+            if (iPos == 3 || iPos == 6) {
+                BackErase();
+                --iPos;
+            }
 
-	    if (iPos == 3 || iPos == 6) {
-		BackErase();
-		--iPos;
-	    }
+            if (iPos > 0) {
+                BackErase();
+                --iPos;
+                sStr[iPos] = '\0';
+            }
+            continue;
+        }
 
-	    sStr[--iPos]='\0';
-	}
+        if (ch >= '0' && ch <= '9') {
+            if (iPos >= iMaxlen) {
+                PUTCHAR('\007');
+                continue;
+            }
 
-	if (ch >= '0' && ch <= '9') {
-	    if (iPos < iMaxlen) {
-		iPos++;
-		snprintf(sStr + strlen(sStr), 5, "%c", ch);
-		PUTCHAR(ch);
-		if (iPos == 2 || iPos == 5) {
-		    PUTCHAR('-');
-		    snprintf(sStr + strlen(sStr), 2, "-");
-		    iPos++;
-		}
-	    } else
-		PUTCHAR('\007');
-	}
+            sStr[iPos++] = (char)ch;
+            sStr[iPos] = '\0';
+            PUTCHAR(ch);
+
+            if ((iPos == 2 || iPos == 5) && iPos < iMaxlen) {
+                sStr[iPos++] = '-';
+                sStr[iPos] = '\0';
+                PUTCHAR('-');
+            }
+        }
     }
 
     PUTCHAR('\r');

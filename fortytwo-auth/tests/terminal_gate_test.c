@@ -92,36 +92,35 @@ test_escape_gate_pty(void)
 }
 
 static void
-test_all_templates(void)
+test_number_sequence_challenge(void)
 {
-    unsigned int template_number;
+    uint32_t words[16] = {
+        17U, 3U, 29U, 5U, 11U, 7U, 2U, 1U,
+        19U, 23U, 31U, 37U, 41U, 43U, 47U, 53U
+    };
+    registration_challenge_t challenge;
+    char answer[32];
 
-    for (template_number = 0U; template_number < 8U; ++template_number) {
-        uint32_t words[16] = {
-            17U, 3U, 29U, 5U, 11U, 7U, 0U, 13U,
-            19U, 23U, 31U, 37U, 41U, 43U, 47U, 53U
-        };
-        registration_challenge_t challenge;
-        char answer[32];
+    memset(&challenge, 0, sizeof(challenge));
+    assert(registration_challenge_generate_from_words(
+               &challenge, words, sizeof(words) / sizeof(words[0])) ==
+           TERMINAL_GATE_OK);
 
-        words[6] = template_number;
-        memset(&challenge, 0, sizeof(challenge));
-        assert(registration_challenge_generate_from_words(
-                   &challenge, words, sizeof(words) / sizeof(words[0])) ==
-               TERMINAL_GATE_OK);
-        assert(strstr(challenge.text, "\033[") != NULL);
-        assert(strstr(challenge.text, "★") != NULL ||
-               strstr(challenge.text, "◇") != NULL ||
-               strstr(challenge.text, "▲") != NULL ||
-               strstr(challenge.text, "▼") != NULL ||
-               strstr(challenge.text, "■") != NULL);
-        assert(challenge.answer > 0);
-        assert(snprintf(answer, sizeof(answer), "%d", challenge.answer) > 0);
-        assert(registration_challenge_verify(&challenge, answer));
-        assert(!registration_challenge_verify(&challenge, "99999"));
-        assert(!registration_challenge_verify(&challenge, "12x"));
-        assert(!registration_challenge_verify(&challenge, ""));
-    }
+    assert(strstr(
+               challenge.text,
+               "Ergaenze die Zahlenreihe / Complete the sequence:") != NULL);
+    assert(strstr(
+               challenge.text,
+               "3, 6, 10, 15, 21, 28, ?") != NULL);
+    assert(challenge.answer == 36);
+
+    assert(snprintf(answer, sizeof(answer), "%d", challenge.answer) > 0);
+    assert(registration_challenge_verify(&challenge, answer));
+    assert(registration_challenge_verify(&challenge, "36"));
+    assert(registration_challenge_verify(&challenge, "36  "));
+    assert(!registration_challenge_verify(&challenge, "35"));
+    assert(!registration_challenge_verify(&challenge, "36x"));
+    assert(!registration_challenge_verify(&challenge, ""));
 }
 
 static void
@@ -139,7 +138,7 @@ main(void)
 {
     test_escape_parser();
     test_escape_gate_pty();
-    test_all_templates();
+    test_number_sequence_challenge();
     test_status_names();
     puts("terminal gate and registration challenge tests: OK");
     return 0;

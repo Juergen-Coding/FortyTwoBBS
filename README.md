@@ -1,3 +1,30 @@
+
+<!-- B4.3.3 STATUS START -->
+## Current development status: B4.3.3 Telnet registration
+
+The current development branch provides:
+
+- PostgreSQL as the authoritative store for BBS identities, credentials,
+  account state, roles, capabilities and terminal sessions
+- FTAP 1.3 authentication and registration through a local Unix socket
+- protected Telnet self-registration by entering `NEW` at the login prompt
+- a Telnet-only double-ESC presence gate with a 15-second deadline
+- an optional ASCII, ANSI or CP437 login banner from `$MBSE_ROOT/etc/issue`
+- an ASCII-only number-sequence challenge with three attempts and a shared
+  180-second response deadline
+- input editing that accepts both Ctrl-H and DEL as Backspace
+- password correction without repeating an already solved challenge
+- a minimum registration password length of 12 bytes
+- controlled legacy `users.data` provisioning without a plaintext password
+- safe handling of one-word display names in `mbsebbs`
+- corrected date input that no longer writes before the input buffer
+
+Registration is disabled by default and requires explicit activation in both
+`fortytwo-authd` and `fortytwo-login`. PostgreSQL remains authoritative;
+`users.data` is maintained only as temporary legacy compatibility data.
+
+<!-- B4.3.3 STATUS END -->
+
 ```text
 ___________            __          ___________               ____________________  _________
 \_   _____/___________/  |_ ___.__.\__    ___/_  _  ______   \______   \______   \/   _____/

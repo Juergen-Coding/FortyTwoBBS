@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #if defined(__linux__)
 #include <sys/syscall.h>
 #endif
@@ -33,8 +34,11 @@
 #define LOGIN_LINE_BUFFER_SIZE (FTAP_LOGIN_NAME_MAX + 2U)
 #define DISPLAY_LINE_BUFFER_SIZE (LEGACY_USERDB_DISPLAY_NAME_MAX + 2U)
 #define PASSWORD_BUFFER_SIZE (FTAP_PASSWORD_MAX + 2U)
-#define DEFAULT_LEGACY_LANGUAGE 1
-#define DEFAULT_LEGACY_CHARSET LEGACY_USERDB_CHARSET_NONE
+#define REGISTRATION_PASSWORD_MIN_BYTES 12U
+#define TELNET_ISSUE_RELATIVE_PATH "etc/issue"
+#define TELNET_ISSUE_MAX_BYTES (64U * 1024U)
+#define DEFAULT_LEGACY_LANGUAGE 'D'
+#define DEFAULT_LEGACY_CHARSET LEGACY_USERDB_CHARSET_CP437
 #define DEFAULT_LEGACY_PROTOCOL "Zmodem"
 
 typedef struct login_options {
@@ -262,27 +266,186 @@ parse_options(int argc, char **argv, login_options_t *options)
     return 0;
 }
 
+/* Write raw banner bytes without passing ANSI sequences through stdio. */
+static bool
+write_all_bytes(int fd, const void *buffer, size_t length)
+{
+    const unsigned char *bytes = buffer;
+    size_t offset = 0U;
+
+    while (offset < length) {
+        ssize_t written = write(fd, bytes + offset, length - offset);
+
+        if (written > 0) {
+            offset += (size_t)written;
+            continue;
+        }
+        if (written < 0 && errno == EINTR) {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+/*
+ * Display the trusted, optional Telnet issue file.  Symlinks, non-regular
+ * files and banners larger than the fixed safety limit are ignored.
+ */
+static bool
+display_telnet_issue(const char *mbse_root)
+{
+    unsigned char buffer[4096];
+    struct stat status;
+    char path[PATH_MAX];
+    unsigned char last_byte = (unsigned char)'\n';
+    size_t total = 0U;
+    int length;
+    int fd;
+
+    length = snprintf(path, sizeof(path), "%s/%s", mbse_root,
+                      TELNET_ISSUE_RELATIVE_PATH);
+    if (length < 0 || (size_t)length >= sizeof(path)) {
+        return false;
+    }
+
+    fd = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (fd < 0) {
+        return true;
+    }
+
+    if (fstat(fd, &status) != 0 ||
+        !S_ISREG(status.st_mode) ||
+        status.st_size < 0 ||
+        (uintmax_t)status.st_size > (uintmax_t)TELNET_ISSUE_MAX_BYTES) {
+        (void)close(fd);
+        return true;
+    }
+
+    while (total < TELNET_ISSUE_MAX_BYTES) {
+        size_t remaining = TELNET_ISSUE_MAX_BYTES - total;
+        size_t requested = remaining < sizeof(buffer)
+                               ? remaining
+                               : sizeof(buffer);
+        ssize_t received = read(fd, buffer, requested);
+
+        if (received > 0) {
+            if (!write_all_bytes(STDOUT_FILENO, buffer, (size_t)received)) {
+                (void)close(fd);
+                return false;
+            }
+            total += (size_t)received;
+            last_byte = buffer[(size_t)received - 1U];
+            continue;
+        }
+        if (received < 0 && errno == EINTR) {
+            continue;
+        }
+        break;
+    }
+
+    (void)close(fd);
+
+    if (total > 0U && last_byte != (unsigned char)'\n' &&
+        last_byte != (unsigned char)'\r') {
+        return write_all_bytes(STDOUT_FILENO, "\r\n", 2U);
+    }
+    return true;
+}
+
 static bool
 read_line(const char *prompt, char *buffer, size_t buffer_size)
 {
-    size_t length;
+    struct termios original;
+    struct termios editing;
+    size_t length = 0U;
+    size_t overflow_length = 0U;
+    bool echo_input;
+    bool accepted = false;
+    bool restored;
 
+    if (prompt == NULL || buffer == NULL || buffer_size < 2U ||
+        !isatty(STDIN_FILENO) ||
+        tcgetattr(STDIN_FILENO, &original) != 0) {
+        return false;
+    }
+
+    /*
+     * Do not rely on the terminal's single VERASE setting. BBS clients may
+     * send either Ctrl-H or DEL for Backspace, so editing is handled here.
+     */
+    editing = original;
+    echo_input = (original.c_lflag & ECHO) != 0;
+    editing.c_lflag &=
+        (tcflag_t)~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
+    editing.c_cc[VMIN] = 1;
+    editing.c_cc[VTIME] = 0;
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &editing) != 0) {
+        return false;
+    }
+
+    buffer[0] = '\0';
     (void)fputs(prompt, stdout);
     (void)fflush(stdout);
-    if (fgets(buffer, (int)buffer_size, stdin) == NULL) {
-        return false;
+
+    for (;;) {
+        unsigned char byte;
+        ssize_t received = read(STDIN_FILENO, &byte, 1U);
+
+        if (received < 0) {
+            break;
+        }
+        if (received == 0) {
+            break;
+        }
+        if (byte == '\r' || byte == '\n') {
+            if (echo_input) {
+                (void)fputs("\r\n", stdout);
+                (void)fflush(stdout);
+            }
+            accepted = overflow_length == 0U && length > 0U;
+            break;
+        }
+        if (byte == 0x08U || byte == 0x7fU) {
+            if (overflow_length > 0U) {
+                --overflow_length;
+            } else if (length > 0U) {
+                --length;
+                buffer[length] = '\0';
+                if (echo_input) {
+                    (void)fputs("\b \b", stdout);
+                    (void)fflush(stdout);
+                }
+            } else if (echo_input) {
+                (void)fputc('\a', stdout);
+                (void)fflush(stdout);
+            }
+            continue;
+        }
+        if (byte < 0x20U || byte == 0xffU) {
+            continue;
+        }
+        if (length + 1U >= buffer_size) {
+            if (overflow_length < SIZE_MAX) {
+                ++overflow_length;
+            }
+            if (echo_input) {
+                (void)fputc('\a', stdout);
+                (void)fflush(stdout);
+            }
+            continue;
+        }
+
+        buffer[length++] = (char)byte;
+        buffer[length] = '\0';
+        if (echo_input) {
+            (void)fputc((int)byte, stdout);
+            (void)fflush(stdout);
+        }
     }
 
-    length = strcspn(buffer, "\r\n");
-    if (buffer[length] == '\0' && !feof(stdin)) {
-        int character;
-        do {
-            character = fgetc(stdin);
-        } while (character != '\n' && character != EOF);
-        return false;
-    }
-    buffer[length] = '\0';
-    return length > 0U;
+    restored = tcsetattr(STDIN_FILENO, TCSANOW, &original) == 0;
+    return accepted && restored;
 }
 
 /* Disable echo only while the password bytes are read from the terminal. */
@@ -690,16 +853,51 @@ collect_registration_input(char login_name[LOGIN_LINE_BUFFER_SIZE],
             stderr);
         return false;
     }
-    if (!read_password("New password: ", password,
-                       PASSWORD_BUFFER_SIZE) ||
-        !read_password("Repeat password: ", password_repeat,
-                       PASSWORD_BUFFER_SIZE)) {
-        return false;
+    /*
+     * Keep password corrections inside the registration dialog.  The
+     * completed symbol challenge and the already entered names remain valid.
+     */
+    for (;;) {
+        (void)fprintf(
+            stdout,
+            "Passwort: mind. %u Zeichen / "
+            "Password: at least %u characters\r\n",
+            REGISTRATION_PASSWORD_MIN_BYTES,
+            REGISTRATION_PASSWORD_MIN_BYTES);
+
+        if (!read_password("New password: ", password,
+                           PASSWORD_BUFFER_SIZE)) {
+            return false;
+        }
+
+        if (strlen(password) < REGISTRATION_PASSWORD_MIN_BYTES) {
+            (void)fputs(
+                "Passwort ist zu kurz / Password is too short. "
+                "Please try again.\r\n",
+                stderr);
+            secure_wipe(password, PASSWORD_BUFFER_SIZE);
+            secure_wipe(password_repeat, PASSWORD_BUFFER_SIZE);
+            continue;
+        }
+
+        if (!read_password("Repeat password: ", password_repeat,
+                           PASSWORD_BUFFER_SIZE)) {
+            return false;
+        }
+
+        if (strcmp(password, password_repeat) != 0) {
+            (void)fputs(
+                "Passwoerter stimmen nicht ueberein / "
+                "Passwords do not match. Please try again.\r\n",
+                stderr);
+            secure_wipe(password, PASSWORD_BUFFER_SIZE);
+            secure_wipe(password_repeat, PASSWORD_BUFFER_SIZE);
+            continue;
+        }
+
+        break;
     }
-    if (strcmp(password, password_repeat) != 0) {
-        (void)fputs("Passwords do not match.\r\n", stderr);
-        return false;
-    }
+
     return true;
 }
 
@@ -765,11 +963,13 @@ run_login(const login_options_t *options)
         goto done;
     }
 
-    if (strcmp(options->protocol, FTAP_PROTOCOL_TELNET) == 0 &&
-        terminal_wait_for_double_escape(
-            STDIN_FILENO, STDOUT_FILENO,
-            TERMINAL_GATE_DEFAULT_SECONDS) != TERMINAL_GATE_OK) {
-        goto done;
+    if (strcmp(options->protocol, FTAP_PROTOCOL_TELNET) == 0) {
+        if (!display_telnet_issue(options->mbse_root) ||
+            terminal_wait_for_double_escape(
+                STDIN_FILENO, STDOUT_FILENO,
+                TERMINAL_GATE_DEFAULT_SECONDS) != TERMINAL_GATE_OK) {
+            goto done;
+        }
     }
     if (!read_line("Login: ", login_name, sizeof(login_name))) {
         (void)fputs("fortytwo-login: terminal input failed\n", stderr);

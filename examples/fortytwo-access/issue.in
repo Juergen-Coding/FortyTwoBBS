@@ -1,13 +1,11 @@
- ___________            __          ___________               ____________________  _________
- \_   _____/___________/  |_ ___.__.\__    ___/_  _  ______   \______   \______   \/   _____/
-  |    __)/  _ \_  __ \   __<   |  |  |    |  \ \/ \/ /  _ \   |    |  _/|    |  _/\_____  \
-  |     \(  <_> )  | \/|  |  \___  |  |    |   \     (  <_> )  |    |   \|    |   \/        \
-  \___  / \____/|__|   |__|  / ____|  |____|    \/\_/ \____/   |______  /|______  /_______  /
-     \/                     \/                                       \/        \/        \/
-                                                                           Powered by Freedom
- --------------------> Welcome to the FortyTwo BBS - Mainframe System!
- --------------------> Existing users: enter your login name or BBS handle.
- --------------------> New users: enter your desired user name.
- --------------------> Note: SSH access is limited to registered users!
-
-                  --->
+[2J[H[1;36m
++----------------------------------------------------------------------------+
+|                              F O R T Y T W O                               |
+|                                   B B S                                    |
+|                             Powered by Freedom                             |
++----------------------------------------------------------------------------+
+[0m[1;33m
+          Bestehende Benutzer / Existing users: Login-Namen eingeben
+                   Neue Benutzer / New users: NEW eingeben
+        SSH-Zugang erst nach Freischaltung / SSH after sysop approval
+[0m

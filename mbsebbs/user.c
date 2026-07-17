@@ -172,7 +172,7 @@ void SwapDate(char *Date3, char *Date4)
 void user(void)
 {
     FILE	*pUsrConfig, *pLimits;
-    int		i, x, FoundName = FALSE, iFoundLimit = FALSE, IsNew = FALSE, logins = 0, Start;
+    int		FoundName = FALSE, iFoundLimit = FALSE, IsNew = FALSE, logins = 0, Start;
     int		l1, l2;
     char	*token, temp[PATH_MAX], temp1[84], UserName[37], buf[128], *fullname;
     time_t	LastLogin;
@@ -235,20 +235,26 @@ void user(void)
     /*
      * Copy username, split first and lastname.
      */
-    strncpy(UserName, usrconfig.sUserName, sizeof(UserName)-1);
-    if ((strchr(UserName,' ') == NULL) && !CFG.iOneName) {
-	token = strtok(UserName, " ");
-  	strncpy(FirstName, token, sizeof(FirstName)-1);
-  	token = strtok(NULL, "\0");
-	i = strlen(token);
-	for (x = 2; x < i; x++) {
-	    if (token[x] == ' ')
-		token[x] = '\0';
-	}
-	strncpy(LastName, token, sizeof(LastName)-1);
-    } else
-    snprintf(FirstName, sizeof(FirstName), "%.*s", (int)(sizeof(FirstName) - 1), UserName);
-    strncpy(UserName, usrconfig.sUserName, sizeof(UserName)-1);
+    snprintf(UserName, sizeof(UserName), "%s", usrconfig.sUserName);
+
+    /*
+     * The legacy display name normally contains a real name, but a
+     * one-word value is still valid and must never produce a NULL token.
+     */
+    if (!CFG.iOneName && (token = strchr(UserName, ' ')) != NULL) {
+        *token++ = '\0';
+        while (*token == ' ')
+            token++;
+        snprintf(FirstName, sizeof(FirstName), "%.*s",
+                 (int)(sizeof(FirstName) - 1U), UserName);
+        snprintf(LastName, sizeof(LastName), "%.*s",
+                 (int)(sizeof(LastName) - 1U), token);
+    } else {
+        snprintf(FirstName, sizeof(FirstName), "%.*s",
+                 (int)(sizeof(FirstName) - 1U), UserName);
+        LastName[0] = '\0';
+    }
+    snprintf(UserName, sizeof(UserName), "%s", usrconfig.sUserName);
     Syslog('+', "%s On-Line from \"%s\", node %d", UserName, ttyinfo.comment, iNode);
     IsDoing("Just Logged In");
 

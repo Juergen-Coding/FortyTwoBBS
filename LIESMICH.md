@@ -1,3 +1,32 @@
+
+<!-- B4.3.3 STATUS START -->
+## Aktueller Entwicklungsstand: B4.3.3 Telnet-Registrierung
+
+Der aktuelle Entwicklungszweig enthält:
+
+- PostgreSQL als führende Verwaltung für BBS-Identitäten, Zugangsdaten,
+  Kontozustände, Rollen, Berechtigungen und Terminalsitzungen
+- FTAP 1.3 für Anmeldung und Registrierung über einen lokalen Unix-Socket
+- geschützte Telnet-Selbstregistrierung durch Eingabe von `NEW`
+- einen Telnet-spezifischen Doppel-ESC-Präsenztest mit 15 Sekunden Frist
+- ein optionales ASCII-, ANSI- oder CP437-Loginbild aus
+  `$MBSE_ROOT/etc/issue`
+- eine reine ASCII-Zahlenreihen-Aufgabe mit drei Versuchen und insgesamt
+  180 Sekunden Antwortzeit
+- Eingabebearbeitung mit Ctrl-H und DEL als Rücktaste
+- Passwortkorrektur ohne Wiederholung einer bereits gelösten Aufgabe
+- mindestens 12 Byte Passwortlänge bei der Registrierung
+- kontrollierte Legacy-Anlage in `users.data` ohne Klartextpasswort
+- sichere Verarbeitung einteiliger Anzeigenamen in `mbsebbs`
+- korrigierte Datumseingabe ohne Schreibzugriff vor den Eingabepuffer
+
+Die Registrierung ist standardmäßig abgeschaltet und muss sowohl in
+`fortytwo-authd` als auch in `fortytwo-login` ausdrücklich freigegeben werden.
+PostgreSQL bleibt führend; `users.data` wird nur vorübergehend als
+Legacy-Kompatibilitätsbestand gepflegt.
+
+<!-- B4.3.3 STATUS END -->
+
 ```text
 ___________            __          ___________               ____________________  _________
 \_   _____/___________/  |_ ___.__.\__    ___/_  _  ______   \______   \______   \/   _____/

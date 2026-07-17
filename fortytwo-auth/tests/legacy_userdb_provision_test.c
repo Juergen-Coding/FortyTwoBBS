@@ -417,7 +417,7 @@ test_success_and_rollback(void)
     assert(record.iLastMsgArea == 1);
     assert(strcmp(record.sProtocol, "Zmodem-8K (ZedZap)") == 0);
     assert(record.iLanguage == (int32_t)'D');
-    assert(record.Charset == 1);
+    assert(record.Charset == LEGACY_USERDB_CHARSET_CP437);
     assert(record.GraphMode == 1U);
     assert(record.HotKeys == 1U);
     assert(record.Cls == 1U);

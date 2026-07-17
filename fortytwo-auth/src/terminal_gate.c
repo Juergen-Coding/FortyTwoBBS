@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-only
  *
- * Telnet presence gate and symbol-based registration challenge.
+ * Telnet presence gate and number-sequence registration challenge.
  */
 
 #include "terminal_gate.h"
@@ -21,14 +21,6 @@
 #define CHALLENGE_RANDOM_WORDS 16U
 #define CHALLENGE_INPUT_SIZE 16U
 #define MILLISECONDS_PER_SECOND 1000LL
-
-static const char *const symbols[] = {
-    "\033[1;33m★\033[0m",
-    "\033[1;36m◇\033[0m",
-    "\033[1;32m▲\033[0m",
-    "\033[1;35m▼\033[0m",
-    "\033[1;31m■\033[0m"
-};
 
 static int
 write_all(int fd, const void *buffer, size_t length)
@@ -306,122 +298,51 @@ challenge_from_words(registration_challenge_t *challenge,
                      const uint32_t *words,
                      size_t word_count)
 {
-    size_t order[5] = {0U, 1U, 2U, 3U, 4U};
-    size_t index;
-    unsigned int template_number;
-    int a = 0;
-    int b = 0;
-    int c = 0;
-    int answer = 0;
+    int values[6];
+    int first_step;
+    int answer;
     int length;
-    char question[512];
-    const char *first;
-    const char *second;
-    const char *third;
+    size_t index;
 
     if (challenge == NULL || words == NULL || word_count < 8U) {
         return TERMINAL_GATE_RANDOM_ERROR;
     }
 
-    for (index = 4U; index > 0U; --index) {
-        size_t selected = words[index] % (index + 1U);
-        size_t temporary = order[index];
-        order[index] = order[selected];
-        order[selected] = temporary;
-    }
-    first = symbols[order[0]];
-    second = symbols[order[1]];
-    third = symbols[order[2]];
-    template_number = words[6] % 8U;
+    /*
+     * Build an unambiguous sequence whose distance grows by one each time.
+     * Example: 3, 6, 10, 15, 21, 28, ?  -> 36
+     *
+     * Only seven-bit ASCII is emitted because this dialog runs before the
+     * terminal character set is known.
+     */
+    values[0] = (int)bounded_word(words[6], 1U, 9U);
+    first_step = (int)bounded_word(words[7], 2U, 5U);
 
-    switch (template_number) {
-    case 0U:
-        a = (int)(2U * bounded_word(words[7], 2U, 9U));
-        b = (int)bounded_word(words[8], 1U, 9U);
-        answer = a / 2 + b;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d and %s = %d, add half of %s to %s. What is the result?",
-                          first, a, second, b, first, second);
-        break;
-    case 1U:
-        a = (int)bounded_word(words[7], 2U, 9U);
-        b = (int)bounded_word(words[8], 2U, 9U);
-        c = (int)bounded_word(words[9], 1U, 9U);
-        answer = a * b + c;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d, %s = %d and %s = %d, what is %s × %s + %s?",
-                          first, a, second, b, third, c, first, second, third);
-        break;
-    case 2U: {
-        int divisor = (int)bounded_word(words[7], 2U, 5U);
-        int quotient = (int)bounded_word(words[8], 2U, 9U);
-        int total = divisor * quotient;
+    for (index = 1U; index < 6U; ++index) {
+        values[index] =
+            values[index - 1U] + first_step + (int)index - 1;
+    }
+    answer = values[5] + first_step + 5;
 
-        a = (int)bounded_word(words[9], 1U, (uint32_t)(total - 1));
-        b = total - a;
-        c = divisor;
-        answer = quotient;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d, %s = %d and %s = %d, divide the sum of %s and %s by %s. What is the result?",
-                          first, a, second, b, third, c, first, second, third);
-        break;
-    }
-    case 3U:
-        a = (int)bounded_word(words[7], 5U, 10U);
-        b = (int)bounded_word(words[8], 1U, (uint32_t)(a - 1));
-        answer = a * a - b * b;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d and %s = %d, subtract the square of %s from the square of %s. What is the result?",
-                          first, a, second, b, second, first);
-        break;
-    case 4U:
-        a = (int)bounded_word(words[7], 5U, 12U);
-        b = (int)bounded_word(words[8], 1U, (uint32_t)(a - 1));
-        c = (int)bounded_word(words[9], 2U, 5U);
-        answer = (a - b) * c;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d, %s = %d and %s = %d, multiply the difference %s - %s by %s. What is the result?",
-                          first, a, second, b, third, c, first, second, third);
-        break;
-    case 5U:
-        a = (int)bounded_word(words[7], 1U, 9U);
-        b = (int)bounded_word(words[8], 2U, 8U);
-        c = (int)bounded_word(words[9], 2U, 8U);
-        answer = a + b * c;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d, %s = %d and %s = %d, add %s to the product of %s and %s. What is the result?",
-                          first, a, second, b, third, c, first, second, third);
-        break;
-    case 6U:
-        a = (int)bounded_word(words[7], 1U, 8U);
-        b = (int)(2U * bounded_word(words[8], 1U, 8U));
-        answer = 2 * a + b / 2;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d and %s = %d, add twice %s to half of %s. What is the result?",
-                          first, a, second, b, first, second);
-        break;
-    default:
-        a = (int)bounded_word(words[7], 2U, 9U);
-        b = (int)bounded_word(words[8], 2U, 9U);
-        c = (int)bounded_word(words[9], 1U,
-                              (uint32_t)(a * b - 1));
-        answer = a * b - c;
-        length = snprintf(question, sizeof(question),
-                          "If %s = %d, %s = %d and %s = %d, subtract %s from the product of %s and %s. What is the result?",
-                          first, a, second, b, third, c, third, first, second);
-        break;
-    }
+    length = snprintf(
+        challenge->text,
+        sizeof(challenge->text),
+        "\r\n\033[1;36m"
+        "Registrierungsschutz / Registration protection"
+        "\033[0m\r\n"
+        "Ergaenze die Zahlenreihe / Complete the sequence:\r\n"
+        "%d, %d, %d, %d, %d, %d, ?\r\n",
+        values[0],
+        values[1],
+        values[2],
+        values[3],
+        values[4],
+        values[5]);
 
-    if (length < 0 || (size_t)length >= sizeof(question)) {
-        return TERMINAL_GATE_RANDOM_ERROR;
-    }
-    length = snprintf(challenge->text, sizeof(challenge->text),
-                      "\r\n\033[1;36mRegistration protection\033[0m\r\n"
-                      "%s\r\n",
-                      question);
     if (length < 0 || (size_t)length >= sizeof(challenge->text)) {
         return TERMINAL_GATE_RANDOM_ERROR;
     }
+
     challenge->answer = answer;
     return TERMINAL_GATE_OK;
 }
@@ -436,7 +357,7 @@ registration_challenge_generate(registration_challenge_t *challenge)
 #ifdef TERMINAL_GATE_TESTING
     if (getenv("FORTYTWO_TEST_CHALLENGE_FIXED") != NULL) {
         static const uint32_t fixed_words[CHALLENGE_RANDOM_WORDS] = {
-            17U, 3U, 29U, 5U, 11U, 7U, 0U, 13U,
+            17U, 3U, 29U, 5U, 11U, 7U, 2U, 1U,
             19U, 23U, 31U, 37U, 41U, 43U, 47U, 53U
         };
 
@@ -595,6 +516,7 @@ registration_challenge_run(int input_fd,
     int64_t now;
     int64_t deadline;
     unsigned int attempt;
+    char attempts_text[96];
 
     if (seconds == 0U || attempts == 0U || !isatty(input_fd)) {
         return TERMINAL_GATE_TERMINAL_ERROR;
@@ -605,6 +527,12 @@ registration_challenge_run(int input_fd,
         return status;
     }
     if (write_text(output_fd, challenge.text) != 0) {
+        return TERMINAL_GATE_IO_ERROR;
+    }
+    if (snprintf(attempts_text, sizeof(attempts_text),
+                 "Sie haben %u Versuche / You have %u tries\r\n",
+                 attempts, attempts) < 0 ||
+        write_text(output_fd, attempts_text) != 0) {
         return TERMINAL_GATE_IO_ERROR;
     }
     now = monotonic_milliseconds();
@@ -639,7 +567,7 @@ registration_challenge_run(int input_fd,
             break;
         }
         if (attempt + 1U < attempts) {
-            (void)write_text(output_fd, "Not correct. Try once more.\r\n");
+            (void)write_text(output_fd, "Not correct. Please try again.\r\n");
         } else {
             (void)write_text(output_fd, "Registration denied.\r\n");
             status = TERMINAL_GATE_REJECTED;

@@ -775,91 +775,94 @@ targets.
 
 ### Telnet presence gate and visible NEW dialog
 
-`fortytwo-login` now owns the visible terminal entry flow.  Telnet sessions
-must first pass a 15-second presence gate:
+`fortytwo-login` owns the visible Telnet entry flow.
 
-```text
-Press ESC twice to continue: 15
-```
+Before the presence gate it may display the optional file
+`$MBSE_ROOT/etc/issue`. The file is emitted byte-for-byte and may contain
+ASCII, ANSI control sequences or CP437 artwork. Missing, symbolic-link,
+non-regular and oversized files are ignored safely.
 
-The adapter temporarily switches only the supplied PTY into byte mode, disables
-local echo and terminal-generated job-control signals, and restores the exact
-terminal flags before displaying `Login:`.  Two adjacent ESC bytes are
-required.  An ANSI cursor sequence such as `ESC [ A` resets the detector and
-therefore cannot satisfy the gate accidentally.  Timeout or carrier loss ends
-the adapter before an FTAP socket is opened.  SSH and local protocol adapters
-skip this Telnet-only gate.
+Telnet sessions must then pass the presence gate:
 
-The gate is deliberately a low-cost scanner filter, not an authentication
-factor.  A targeted client can send two ESC bytes.  Password authentication,
-rate limits and the PostgreSQL account state remain the security boundary.
+    Press ESC twice to continue: 15
 
-Typing `NEW` (ASCII case-insensitive) selects the Telnet-only registration
-path.  Registration is still fail-closed and needs two independent opt-ins:
+Two adjacent ESC bytes are required within 15 seconds. ANSI cursor sequences
+do not accidentally satisfy the detector. SSH and local sessions skip this
+Telnet-only gate.
 
-```text
-fortytwo-authd --registration-enabled
-fortytwo-login --enable-registration \
-    --bbs-users-directory /absolute/site/path \
-    --legacy-security-level SITE_LEVEL
-```
+Typing `NEW`, regardless of ASCII letter case, enters the protected
+registration dialog. Registration remains disabled by default and requires
+independent activation in both components:
 
-Without the local adapter option, `NEW` returns an unavailable message and no
-challenge or FTAP request is started.  The trusted users-directory path and
-site-specific security level are mandatory instead of being guessed by the
-binary.
+    fortytwo-authd --registration-enabled
+    fortytwo-login --enable-registration
 
-Before collecting identity or password fields, the adapter generates one
-symbol-based logic challenge from kernel randomness.  Eight templates combine
-random values with a shuffled selection of coloured UTF-8 symbols:
+Before identity or password data is collected, the adapter generates a
+randomized number-sequence challenge using kernel randomness.
 
-```text
-★  ◇  ▲  ▼  ■
-```
+The challenge contains only seven-bit ASCII because the terminal character
+set is not known before login. A representative sequence is:
 
-Examples include half-value addition, product-plus-value, exact integer
-division, difference of squares and explicitly worded mixed operations.  The
-answer has a shared 30-second deadline and at most two attempts.  Input is read
-byte-wise with only decimal digits and backspace accepted.  The challenge and
-answer are never sent to FTAP or PostgreSQL and are not logged.
+    3, 6, 10, 15, 21, 28, ?
 
-This is an additional registration-abuse hurdle rather than a general CAPTCHA.
-A sufficiently targeted parser can still solve the generated tasks.  Its value
-comes from combining randomized ANSI/UTF-8 presentation with the Telnet gate,
-server-side password policy, IP registration limits and the transactional
-registration lifecycle.
+The difference grows by one for each term, making the next value `36`.
+Production challenges randomize the starting value and the first difference.
 
-After a correct answer, the dialog asks for:
+One generated challenge permits three answers with one shared deadline of
+180 seconds. Wrong answers do not generate a new sequence.
 
-```text
-New login name
-Display name
-New password
-Repeat password
-```
+The visible input editor accepts both common Backspace representations:
 
-The login name is locally restricted to the canonical 1-32 byte lowercase
-policy before the server performs the authoritative check.  The display name
-must fit the 35-byte legacy compatibility field without truncation.  Both
-password buffers are hidden by terminal echo control and wiped on every exit.
-No FTAP connection is made until the gate, challenge and local input checks
-have completed.
+- Ctrl-H, byte `0x08`
+- DEL, byte `0x7f`
 
-The adapter then calls the production registration coordinator.  On confirmed
-Commit it reuses the normal bound-session FD-3 handoff and directly starts
-`mbsebbs`.  Unknown Commit outcomes and repair-required states produce a
-non-retry warning and retain local evidence for reconciliation.
+Backspace is handled locally and is no longer displayed as `^H`. The behavior
+applies to login-name, display-name and password entry.
 
-The initial reviewed legacy compatibility profile keeps language 1, charset 0,
-full-screen editor, `Zmodem`, private email and both login scans enabled.  The
-security level remains an explicit site argument.  Replacing the remaining
-compatibility defaults with a separately versioned site profile is a later
-configuration task; they are not authentication inputs and no password is
-written to the legacy record.
+After a correct challenge answer, the dialog requests:
 
-Tests cover the byte-state detector, rejection of ANSI cursor sequences,
-terminal-mode restoration through a real PTY, all eight generated challenge
-templates, answer validation, default-disabled `NEW`, the complete visible
-prompt order, password non-echo, and the unchanged SSH login/FD-3 integration.
-The PTY dialog test uses a test-only deterministic challenge build; production
-binaries always use `getrandom()`.
+- new login name
+- display name
+- new password
+- repeated password
+
+The login name is locally restricted to the canonical lowercase policy before
+the server performs its authoritative validation.
+
+The password must contain at least 12 bytes. A password that is too short
+returns directly to the first password prompt. Mismatched entries also return
+to the password prompt without repeating the already completed challenge.
+Password buffers are not echoed and are wiped between attempts.
+
+No FTAP registration request is sent before the presence gate, challenge and
+local validation have succeeded.
+
+The registration coordinator performs the durable sequence:
+
+    FTAP Begin
+    local legacy preparation
+    irreversible commit boundary
+    FTAP Commit
+    local marker transition to committed
+
+PostgreSQL remains authoritative for identity, credentials, account state,
+roles, capabilities and terminal sessions. The generated legacy `users.data`
+record contains no plaintext password.
+
+The legacy compatibility defaults for newly registered users are:
+
+- language: German (`D`)
+- terminal character set: CP437
+- default security level supplied explicitly by the site configuration
+
+Runtime testing of the complete registration path also exposed and corrected
+two independent defects in `mbsebbs`:
+
+- one-word display names no longer cause an invalid first-name/last-name split;
+- erasing an empty date field no longer writes before the input buffer.
+
+The automated tests cover the presence detector, ANSI-sequence rejection,
+terminal restoration, optional issue banner, deterministic number sequence,
+three-attempt handling, the 180-second deadline, Ctrl-H and DEL Backspace,
+password correction, password non-echo, FTAP registration, FD-3 handoff and
+the unchanged SSH login path.
