@@ -50,29 +50,94 @@ int CountIBC(void)
 {
     FILE    *fil;
     char    ffile[PATH_MAX];
-    int	    count;
+    long    filesize, datasize;
+    int     count, created = 0;
 
     snprintf(ffile, PATH_MAX, "%s/etc/ibcsrv.data", getenv("MBSE_ROOT"));
-    if ((fil = fopen(ffile, "r")) == NULL) {
-	if ((fil = fopen(ffile, "a+")) != NULL) {
-	    Syslog('+', "Created new %s", ffile);
-	    ibcsrvhdr.hdrsize = sizeof(ibcsrvhdr);
-	    ibcsrvhdr.recsize = sizeof(ibcsrv);
-	    fwrite(&ibcsrvhdr, sizeof(ibcsrvhdr), 1, fil);
 
-	    return 0;
-	} else
+    /*
+     * Open the database read/write because an existing empty file must be
+     * initialized before its header can be used.
+     */
+    if ((fil = fopen(ffile, "r+b")) == NULL) {
+	if (errno != ENOENT) {
+	    WriteError("$Unable to open %s", ffile);
 	    return -1;
+	}
+
+	if ((fil = fopen(ffile, "w+b")) == NULL) {
+	    WriteError("$Unable to create %s", ffile);
+	    return -1;
+	}
+	created = 1;
     }
 
-    fread(&ibcsrvhdr, sizeof(ibcsrvhdr), 1, fil);
-    fseek(fil, 0, SEEK_END);
-    count = (ftell(fil) - ibcsrvhdr.hdrsize) / ibcsrvhdr.recsize;
+    if ((fseek(fil, 0L, SEEK_END) != 0) ||
+	((filesize = ftell(fil)) < 0)) {
+	WriteError("$Unable to determine size of %s", ffile);
+	fclose(fil);
+	return -1;
+    }
+
+    /*
+     * A zero-byte file is an uninitialized database. Write a complete,
+     * valid header instead of later dividing by an unset record size.
+     */
+    if (filesize == 0) {
+	memset(&ibcsrvhdr, 0, sizeof(ibcsrvhdr));
+	ibcsrvhdr.hdrsize = sizeof(ibcsrvhdr);
+	ibcsrvhdr.recsize = sizeof(ibcsrv);
+	rewind(fil);
+
+	if ((fwrite(&ibcsrvhdr, sizeof(ibcsrvhdr), 1, fil) != 1) ||
+	    (fflush(fil) != 0)) {
+	    WriteError("$Unable to initialize %s", ffile);
+	    fclose(fil);
+	    return -1;
+	}
+
+	if (fclose(fil) != 0) {
+	    WriteError("$Unable to close %s", ffile);
+	    return -1;
+	}
+
+	chmod(ffile, 0640);
+	Syslog('+', "%s %s",
+	       created ? "Created new" : "Initialized empty", ffile);
+	return 0;
+    }
+
+    rewind(fil);
+    if (fread(&ibcsrvhdr, sizeof(ibcsrvhdr), 1, fil) != 1) {
+	WriteError("Invalid IBC database header in %s", ffile);
+	fclose(fil);
+	return -1;
+    }
+
+    /*
+     * Reject malformed headers before calculating the record count.
+     * Different non-zero record sizes remain valid for format conversion.
+     */
+    if ((ibcsrvhdr.hdrsize < sizeof(ibcsrvhdr)) ||
+	((long)ibcsrvhdr.hdrsize > filesize) ||
+	(ibcsrvhdr.recsize == 0)) {
+	WriteError("Invalid IBC database sizes in %s", ffile);
+	fclose(fil);
+	return -1;
+    }
+
+    datasize = filesize - ibcsrvhdr.hdrsize;
+    if ((datasize % ibcsrvhdr.recsize) != 0) {
+	WriteError("Incomplete IBC database record in %s", ffile);
+	fclose(fil);
+	return -1;
+    }
+
+    count = datasize / ibcsrvhdr.recsize;
     fclose(fil);
 
     return count;
 }
-
 
 
 /*
@@ -374,8 +439,16 @@ void EditIBC(void)
 
 void InitIBC(void)
 {
-    CountIBC();
-    OpenIBC();
+    /*
+     * Never run the conversion path after CountIBC() rejected a malformed
+     * database. Otherwise OpenIBC()/CloseIBC(TRUE) may silently overwrite it.
+     */
+    if (CountIBC() < 0)
+	return;
+
+    if (OpenIBC() == -1)
+	return;
+
     CloseIBC(TRUE);
 }
 
