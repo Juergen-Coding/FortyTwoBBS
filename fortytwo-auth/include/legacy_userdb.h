@@ -127,6 +127,30 @@ typedef struct legacy_userdb_scan_result {
     size_t handle_record;
 } legacy_userdb_scan_result_t;
 
+/*
+ * Sanitized read-only view used by reconciliation and audit tools. Sensitive
+ * legacy fields never leave the gateway through this structure.
+ */
+typedef struct legacy_userdb_audit_record {
+    size_t record_number;
+    char legacy_name[LEGACY_USERDB_LEGACY_NAME_MAX + 1U];
+    char display_name[LEGACY_USERDB_DISPLAY_NAME_MAX + 1U];
+    char handle[LEGACY_USERDB_HANDLE_MAX + 1U];
+    bool empty;
+    bool deleted;
+    bool locked_out;
+    bool registration_marker_present;
+    uint8_t registration_id[LEGACY_USERDB_UUID_SIZE];
+} legacy_userdb_audit_record_t;
+
+typedef struct legacy_userdb_audit_snapshot {
+    legacy_userdb_audit_record_t *records;
+    size_t record_count;
+    struct stat file_status;
+    int header_size;
+    int record_size;
+} legacy_userdb_audit_snapshot_t;
+
 typedef struct legacy_userdb_record_defaults {
     uint32_t security_level;
     uint32_t security_flags;
@@ -201,6 +225,22 @@ int legacy_userdb_inspect(const char *mbse_root,
                           const legacy_userdb_query_t *query,
                           legacy_userdb_scan_result_t *result,
                           legacy_userdb_error_t *error);
+
+void legacy_userdb_audit_snapshot_clear(
+    legacy_userdb_audit_snapshot_t *snapshot);
+void legacy_userdb_audit_snapshot_free(
+    legacy_userdb_audit_snapshot_t *snapshot);
+
+/*
+ * Read and validate the complete users.data file under the same policy and OFD
+ * lock used by legacy_userdb_inspect(). The caller must pass a cleared
+ * snapshot; ownership of the allocated record array transfers on success.
+ */
+int legacy_userdb_read_audit_snapshot(
+    const char *mbse_root,
+    const legacy_userdb_policy_t *policy,
+    legacy_userdb_audit_snapshot_t *snapshot,
+    legacy_userdb_error_t *error);
 
 /*
  * Create one durable local record and marked user tree without contacting

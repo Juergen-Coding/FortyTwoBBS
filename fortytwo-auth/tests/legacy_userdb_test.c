@@ -364,6 +364,105 @@ test_invalid_records_and_duplicates(void)
 }
 
 static void
+test_sanitized_audit_snapshot(void)
+{
+    test_root_t root;
+    struct userrec records[3];
+    legacy_userdb_policy_t policy = default_policy();
+    legacy_userdb_audit_snapshot_t snapshot;
+    legacy_userdb_error_t error;
+    const char registration_marker[] =
+        "FT42REG:1234567812344abc8def1234567890ab";
+
+    init_record(&records[0], "neo67", "Juergen Ihlau", "neo");
+    assert(snprintf(records[0].sComment, sizeof(records[0].sComment), "%s",
+                    registration_marker) > 0);
+    records[0].LockedOut = 1U;
+    init_record(&records[1], NULL, NULL, NULL);
+    init_record(&records[2], "marta", "Marta Test", "Marta42");
+    records[2].Deleted = 1U;
+    records[2].LockedOut = 1U;
+
+    make_test_root(&root);
+    create_users_file(&root, records, 3U, 8, 598, 0U);
+    legacy_userdb_audit_snapshot_clear(&snapshot);
+    assert(legacy_userdb_read_audit_snapshot(
+               root.path, &policy, &snapshot, &error) == 0);
+    assert(error.status == LEGACY_USERDB_OK);
+    assert(snapshot.record_count == 3U);
+    assert(snapshot.header_size == 8);
+    assert(snapshot.record_size == 598);
+    assert(snapshot.file_status.st_size ==
+           (off_t)(LEGACY_USERDB_HEADER_SIZE +
+                   3U * LEGACY_USERDB_RECORD_SIZE));
+
+    assert(snapshot.records[0].record_number == 0U);
+    assert(strcmp(snapshot.records[0].legacy_name, "neo67") == 0);
+    assert(strcmp(snapshot.records[0].display_name, "Juergen Ihlau") == 0);
+    assert(strcmp(snapshot.records[0].handle, "neo") == 0);
+    assert(!snapshot.records[0].empty);
+    assert(!snapshot.records[0].deleted);
+    assert(snapshot.records[0].locked_out);
+    assert(snapshot.records[0].registration_marker_present);
+    assert(snapshot.records[0].registration_id[0] == 0x12U);
+    assert(snapshot.records[0].registration_id[15] == 0xabU);
+
+    assert(snapshot.records[1].record_number == 1U);
+    assert(snapshot.records[1].empty);
+    assert(snapshot.records[1].legacy_name[0] == '\0');
+    assert(!snapshot.records[1].registration_marker_present);
+
+    assert(snapshot.records[2].record_number == 2U);
+    assert(strcmp(snapshot.records[2].legacy_name, "marta") == 0);
+    assert(snapshot.records[2].deleted);
+    assert(snapshot.records[2].locked_out);
+    assert(!snapshot.records[2].registration_marker_present);
+
+    assert(legacy_userdb_read_audit_snapshot(
+               root.path, &policy, &snapshot, &error) == -1);
+    assert(error.status == LEGACY_USERDB_INVALID_ARGUMENT);
+    legacy_userdb_audit_snapshot_free(&snapshot);
+    assert(snapshot.records == NULL);
+    assert(snapshot.record_count == 0U);
+    remove_test_root(&root);
+}
+
+static void
+test_audit_snapshot_rejects_invalid_record_marker(void)
+{
+    test_root_t root;
+    struct userrec record;
+    legacy_userdb_policy_t policy = default_policy();
+    legacy_userdb_audit_snapshot_t snapshot;
+    legacy_userdb_error_t error;
+
+    init_record(&record, "neo67", "Juergen Ihlau", NULL);
+    assert(snprintf(record.sComment, sizeof(record.sComment), "%s",
+                    "FT42REG:1234567812344ABC8def1234567890ab") > 0);
+    make_test_root(&root);
+    create_users_file(&root, &record, 1U, 8, 598, 0U);
+    legacy_userdb_audit_snapshot_clear(&snapshot);
+    assert(legacy_userdb_read_audit_snapshot(
+               root.path, &policy, &snapshot, &error) == -1);
+    assert(error.status == LEGACY_USERDB_INVALID_RECORD);
+    assert(error.record_number == 0U);
+    assert(snapshot.records == NULL);
+    remove_test_root(&root);
+
+    init_record(&record, "neo67", "Juergen Ihlau", NULL);
+    memset(record.sComment, 'x', sizeof(record.sComment));
+    make_test_root(&root);
+    create_users_file(&root, &record, 1U, 8, 598, 0U);
+    legacy_userdb_audit_snapshot_clear(&snapshot);
+    assert(legacy_userdb_read_audit_snapshot(
+               root.path, &policy, &snapshot, &error) == -1);
+    assert(error.status == LEGACY_USERDB_INVALID_RECORD);
+    assert(error.record_number == 0U);
+    assert(snapshot.records == NULL);
+    remove_test_root(&root);
+}
+
+static void
 test_query_and_policy_validation(void)
 {
     test_root_t root;
@@ -535,6 +634,8 @@ main(void)
     test_header_and_size_validation();
     test_path_and_file_policy();
     test_invalid_records_and_duplicates();
+    test_sanitized_audit_snapshot();
+    test_audit_snapshot_rejects_invalid_record_marker();
     test_query_and_policy_validation();
     test_busy_lock();
     test_status_names_and_error_clear();

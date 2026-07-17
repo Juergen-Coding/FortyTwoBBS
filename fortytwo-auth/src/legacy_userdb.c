@@ -23,6 +23,9 @@
 #endif
 
 _Static_assert(CHAR_BIT == 8, "legacy users.data requires 8-bit bytes");
+_Static_assert(sizeof(int) == 4U, "legacy users.data requires 32-bit int");
+_Static_assert(sizeof(unsigned int) == 4U,
+               "legacy users.data requires 32-bit unsigned int");
 _Static_assert(sizeof(struct userhdr) == LEGACY_USERDB_HEADER_SIZE,
                "legacy users.data header layout changed");
 _Static_assert(sizeof(struct userrec) == LEGACY_USERDB_RECORD_SIZE,
@@ -31,6 +34,10 @@ _Static_assert(offsetof(struct userrec, sUserName) == 0U,
                "legacy display-name offset changed");
 _Static_assert(offsetof(struct userrec, Name) == 36U,
                "legacy name offset changed");
+_Static_assert(offsetof(struct userrec, sComment) == 272U,
+               "legacy comment offset changed");
+_Static_assert(offsetof(struct userrec, iTotalCalls) == 387U,
+               "legacy primary option-bit layout changed");
 _Static_assert(offsetof(struct userrec, sHandle) == 510U,
                "legacy handle offset changed");
 _Static_assert(offsetof(struct userrec, Password) == 563U,
@@ -72,6 +79,23 @@ legacy_userdb_error_clear(legacy_userdb_error_t *error)
         memset(error, 0, sizeof(*error));
         error->status = LEGACY_USERDB_OK;
         error->record_number = LEGACY_USERDB_NO_RECORD;
+    }
+}
+
+void
+legacy_userdb_audit_snapshot_clear(legacy_userdb_audit_snapshot_t *snapshot)
+{
+    if (snapshot != NULL) {
+        memset(snapshot, 0, sizeof(*snapshot));
+    }
+}
+
+void
+legacy_userdb_audit_snapshot_free(legacy_userdb_audit_snapshot_t *snapshot)
+{
+    if (snapshot != NULL) {
+        free(snapshot->records);
+        legacy_userdb_audit_snapshot_clear(snapshot);
     }
 }
 
@@ -359,6 +383,72 @@ legacy_userdb_display_name_is_compatible(const char *display_name)
     return true;
 }
 
+static int
+lower_hex_value(unsigned char value)
+{
+    if (value >= (unsigned char)'0' && value <= (unsigned char)'9') {
+        return (int)(value - (unsigned char)'0');
+    }
+    if (value >= (unsigned char)'a' && value <= (unsigned char)'f') {
+        return (int)(value - (unsigned char)'a') + 10;
+    }
+    return -1;
+}
+
+static bool
+uuid_is_nonzero(const uint8_t value[LEGACY_USERDB_UUID_SIZE])
+{
+    size_t index;
+
+    for (index = 0U; index < LEGACY_USERDB_UUID_SIZE; ++index) {
+        if (value[index] != 0U) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static int
+parse_record_registration_marker(
+    const char *comment,
+    bool *present,
+    uint8_t registration_id[LEGACY_USERDB_UUID_SIZE])
+{
+    const size_t prefix_length =
+        sizeof(LEGACY_USERDB_RECORD_MARKER_PREFIX) - 1U;
+    const size_t hex_length = LEGACY_USERDB_UUID_SIZE * 2U;
+    size_t index;
+
+    *present = false;
+    memset(registration_id, 0, LEGACY_USERDB_UUID_SIZE);
+    if (strncmp(comment, LEGACY_USERDB_RECORD_MARKER_PREFIX,
+                prefix_length) != 0) {
+        return 0;
+    }
+    if (strlen(comment) != prefix_length + hex_length) {
+        return -1;
+    }
+
+    for (index = 0U; index < LEGACY_USERDB_UUID_SIZE; ++index) {
+        int high = lower_hex_value(
+            (unsigned char)comment[prefix_length + index * 2U]);
+        int low = lower_hex_value(
+            (unsigned char)comment[prefix_length + index * 2U + 1U]);
+
+        if (high < 0 || low < 0) {
+            return -1;
+        }
+        registration_id[index] = (uint8_t)((unsigned int)high * 16U +
+                                            (unsigned int)low);
+    }
+    if (!uuid_is_nonzero(registration_id)) {
+        memset(registration_id, 0, LEGACY_USERDB_UUID_SIZE);
+        return -1;
+    }
+    *present = true;
+    return 0;
+}
+
 static bool
 fixed_text_is_terminated(const char *text, size_t capacity)
 {
@@ -539,6 +629,7 @@ scan_records(int fd,
              size_t record_count,
              const legacy_userdb_query_t *query,
              legacy_userdb_scan_result_t *result,
+             legacy_userdb_audit_record_t *audit_records,
              legacy_userdb_error_t *error)
 {
     legacy_name_entry_t *names = NULL;
@@ -573,12 +664,40 @@ scan_records(int fd,
                                       sizeof(record.sUserName)) ||
             !fixed_text_is_terminated(record.sHandle,
                                       sizeof(record.sHandle)) ||
+            !fixed_text_is_terminated(record.sComment,
+                                      sizeof(record.sComment)) ||
             !fixed_text_is_terminated(record.Password,
                                       sizeof(record.Password))) {
             free(names);
             set_error(error, LEGACY_USERDB_INVALID_RECORD, 0, record_number,
                       "legacy user record contains unterminated text");
             return -1;
+        }
+
+        if (audit_records != NULL) {
+            legacy_userdb_audit_record_t *audit =
+                &audit_records[record_number];
+
+            memset(audit, 0, sizeof(*audit));
+            audit->record_number = record_number;
+            (void)snprintf(audit->legacy_name, sizeof(audit->legacy_name),
+                           "%s", record.Name);
+            (void)snprintf(audit->display_name, sizeof(audit->display_name),
+                           "%s", record.sUserName);
+            (void)snprintf(audit->handle, sizeof(audit->handle), "%s",
+                           record.sHandle);
+            audit->empty = record.Name[0] == '\0';
+            audit->deleted = record.Deleted != 0U;
+            audit->locked_out = record.LockedOut != 0U;
+            if (parse_record_registration_marker(
+                    record.sComment, &audit->registration_marker_present,
+                    audit->registration_id) != 0) {
+                free(names);
+                set_error(error, LEGACY_USERDB_INVALID_RECORD, 0,
+                          record_number,
+                          "legacy user record has an invalid registration marker");
+                return -1;
+            }
         }
 
         if (record.Name[0] != '\0') {
@@ -711,7 +830,7 @@ legacy_userdb_inspect(const char *mbse_root,
     }
 
     result->record_count = record_count;
-    if (scan_records(fd, record_count, query, result, error) != 0) {
+    if (scan_records(fd, record_count, query, result, NULL, error) != 0) {
         (void)close(fd);
         return -1;
     }
@@ -732,6 +851,132 @@ legacy_userdb_inspect(const char *mbse_root,
     }
 
     (void)close(fd);
+    legacy_userdb_error_clear(error);
+    return 0;
+}
+
+int
+legacy_userdb_read_audit_snapshot(
+    const char *mbse_root,
+    const legacy_userdb_policy_t *policy,
+    legacy_userdb_audit_snapshot_t *snapshot,
+    legacy_userdb_error_t *error)
+{
+    legacy_userdb_audit_snapshot_t candidate;
+    legacy_userdb_scan_result_t scan_result;
+    struct userhdr header;
+    struct stat before;
+    struct stat after;
+    off_t payload_size;
+    size_t record_count;
+    int fd;
+
+    legacy_userdb_audit_snapshot_clear(&candidate);
+    memset(&scan_result, 0, sizeof(scan_result));
+    legacy_userdb_error_clear(error);
+
+    if (mbse_root == NULL || mbse_root[0] != '/' ||
+        !policy_is_valid(policy) || snapshot == NULL ||
+        snapshot->records != NULL || snapshot->record_count != 0U) {
+        set_error(error, LEGACY_USERDB_INVALID_ARGUMENT, EINVAL,
+                  LEGACY_USERDB_NO_RECORD,
+                  "invalid legacy audit snapshot argument");
+        return -1;
+    }
+
+    fd = open_users_file(mbse_root, policy, &before, error);
+    if (fd < 0) {
+        return -1;
+    }
+    if (before.st_size < (off_t)LEGACY_USERDB_HEADER_SIZE) {
+        (void)close(fd);
+        set_error(error, LEGACY_USERDB_HEADER_TRUNCATED, 0,
+                  LEGACY_USERDB_NO_RECORD,
+                  "legacy users database header is truncated");
+        return -1;
+    }
+    if (read_exact_at(fd, &header, sizeof(header), 0) != 0) {
+        int saved_errno = errno;
+        (void)close(fd);
+        set_error(error, LEGACY_USERDB_READ_FAILED, saved_errno,
+                  LEGACY_USERDB_NO_RECORD,
+                  "cannot read legacy users database header");
+        return -1;
+    }
+    if (header.hdrsize != (int)LEGACY_USERDB_HEADER_SIZE ||
+        header.recsize != (int)LEGACY_USERDB_RECORD_SIZE) {
+        (void)close(fd);
+        set_error(error, LEGACY_USERDB_HEADER_MISMATCH, 0,
+                  LEGACY_USERDB_NO_RECORD,
+                  "legacy users database layout does not match this build");
+        return -1;
+    }
+
+    payload_size = before.st_size - (off_t)LEGACY_USERDB_HEADER_SIZE;
+    if (payload_size < 0 ||
+        payload_size % (off_t)LEGACY_USERDB_RECORD_SIZE != 0) {
+        (void)close(fd);
+        set_error(error, LEGACY_USERDB_SIZE_MISMATCH, 0,
+                  LEGACY_USERDB_NO_RECORD,
+                  "legacy users database ends with a partial record");
+        return -1;
+    }
+    record_count = (size_t)(payload_size /
+                            (off_t)LEGACY_USERDB_RECORD_SIZE);
+    if (record_count > policy->max_records) {
+        (void)close(fd);
+        set_error(error, LEGACY_USERDB_TOO_MANY_RECORDS, 0,
+                  LEGACY_USERDB_NO_RECORD,
+                  "legacy users database exceeds the configured limit");
+        return -1;
+    }
+
+    if (record_count > 0U) {
+        candidate.records = calloc(record_count, sizeof(*candidate.records));
+        if (candidate.records == NULL) {
+            int saved_errno = errno;
+            (void)close(fd);
+            set_error(error, LEGACY_USERDB_MEMORY_FAILED, saved_errno,
+                      LEGACY_USERDB_NO_RECORD,
+                      "cannot allocate sanitized legacy audit snapshot");
+            return -1;
+        }
+    }
+    candidate.record_count = record_count;
+    candidate.file_status = before;
+    candidate.header_size = header.hdrsize;
+    candidate.record_size = header.recsize;
+
+    scan_result.record_count = record_count;
+    scan_result.legacy_name_record = LEGACY_USERDB_NO_RECORD;
+    scan_result.display_name_record = LEGACY_USERDB_NO_RECORD;
+    scan_result.handle_record = LEGACY_USERDB_NO_RECORD;
+    if (scan_records(fd, record_count, NULL, &scan_result,
+                     candidate.records, error) != 0) {
+        (void)close(fd);
+        legacy_userdb_audit_snapshot_free(&candidate);
+        return -1;
+    }
+    if (fstat(fd, &after) != 0) {
+        int saved_errno = errno;
+        (void)close(fd);
+        legacy_userdb_audit_snapshot_free(&candidate);
+        set_error(error, LEGACY_USERDB_STAT_FAILED, saved_errno,
+                  LEGACY_USERDB_NO_RECORD,
+                  "cannot recheck legacy users database");
+        return -1;
+    }
+    if (!file_snapshot_is_unchanged(&before, &after)) {
+        (void)close(fd);
+        legacy_userdb_audit_snapshot_free(&candidate);
+        set_error(error, LEGACY_USERDB_CHANGED_DURING_SCAN, 0,
+                  LEGACY_USERDB_NO_RECORD,
+                  "legacy users database changed during audit scan");
+        return -1;
+    }
+
+    (void)close(fd);
+    *snapshot = candidate;
     legacy_userdb_error_clear(error);
     return 0;
 }
