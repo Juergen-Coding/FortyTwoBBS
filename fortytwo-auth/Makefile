@@ -109,7 +109,7 @@ NORMAL_TESTS := \
 	$(NORMAL_DIR)/authd_integration_test \
 	$(NORMAL_DIR)/authd_registration_server_integration_test
 
-.PHONY: all authd login test users-data-access-check database-login-integration-test database-throttle-integration-test database-session-integration-test database-registration-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
+.PHONY: all authd login test users-data-access-check security-architecture-check database-login-integration-test database-throttle-integration-test database-session-integration-test database-registration-integration-test sanitize-test thread-sanitize-test analyze check-libpq check-libsodium clean
 
 all: authd login test
 
@@ -117,7 +117,7 @@ authd: check-libpq check-libsodium $(NORMAL_DIR)/fortytwo-authd
 
 login: $(NORMAL_DIR)/fortytwo-login
 
-test: check-libpq check-libsodium users-data-access-check $(NORMAL_DIR)/fortytwo-authd \
+test: check-libpq check-libsodium users-data-access-check security-architecture-check $(NORMAL_DIR)/fortytwo-authd \
 	$(NORMAL_DIR)/fortytwo-authd-test $(NORMAL_DIR)/fortytwo-login \
 	$(NORMAL_DIR)/fortytwo-login-dialog-test \
 	$(NORMAL_DIR)/fortytwo-session-child-test $(NORMAL_TESTS)
@@ -166,6 +166,9 @@ check-libsodium:
 
 users-data-access-check:
 	python3 tests/check_users_data_access.py
+
+security-architecture-check:
+	python3 tests/security_architecture_test.py
 
 $(NORMAL_DIR):
 	mkdir -p $@
@@ -314,7 +317,7 @@ $(NORMAL_DIR)/authd_integration_test: tests/authd_integration_test.c $(PROTOCOL_
 $(NORMAL_DIR)/authd_registration_server_integration_test: tests/authd_registration_server_integration_test.c $(PROTOCOL_SOURCES) | $(NORMAL_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(PROTOCOL_SOURCES) $< -o $@
 
-sanitize-test: check-libpq check-libsodium users-data-access-check
+sanitize-test: check-libpq check-libsodium users-data-access-check security-architecture-check
 	mkdir -p $(SANITIZER_DIR)
 	$(CC) $(CPPFLAGS) $(BASE_CFLAGS) $(SANITIZER_FLAGS) \
 		tests/ftap_protocol_compile_test.c \

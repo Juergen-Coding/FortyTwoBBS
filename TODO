@@ -192,7 +192,7 @@ Documentation and release preparation
 - perform clean installation tests before publishing downloadable releases
 - keep `README.md` and `LIESMICH.md` synchronized
 - keep `SECURITY_ARCHITECTURE.md` and `SICHERHEITS_ARCHITEKTUR.md`
-  synchronized
+  synchronized with each other and with the implemented security architecture
 
 
 Project information

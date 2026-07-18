@@ -8,6 +8,12 @@ These rules are normative. Historical MBSE BBS behaviour that conflicts with
 this document must not be enabled, installed or treated as an acceptable
 production option.
 
+Architecture revision: the original SQLite target was superseded by the
+PostgreSQL-based `fortytwo-auth` architecture introduced in phase B2 and
+extended through phases B3, B4 and B5. PostgreSQL is authoritative. This
+revision records the security architecture already implemented by the
+versioned migrations, FTAP, `fortytwo-authd` and its database layer.
+
 ## 1. Security objective
 
 FortyTwo BBS shall run as a rootless, privilege-separated service.
@@ -233,18 +239,35 @@ exists and no safer design is available.
 Persistent state must be explicitly separated from immutable application
 content.
 
-The target identity and authentication store is SQLite.
+The authoritative store for identities, authentication, authorization,
+terminal sessions and audit events is PostgreSQL 17 or newer.
 
-Its schema must use versioned migrations, enabled foreign-key constraints and
-explicit transactions. The planned data model includes at least:
+Only `fortytwo-authd` may access the identity database directly at runtime. It
+must connect through an absolute local Unix-domain socket using the dedicated
+least-privilege PostgreSQL role `fortytwo_authd` and local peer
+authentication. Password-authenticated database connections and TCP database
+endpoints are prohibited for this runtime path. FTAP must not transport
+PostgreSQL credentials or password hashes.
 
-- users
-- login identifiers
+The schema must use versioned, checksummed migrations, enabled foreign-key
+constraints and explicit transactions. The data model includes at least:
+
+- users and profiles
+- normalized login identifiers
 - password credentials
-- roles and user-role assignments
-- sessions
+- roles, capabilities and assignments
+- terminal sessions
 - audit events
-- user-storage mappings
+- legacy MBSE bindings
+- registration attempts
+
+PostgreSQL is authoritative for identity, credentials, account state, roles,
+capabilities, sessions and audit data. `users.data` and other MBSE flat files
+are temporary legacy compatibility data, not an equal source of identity
+truth. New code must use reviewed gateway, provisioning and reconciliation
+paths instead of introducing direct flat-file access. A failed or uncertain
+legacy update must be reported and reconciled; it must not silently redefine
+the committed PostgreSQL state.
 
 Persistence planning must cover at least:
 
@@ -288,6 +311,8 @@ Before a container image is accepted, the project must verify that:
 - Telnet and SSH start only the BBS
 - privilege-dropping code checks every return value
 - persistent data paths are explicitly documented
+- the normative security documents identify PostgreSQL as authoritative
+- the English and German security documents remain semantically synchronized
 
 ## 16. Current decision
 
@@ -298,7 +323,10 @@ The current FortyTwo BBS design shall use:
 - no setuid-root or setgid BBS helpers
 - no personal Unix or container accounts for BBS users
 - internal BBS identities with stable opaque user IDs
-- SQLite with versioned migrations, foreign keys and transactions
+- PostgreSQL 17 or newer as the authoritative identity, authentication,
+  authorization, session and audit store
+- versioned, checksummed migrations, foreign keys and explicit transactions
+- `users.data` only as temporary, controlled legacy compatibility data
 - short-lived opaque access tokens and rotating hashed refresh tokens
 - authenticated one-time local session handoff
 - fixed unprivileged service accounts

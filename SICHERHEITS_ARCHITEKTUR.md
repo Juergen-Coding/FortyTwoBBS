@@ -9,6 +9,12 @@ Diese Regeln sind normativ. Historisches Verhalten von MBSE BBS, das diesem
 Dokument widerspricht, darf nicht aktiviert, installiert oder als akzeptable
 Produktionsoption behandelt werden.
 
+Architekturrevision: Das ursprüngliche SQLite-Ziel wurde durch die in Phase B2
+eingeführte und in den Phasen B3, B4 und B5 erweiterte PostgreSQL-Architektur
+von `fortytwo-auth` ersetzt. PostgreSQL ist das führende System. Diese Revision
+hält die Sicherheitsarchitektur fest, die durch die versionierten Migrationen,
+FTAP, `fortytwo-authd` und dessen Datenbankschicht bereits umgesetzt ist.
+
 ## 1. Sicherheitsziel
 
 FortyTwo BBS muss als rootloser Dienst mit klarer Privilegientrennung
@@ -245,19 +251,38 @@ technischer Bedarf besteht und keine sicherere Lösung verfügbar ist.
 Dauerhafte Daten müssen ausdrücklich von unveränderlichen
 Anwendungsbestandteilen getrennt werden.
 
-Als Zielsystem für Identitäten und Authentifizierung wird SQLite verwendet.
+Das führende System für Identitäten, Authentifizierung, Autorisierung,
+Terminal-Sitzungen und Audit-Ereignisse ist PostgreSQL 17 oder neuer.
 
-Das Datenbankschema muss versionierte Migrationen, aktivierte
-Fremdschlüsselbedingungen und ausdrückliche Transaktionen verwenden. Das
-geplante Datenmodell umfasst mindestens:
+Zur Laufzeit darf nur `fortytwo-authd` direkt auf die Identitätsdatenbank
+zugreifen. Die Verbindung muss über einen absoluten lokalen Unix-Domain-Socket
+mit der eigenen, nach dem Prinzip der geringsten Rechte eingeschränkten
+PostgreSQL-Rolle `fortytwo_authd` und lokaler Peer-Authentifizierung erfolgen.
+Passwortauthentifizierte Datenbankverbindungen und TCP-Datenbankendpunkte sind
+für diesen Laufzeitpfad verboten. FTAP darf keine PostgreSQL-Zugangsdaten oder
+Passwort-Hashes übertragen.
 
-- Benutzer
-- Anmeldekennungen
+Das Datenbankschema muss versionierte, prüfsummengeschützte Migrationen,
+aktivierte Fremdschlüsselbedingungen und ausdrückliche Transaktionen
+verwenden. Das Datenmodell umfasst mindestens:
+
+- Benutzer und Profile
+- normalisierte Anmeldekennungen
 - Passwort-Zugangsdaten
-- Rollen und Benutzer-Rollen-Zuordnungen
-- Sitzungen
+- Rollen, Capabilities und Zuordnungen
+- Terminal-Sitzungen
 - Audit-Ereignisse
-- Zuordnungen des Benutzerspeichers
+- Legacy-MBSE-Bindungen
+- Registrierungsversuche
+
+PostgreSQL ist für Identität, Zugangsdaten, Kontostatus, Rollen, Capabilities,
+Sitzungen und Auditdaten autoritativ. `users.data` und andere MBSE-Flat-Files
+sind vorübergehende Legacy-Kompatibilitätsdaten und keine gleichberechtigte
+Identitätsautorität. Neuer Code muss geprüfte Gateway-, Provisionierungs- und
+Reconciliation-Pfade verwenden, statt neue direkte Flat-File-Zugriffe
+einzuführen. Eine fehlgeschlagene oder unklare Legacy-Aktualisierung muss
+gemeldet und abgeglichen werden; sie darf den festgeschriebenen
+PostgreSQL-Zustand nicht stillschweigend umdeuten.
 
 Die Planung der dauerhaften Speicherung muss mindestens abdecken:
 
@@ -303,6 +328,8 @@ Bevor ein Container-Image akzeptiert wird, muss das Projekt prüfen, dass:
 - Telnet und SSH ausschließlich die BBS starten
 - Code zur Privilegienabgabe jeden Rückgabewert prüft
 - dauerhafte Datenpfade ausdrücklich dokumentiert sind
+- die normativen Sicherheitsdokumente PostgreSQL als führend ausweisen
+- die deutsche und englische Sicherheitsfassung semantisch synchron bleiben
 
 ## 16. Aktuelle Entscheidung
 
@@ -313,7 +340,12 @@ Das aktuelle FortyTwo-BBS-Konzept verwendet:
 - keine setuid-root- oder setgid-BBS-Hilfsprogramme
 - keine persönlichen Unix- oder Containerkonten für BBS-Benutzer
 - interne BBS-Identitäten mit stabilen, nicht sprechenden Benutzer-IDs
-- SQLite mit versionierten Migrationen, Fremdschlüsseln und Transaktionen
+- PostgreSQL 17 oder neuer als führendes System für Identität,
+  Authentifizierung, Autorisierung, Sitzungen und Auditdaten
+- versionierte, prüfsummengeschützte Migrationen, Fremdschlüssel und
+  ausdrückliche Transaktionen
+- `users.data` nur als vorübergehende, kontrollierte
+  Legacy-Kompatibilitätsdatei
 - kurzlebige Zugriffstokens und rotierende, gehashte Refresh-Tokens
 - authentifizierte und nur einmal verwendbare lokale Sitzungsübergabe
 - feste unprivilegierte Dienstkonten
