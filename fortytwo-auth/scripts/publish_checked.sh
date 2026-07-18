@@ -100,10 +100,17 @@ printf '%s\n' "$repository_root"
 notice "Ziel"
 printf '%s %s (%s)\n' "$REQUIRED_REMOTE" "$REQUIRED_BRANCH" "$remote_url"
 
+readonly architecture_verifier="$repository_root/scripts/check_architecture_state.py"
 readonly migration_verifier="$repository_root/fortytwo-auth/migrations/verify_migrations.sh"
+
+[[ -x "$architecture_verifier" ]] ||
+    die "Architekturprüfung fehlt oder ist nicht ausführbar: $architecture_verifier"
 
 [[ -x "$migration_verifier" ]] ||
     die "Migrationsprüfung fehlt oder ist nicht ausführbar: $migration_verifier"
+
+notice "Architekturstand prüfen"
+"$architecture_verifier"
 
 notice "Migrationshistorie prüfen"
 "$migration_verifier"
