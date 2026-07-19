@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 #
-# Commit and publish an already tested FortyTwoBBS source state.
+# Commit and push an already tested FortyTwo BBS working branch.
 #
 # Usage:
 #   ./fortytwo-auth/scripts/publish_checked.sh "Commit message"
 #
 # This script deliberately does not run the normal or sanitizer test suites.
 # Run those before invoking this publication step.
+#
+# The script never pushes directly to main and never merges a pull request.
 
 set -Eeuo pipefail
 
 readonly EXPECTED_REPOSITORY_DIR="mbsebbs-sanitize"
-readonly REQUIRED_BRANCH="main"
+readonly FORBIDDEN_BRANCH="main"
 readonly REQUIRED_REMOTE="github"
 
 on_error()
@@ -84,8 +86,11 @@ readonly current_branch=$(
     git -C "$repository_root" branch --show-current
 )
 
-[[ "$current_branch" == "$REQUIRED_BRANCH" ]] ||
-    die "Erwarteter Zweig '$REQUIRED_BRANCH', gefunden: '${current_branch:-detached HEAD}'"
+[[ -n "$current_branch" ]] ||
+    die "Detached HEAD ist für die Veröffentlichung eines Arbeitsbranches nicht zulässig."
+
+[[ "$current_branch" != "$FORBIDDEN_BRANCH" ]] ||
+    die "Direkte Commits und Pushes auf '$FORBIDDEN_BRANCH' sind verboten. Verwende einen Arbeitsbranch und anschließend einen Pull Request."
 
 git -C "$repository_root" remote get-url "$REQUIRED_REMOTE" >/dev/null 2>&1 ||
     die "Der Remote '$REQUIRED_REMOTE' ist nicht eingerichtet."
@@ -98,30 +103,33 @@ notice "Quellordner"
 printf '%s\n' "$repository_root"
 
 notice "Ziel"
-printf '%s %s (%s)\n' "$REQUIRED_REMOTE" "$REQUIRED_BRANCH" "$remote_url"
+printf '%s %s (%s)\n' "$REQUIRED_REMOTE" "$current_branch" "$remote_url"
+printf 'Merge-Ziel: main – ausschließlich über Pull Request\n'
 
+readonly architecture_verifier="$repository_root/scripts/check_architecture_state.py"
 readonly migration_verifier="$repository_root/fortytwo-auth/migrations/verify_migrations.sh"
+
+[[ -x "$architecture_verifier" ]] ||
+    die "Architekturprüfung fehlt oder ist nicht ausführbar: $architecture_verifier"
 
 [[ -x "$migration_verifier" ]] ||
     die "Migrationsprüfung fehlt oder ist nicht ausführbar: $migration_verifier"
+
+notice "Architekturstand prüfen"
+"$architecture_verifier"
 
 notice "Migrationshistorie prüfen"
 "$migration_verifier"
 
 notice "Remote-Stand abrufen"
-git -C "$repository_root" fetch --quiet "$REQUIRED_REMOTE" "$REQUIRED_BRANCH"
+git -C "$repository_root" fetch --quiet "$REQUIRED_REMOTE"
 
-git -C "$repository_root" show-ref --verify --quiet \
-    "refs/remotes/$REQUIRED_REMOTE/$REQUIRED_BRANCH" ||
-    die "Remote-Zweig $REQUIRED_REMOTE/$REQUIRED_BRANCH wurde nicht gefunden."
+readonly remote_tracking_ref="refs/remotes/$REQUIRED_REMOTE/$current_branch"
 
-read -r remote_ahead local_ahead < <(
-    git -C "$repository_root" rev-list --left-right --count \
-        "$REQUIRED_REMOTE/$REQUIRED_BRANCH...HEAD"
-)
-
-if (( remote_ahead != 0 || local_ahead != 0 )); then
-    die "Vor dem Commit müssen HEAD und $REQUIRED_REMOTE/$REQUIRED_BRANCH synchron sein (remote voraus: $remote_ahead, lokal voraus: $local_ahead)."
+if git -C "$repository_root" show-ref --verify --quiet "$remote_tracking_ref"; then
+    git -C "$repository_root" merge-base --is-ancestor \
+        "$REQUIRED_REMOTE/$current_branch" HEAD ||
+        die "Der Remote-Arbeitsbranch $REQUIRED_REMOTE/$current_branch enthält Commits, die lokal fehlen. Vor dem Veröffentlichen zuerst integrieren."
 fi
 
 notice "Nicht vorgemerkte Änderungen prüfen"
@@ -151,12 +159,12 @@ git -C "$repository_root" diff --cached --stat
 notice "Commit erstellen"
 git -C "$repository_root" commit -m "$commit_message"
 
-notice "Zu github/main übertragen"
-git -C "$repository_root" push "$REQUIRED_REMOTE" \
-    "HEAD:refs/heads/$REQUIRED_BRANCH"
+notice "Arbeitsbranch zu GitHub übertragen"
+git -C "$repository_root" push --set-upstream "$REQUIRED_REMOTE" \
+    "HEAD:refs/heads/$current_branch"
 
 notice "Ergebnis kontrollieren"
-git -C "$repository_root" fetch --quiet "$REQUIRED_REMOTE" "$REQUIRED_BRANCH"
+git -C "$repository_root" fetch --quiet "$REQUIRED_REMOTE" "$current_branch"
 
 readonly local_commit=$(
     git -C "$repository_root" rev-parse HEAD
@@ -164,17 +172,21 @@ readonly local_commit=$(
 
 readonly remote_commit=$(
     git -C "$repository_root" rev-parse \
-        "$REQUIRED_REMOTE/$REQUIRED_BRANCH"
+        "$REQUIRED_REMOTE/$current_branch"
 )
 
 [[ "$local_commit" == "$remote_commit" ]] ||
-    die "HEAD und $REQUIRED_REMOTE/$REQUIRED_BRANCH sind nach dem Push nicht identisch."
+    die "HEAD und $REQUIRED_REMOTE/$current_branch sind nach dem Push nicht identisch."
 
 if [[ -n "$(git -C "$repository_root" status --porcelain=v1)" ]]; then
     git -C "$repository_root" status --short >&2
     die "Der Quellordner ist nach dem Push nicht sauber."
 fi
 
-notice "Veröffentlichung abgeschlossen"
+notice "Arbeitsbranch veröffentlicht"
 git -C "$repository_root" log -1 --oneline
 git -C "$repository_root" status --short --branch
+
+notice "Nächster verbindlicher Schritt"
+printf 'Pull Request von %s nach main öffnen. Kein direkter Push und kein lokaler Merge nach main.\n' \
+    "$current_branch"

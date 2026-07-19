@@ -1,0 +1,45 @@
+name: Architecture State
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: architecture-state-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  architecture-state:
+    name: architecture-state
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate pull-request merge result
+        if: github.event_name == 'pull_request'
+        run: |
+          ./scripts/check_architecture_state.py \
+            --base-ref "${{ github.event.pull_request.base.sha }}"
+
+      - name: Validate main-branch push
+        if: github.event_name == 'push'
+        run: |
+          ./scripts/check_architecture_state.py \
+            --base-ref "${{ github.event.before }}"
+
+      - name: Validate manual run
+        if: github.event_name == 'workflow_dispatch'
+        run: ./scripts/check_architecture_state.py
