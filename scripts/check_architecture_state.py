@@ -404,7 +404,7 @@ def main() -> int:
         for changed_path, classification in classified:
             print(f"  - Path: {changed_path}")
             print(f"    Classification: {classification}")
-            print("    Decision: allowed by the known-path policy")
+            print("    Decision: path classified by B5.1.8; ""no content-safety approval implied")
     else:
         print("  No changed paths detected.")
 
