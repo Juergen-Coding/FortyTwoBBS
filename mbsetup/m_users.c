@@ -30,6 +30,7 @@
 
 #include "../lib/mbselib.h"
 #include "../lib/users.h"
+#include <limits.h>
 #include "screen.h"
 #include "mutil.h"
 #include "ledit.h"
@@ -45,119 +46,424 @@ int	UsrUpdated = 0;
 
 
 /*
+ * Validate the users database header and calculate the exact record count.
+ * Older, smaller records may be upgraded. Larger records are rejected so an
+ * older mbsetup cannot silently discard fields from a newer database format.
+ */
+static int ValidateUsersDatabase(FILE *fil, const char *path, int *records)
+{
+    struct userhdr header;
+    struct stat st;
+    off_t payload;
+
+    if (fstat(fileno(fil), &st) != 0) {
+        WriteError("$Cannot stat %s", path);
+        return -1;
+    }
+
+    if (st.st_size == 0) {
+        WriteError("%s is empty", path);
+        return -1;
+    }
+
+    if (fseeko(fil, 0, SEEK_SET) != 0 ||
+        fread(&header, sizeof(header), 1, fil) != 1) {
+        WriteError("$Cannot read users database header from %s", path);
+        return -1;
+    }
+
+    if (header.hdrsize != (int)sizeof(header)) {
+        WriteError("Unsupported users database header size %d in %s",
+                   header.hdrsize, path);
+        return -1;
+    }
+
+    if (header.recsize <= 0 || header.recsize > (int)sizeof(usrconfig)) {
+        WriteError("Invalid users database record size %d in %s",
+                   header.recsize, path);
+        return -1;
+    }
+
+    if ((off_t)header.hdrsize > st.st_size) {
+        WriteError("Users database header exceeds file size in %s", path);
+        return -1;
+    }
+
+    payload = st.st_size - (off_t)header.hdrsize;
+    if ((payload % header.recsize) != 0) {
+        WriteError("Incomplete users database record in %s", path);
+        return -1;
+    }
+
+    if ((payload / header.recsize) > INT_MAX) {
+        WriteError("Too many users database records in %s", path);
+        return -1;
+    }
+
+    if (fseeko(fil, header.hdrsize, SEEK_SET) != 0) {
+        WriteError("$Cannot seek to users database records in %s", path);
+        return -1;
+    }
+
+    usrconfighdr = header;
+    *records = (int)(payload / header.recsize);
+    return 0;
+}
+
+
+
+/*
+ * Write a new users database header to an already opened empty file.
+ */
+static int InitializeUsersDatabase(FILE *fil, const char *path)
+{
+    memset(&usrconfighdr, 0, sizeof(usrconfighdr));
+    usrconfighdr.hdrsize = sizeof(usrconfighdr);
+    usrconfighdr.recsize = sizeof(usrconfig);
+
+    if (fseeko(fil, 0, SEEK_SET) != 0 ||
+        fwrite(&usrconfighdr, sizeof(usrconfighdr), 1, fil) != 1 ||
+        fflush(fil) != 0 || fsync(fileno(fil)) != 0) {
+        WriteError("$Cannot initialize %s", path);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+/*
+ * Legacy user records store fixed-width character arrays. Always terminate
+ * every string field after reading an untrusted record.
+ */
+static void TerminateUserRecordStrings(struct userrec *user)
+{
+    int i;
+
+    user->sUserName[sizeof(user->sUserName) - 1] = '\0';
+    user->Name[sizeof(user->Name) - 1] = '\0';
+    user->sVoicePhone[sizeof(user->sVoicePhone) - 1] = '\0';
+    user->sDataPhone[sizeof(user->sDataPhone) - 1] = '\0';
+    user->sLocation[sizeof(user->sLocation) - 1] = '\0';
+    for (i = 0; i < 3; i++)
+        user->address[i][sizeof(user->address[i]) - 1] = '\0';
+    user->sDateOfBirth[sizeof(user->sDateOfBirth) - 1] = '\0';
+    user->sComment[sizeof(user->sComment) - 1] = '\0';
+    user->sExpiryDate[sizeof(user->sExpiryDate) - 1] = '\0';
+    user->sSex[sizeof(user->sSex) - 1] = '\0';
+    user->Archiver[sizeof(user->Archiver) - 1] = '\0';
+    user->sProtocol[sizeof(user->sProtocol) - 1] = '\0';
+    user->sHandle[sizeof(user->sHandle) - 1] = '\0';
+    user->Password[sizeof(user->Password) - 1] = '\0';
+    user->OLRlast[sizeof(user->OLRlast) - 1] = '\0';
+}
+
+
+
+/* The editable snapshot is always written in the current native format. */
+static int ValidateEditableUsersDatabase(FILE *fil, const char *path,
+                                         int *records)
+{
+    if (ValidateUsersDatabase(fil, path, records) != 0)
+        return -1;
+
+    if (usrconfighdr.hdrsize != (int)sizeof(usrconfighdr) ||
+        usrconfighdr.recsize != (int)sizeof(usrconfig)) {
+        WriteError("Unexpected editable users database format in %s", path);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+static int ReadUserRecord(FILE *fil, const char *path, int record_index)
+{
+    off_t offset;
+
+    if (record_index < 0) {
+        WriteError("Invalid users database record index in %s", path);
+        return -1;
+    }
+
+    offset = (off_t)usrconfighdr.hdrsize +
+        ((off_t)record_index * (off_t)usrconfighdr.recsize);
+    if (fseeko(fil, offset, SEEK_SET) != 0) {
+        WriteError("$Cannot seek to users database record %d in %s",
+                   record_index + 1, path);
+        return -1;
+    }
+
+    memset(&usrconfig, 0, sizeof(usrconfig));
+    if (fread(&usrconfig, (size_t)usrconfighdr.recsize, 1, fil) != 1) {
+        WriteError("$Cannot read users database record %d from %s",
+                   record_index + 1, path);
+        return -1;
+    }
+
+    TerminateUserRecordStrings(&usrconfig);
+    return 0;
+}
+
+
+
+static int WriteUserRecord(FILE *fil, const char *path, int record_index)
+{
+    off_t offset;
+
+    if (record_index < 0 ||
+        usrconfighdr.hdrsize != (int)sizeof(usrconfighdr) ||
+        usrconfighdr.recsize != (int)sizeof(usrconfig)) {
+        WriteError("Invalid editable users database state for %s", path);
+        return -1;
+    }
+
+    offset = (off_t)usrconfighdr.hdrsize +
+        ((off_t)record_index * (off_t)usrconfighdr.recsize);
+    if (fseeko(fil, offset, SEEK_SET) != 0) {
+        WriteError("$Cannot seek to users database record %d in %s",
+                   record_index + 1, path);
+        return -1;
+    }
+
+    TerminateUserRecordStrings(&usrconfig);
+    if (fwrite(&usrconfig, sizeof(usrconfig), 1, fil) != 1 ||
+        fflush(fil) != 0 || fsync(fileno(fil)) != 0) {
+        WriteError("$Cannot write users database record %d to %s",
+                   record_index + 1, path);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+
+/*
  * Count nr of usrconfig records in the database.
- * Creates the database if it doesn't exist.
+ * Creates the database if it doesn't exist and initializes an existing empty
+ * file. Malformed non-empty databases are rejected without modification.
  */
 int CountUsers(void)
 {
-	FILE	*fil;
-	char	ffile[PATH_MAX];
-	int	count;
+    FILE    *fil;
+    char    ffile[PATH_MAX];
+    int     count = 0;
+    int     fd = -1;
+    int     flags = O_RDWR | O_CREAT | O_EXCL;
+    int     created = FALSE;
+    int     saved_errno;
+    struct stat st;
 
-	snprintf(ffile, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
-	if ((fil = fopen(ffile, "r")) == NULL) {
-		if ((fil = fopen(ffile, "a+")) != NULL) {
-			Syslog('+', "Created new %s", ffile);
-			usrconfighdr.hdrsize = sizeof(usrconfighdr);
-			usrconfighdr.recsize = sizeof(usrconfig);
-			fwrite(&usrconfighdr, sizeof(usrconfighdr), 1, fil);
-			fclose(fil);
-			chmod(ffile, 0660);
-			return 0;
-		} else
-			return -1;
-	}
+#ifdef O_NOFOLLOW
+    flags |= O_NOFOLLOW;
+#endif
 
-	count = 0;
-	fread(&usrconfighdr, sizeof(usrconfighdr), 1, fil);
+    snprintf(ffile, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
+    fil = fopen(ffile, "r+b");
+    if (fil == NULL) {
+        if (errno != ENOENT)
+            return -1;
 
-	while (fread(&usrconfig, usrconfighdr.recsize, 1, fil) == 1) {
-		count++;
-	}
-	fclose(fil);
+        fd = open(ffile, flags, 0660);
+        if (fd == -1)
+            return -1;
 
-	return count;
+        if (fchmod(fd, 0660) != 0 || (fil = fdopen(fd, "w+b")) == NULL) {
+            saved_errno = errno;
+            close(fd);
+            unlink(ffile);
+            errno = saved_errno;
+            return -1;
+        }
+        fd = -1;
+        created = TRUE;
+    }
+
+    if (fstat(fileno(fil), &st) != 0) {
+        fclose(fil);
+        if (created)
+            unlink(ffile);
+        return -1;
+    }
+
+    if (st.st_size == 0) {
+        if (InitializeUsersDatabase(fil, ffile) != 0) {
+            fclose(fil);
+            if (created)
+                unlink(ffile);
+            return -1;
+        }
+        if (fclose(fil) != 0) {
+            if (created)
+                unlink(ffile);
+            return -1;
+        }
+        Syslog('+', "%s %s", created ? "Created" : "Initialized", ffile);
+        return 0;
+    }
+
+    if (ValidateUsersDatabase(fil, ffile, &count) != 0) {
+        fclose(fil);
+        return -1;
+    }
+
+    if (fclose(fil) != 0)
+        return -1;
+
+    return count;
 }
 
 
 
 /*
  * Open database for editing. The datafile is copied, if the format
- * is changed it will be converted on the fly. All editing must be 
+ * is changed it will be converted on the fly. All editing must be
  * done on the copied file.
  */
 int OpenUsers(void);
 int OpenUsers(void)
 {
-    FILE    *fin, *fout;
+    FILE    *fin = NULL, *fout = NULL;
     char    fnin[PATH_MAX], fnout[PATH_MAX];
-    int	    oldsize;
+    int     oldsize;
+    int     records;
+    int     i;
+    int     fd = -1;
+    int     flags = O_WRONLY | O_CREAT | O_EXCL;
+    int     temp_created = FALSE;
+
+#ifdef O_NOFOLLOW
+    flags |= O_NOFOLLOW;
+#endif
 
     snprintf(fnin,  PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
     snprintf(fnout, PATH_MAX, "%s/etc/users.temp", getenv("MBSE_ROOT"));
-    if ((fin = fopen(fnin, "r")) != NULL) {
-	if ((fout = fopen(fnout, "w")) != NULL) {
-	    fread(&usrconfighdr, sizeof(usrconfighdr), 1, fin);
-	    /*
-	     * In case we are automatic upgrading the data format
-	     * we save the old format. If it is changed, the
-	     * database must always be updated.
-	     */
-	    oldsize = usrconfighdr.recsize;
-	    if (oldsize != sizeof(usrconfig)) {
-		UsrUpdated = 1;
-		Syslog('+', "Upgraded %s, format changed", fnin);
-	    } else
-		UsrUpdated = 0;
-	    usrconfighdr.hdrsize = sizeof(usrconfighdr);
-	    usrconfighdr.recsize = sizeof(usrconfig);
-	    fwrite(&usrconfighdr, sizeof(usrconfighdr), 1, fout);
 
-	    /*
-	     * The datarecord is filled with zero's before each
-	     * read, so if the format changed, the new fields
-	     * will be empty.
-	     */
-	    memset(&usrconfig, 0, sizeof(usrconfig));
-
-	    while (fread(&usrconfig, oldsize, 1, fin) == 1) {
-		fwrite(&usrconfig, sizeof(usrconfig), 1, fout);
-		memset(&usrconfig, 0, sizeof(usrconfig));
-	    }
-
-	    fclose(fin);
-	    fclose(fout);
-	    return 0;
-	} else
-	    return -1;
+    fin = fopen(fnin, "rb");
+    if (fin == NULL) {
+        WriteError("$Cannot open %s", fnin);
+        return -1;
     }
+
+    if (ValidateUsersDatabase(fin, fnin, &records) != 0)
+        goto failure;
+
+    oldsize = usrconfighdr.recsize;
+    fd = open(fnout, flags, 0660);
+    if (fd == -1) {
+        WriteError("$Cannot create %s", fnout);
+        goto failure;
+    }
+    temp_created = TRUE;
+
+    if (fchmod(fd, 0660) != 0 || (fout = fdopen(fd, "wb")) == NULL) {
+        WriteError("$Cannot secure %s", fnout);
+        goto failure;
+    }
+    fd = -1;
+
+    usrconfighdr.hdrsize = sizeof(usrconfighdr);
+    usrconfighdr.recsize = sizeof(usrconfig);
+    if (fwrite(&usrconfighdr, sizeof(usrconfighdr), 1, fout) != 1) {
+        WriteError("$Cannot write users database header to %s", fnout);
+        goto failure;
+    }
+
+    for (i = 0; i < records; i++) {
+        memset(&usrconfig, 0, sizeof(usrconfig));
+        if (fread(&usrconfig, oldsize, 1, fin) != 1) {
+            WriteError("$Cannot read users database record %d from %s",
+                       i + 1, fnin);
+            goto failure;
+        }
+        TerminateUserRecordStrings(&usrconfig);
+        if (fwrite(&usrconfig, sizeof(usrconfig), 1, fout) != 1) {
+            WriteError("$Cannot write users database record %d to %s",
+                       i + 1, fnout);
+            goto failure;
+        }
+    }
+
+    if (fflush(fout) != 0 || fsync(fileno(fout)) != 0) {
+        WriteError("$Cannot flush %s", fnout);
+        goto failure;
+    }
+
+    if (fclose(fout) != 0) {
+        fout = NULL;
+        WriteError("$Cannot close %s", fnout);
+        goto failure;
+    }
+    fout = NULL;
+
+    if (fclose(fin) != 0) {
+        fin = NULL;
+        WriteError("$Cannot close %s", fnin);
+        goto failure;
+    }
+    fin = NULL;
+
+    UsrUpdated = (oldsize != (int)sizeof(usrconfig));
+    if (UsrUpdated)
+        Syslog('+', "Upgraded %s, format changed", fnin);
+
+    return 0;
+
+failure:
+    if (fout != NULL)
+        fclose(fout);
+    else if (fd != -1)
+        close(fd);
+    if (fin != NULL)
+        fclose(fin);
+    if (temp_created)
+        unlink(fnout);
     return -1;
 }
 
 
 
-void CloseUsers(int);
-void CloseUsers(int force)
+int CloseUsers(int);
+int CloseUsers(int force)
 {
-	char	fin[PATH_MAX], fout[PATH_MAX];
+    char    fin[PATH_MAX], fout[PATH_MAX];
+    int     save_changes = FALSE;
 
-	snprintf(fin,  PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
-	snprintf(fout, PATH_MAX, "%s/etc/users.temp", getenv("MBSE_ROOT"));
+    snprintf(fin,  PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
+    snprintf(fout, PATH_MAX, "%s/etc/users.temp", getenv("MBSE_ROOT"));
 
-	if (UsrUpdated == 1) {
-		if (force || (yes_no((char *)"Database is changed, save changes") == 1)) {
-			working(1, 0, 0);
-			if ((rename(fout, fin)) == 0)
-				unlink(fout);
-			chmod(fin, 0660);
-			Syslog('+', "Updated \"users.data\"");
-			if (!force)
-			    working(6, 0, 0);
-			return;
-		}
-	}
-	chmod(fin, 0660);
-	unlink(fout); 
+    if (UsrUpdated == 1)
+        save_changes = force ||
+            (yes_no((char *)"Database is changed, save changes") == 1);
+
+    if (save_changes) {
+        working(1, 0, 0);
+        if (rename(fout, fin) != 0) {
+            WriteError("$Cannot replace %s with %s", fin, fout);
+            working(2, 0, 0);
+            return -1;
+        }
+        UsrUpdated = 0;
+        Syslog('+', "Updated \"users.data\"");
+        if (!force)
+            working(6, 0, 0);
+        return 0;
+    }
+
+    if (unlink(fout) != 0 && errno != ENOENT) {
+        WriteError("$Cannot remove %s", fout);
+        return -1;
+    }
+    if (chmod(fin, 0660) != 0) {
+        WriteError("$Cannot set permissions on %s", fin);
+        return -1;
+    }
+
+    UsrUpdated = 0;
+    return 0;
 }
 
 
@@ -397,30 +703,70 @@ int EditUsrRec2(void)
 void Reset_Time(void);
 void Reset_Time(void)
 {
-    char    *temp;
-    FILE    *pLimits;
+    char        *temp;
+    FILE        *pLimits;
+    struct stat st;
+    off_t       payload;
+    int         records;
+    int         i;
 
     temp = calloc(PATH_MAX, sizeof(char));
-    snprintf(temp, PATH_MAX, "%s/etc/limits.data", getenv("MBSE_ROOT"));
-    if ((pLimits = fopen(temp,"r")) == NULL) {
-	WriteError("$Can't open %s", temp);
-    } else {
-	fread(&LIMIThdr, sizeof(LIMIThdr), 1, pLimits);
-	while (fread(&LIMIT, sizeof(LIMIT), 1, pLimits) == 1) {
-	    if (LIMIT.Security == usrconfig.Security.level) {
-		if (LIMIT.Time)
-		    usrconfig.iTimeLeft = LIMIT.Time;
-		else
-		    usrconfig.iTimeLeft = 86400;
-		usrconfig.iTimeUsed = 0;
-		break;
-	    }
-	}
-	fclose(pLimits);
+    if (temp == NULL) {
+        WriteError("Cannot allocate limits database path");
+        return;
     }
+
+    snprintf(temp, PATH_MAX, "%s/etc/limits.data", getenv("MBSE_ROOT"));
+    if ((pLimits = fopen(temp, "rb")) == NULL) {
+        WriteError("$Can't open %s", temp);
+        free(temp);
+        return;
+    }
+
+    if (fstat(fileno(pLimits), &st) != 0 ||
+        fread(&LIMIThdr, sizeof(LIMIThdr), 1, pLimits) != 1 ||
+        LIMIThdr.hdrsize < (int)sizeof(LIMIThdr) ||
+        LIMIThdr.recsize <= 0 ||
+        LIMIThdr.recsize > (int)sizeof(LIMIT) ||
+        (off_t)LIMIThdr.hdrsize > st.st_size) {
+        WriteError("Invalid limits database header in %s", temp);
+        fclose(pLimits);
+        free(temp);
+        return;
+    }
+
+    payload = st.st_size - (off_t)LIMIThdr.hdrsize;
+    if ((payload % LIMIThdr.recsize) != 0 ||
+        (payload / LIMIThdr.recsize) > INT_MAX ||
+        fseeko(pLimits, LIMIThdr.hdrsize, SEEK_SET) != 0) {
+        WriteError("Invalid limits database records in %s", temp);
+        fclose(pLimits);
+        free(temp);
+        return;
+    }
+
+    records = (int)(payload / LIMIThdr.recsize);
+    for (i = 0; i < records; i++) {
+        memset(&LIMIT, 0, sizeof(LIMIT));
+        if (fread(&LIMIT, (size_t)LIMIThdr.recsize, 1, pLimits) != 1) {
+            WriteError("$Cannot read limits database record %d from %s",
+                       i + 1, temp);
+            break;
+        }
+        if (LIMIT.Security == usrconfig.Security.level) {
+            if (LIMIT.Time)
+                usrconfig.iTimeLeft = LIMIT.Time;
+            else
+                usrconfig.iTimeLeft = 86400;
+            usrconfig.iTimeUsed = 0;
+            break;
+        }
+    }
+
+    if (fclose(pLimits) != 0)
+        WriteError("$Cannot close %s", temp);
     free(temp);
 }
-
 
 
 /*
@@ -430,7 +776,7 @@ int EditUsrRec(int Area)
 {
     FILE	    *fil;
     char	    mfile[PATH_MAX];
-    int		    offset;
+    int		    records;
     int		    j = 0;
     unsigned int    crc, crc1, level;
 
@@ -439,19 +785,24 @@ int EditUsrRec(int Area)
     IsDoing("Edit Users");
 
     snprintf(mfile, PATH_MAX, "%s/etc/users.temp", getenv("MBSE_ROOT"));
-    if ((fil = fopen(mfile, "r")) == NULL) {
+    if ((fil = fopen(mfile, "rb")) == NULL) {
 	working(2, 0, 0);
 	return -1;
     }
 
-    offset = sizeof(usrconfighdr) + ((Area -1) * sizeof(usrconfig));
-    if (fseek(fil, offset, 0) != 0) {
+    if (ValidateEditableUsersDatabase(fil, mfile, &records) != 0 ||
+	Area < 1 || Area > records ||
+	ReadUserRecord(fil, mfile, Area - 1) != 0) {
+	fclose(fil);
 	working(2, 0, 0);
 	return -1;
     }
 
-    fread(&usrconfig, sizeof(usrconfig), 1, fil);
-    fclose(fil);
+    if (fclose(fil) != 0) {
+	WriteError("$Cannot close %s", mfile);
+	working(2, 0, 0);
+	return -1;
+    }
 
     if (strlen(usrconfig.sUserName) == 0) {
 	errmsg((char *)"You cannot edit an empty record");
@@ -471,13 +822,22 @@ int EditUsrRec(int Area)
 		if (crc != crc1) {
 		    if (yes_no((char *)"Record is changed, save") == 1) {
 			working(1, 0, 0);
-			if ((fil = fopen(mfile, "r+")) == NULL) {
+			if ((fil = fopen(mfile, "r+b")) == NULL) {
 			    working(2, 0, 0);
 			    return -1;
 			}
-			fseek(fil, offset, 0);
-			fwrite(&usrconfig, sizeof(usrconfig), 1, fil);
-			fclose(fil);
+			if (ValidateEditableUsersDatabase(fil, mfile, &records) != 0 ||
+			    Area < 1 || Area > records ||
+			    WriteUserRecord(fil, mfile, Area - 1) != 0) {
+			    fclose(fil);
+			    working(2, 0, 0);
+			    return -1;
+			}
+			if (fclose(fil) != 0) {
+			    WriteError("$Cannot close %s", mfile);
+			    working(2, 0, 0);
+			    return -1;
+			}
 			UsrUpdated = 1;
 			working(6, 0, 0);
 		    }
@@ -525,11 +885,12 @@ int EditUsrRec(int Area)
 
 void EditUsers(void)
 {
-    int	    records, i, o, x, y;
+    int	    records, listed_records, i, o, x, y;
+    int	    read_failed;
     char    pick[12];
     FILE    *fil;
     char    temp[PATH_MAX];
-    int	    offset;
+    char    line[81];
 
     clr_index();
     working(1, 0, 0);
@@ -539,19 +900,22 @@ void EditUsers(void)
 	return;
     }
 
+    if (! check_free())
+	return;
+
     records = CountUsers();
     if (records == -1) {
 	working(2, 0, 0);
+	open_bbs();
 	return;
     }
 
     if (OpenUsers() == -1) {
 	working(2, 0, 0);
+	open_bbs();
 	return;
     }
     o = 0;
-    if (! check_free())
-	return;
 
     for (;;) {
 	clr_index();
@@ -561,37 +925,64 @@ void EditUsers(void)
 	if (records != 0) {
 	    snprintf(temp, PATH_MAX, "%s/etc/users.temp", getenv("MBSE_ROOT"));
 	    working(1, 0, 0);
-	    if ((fil = fopen(temp, "r")) != NULL) {
-		fread(&usrconfighdr, sizeof(usrconfighdr), 1, fil);
-		x = 2;
-		y = 7;
-		set_color(CYAN, BLACK);
-		for (i = 1; i <= 20; i++) {
-		    if (i == 11) {
-			x = 42;
-			y = 7;
-		    }
-		    if ((o + i) <= records) {
-			offset = sizeof(usrconfighdr) + (((i + o) - 1) * usrconfighdr.recsize);
-			fseek(fil, offset, 0);
-			fread(&usrconfig, usrconfighdr.recsize, 1, fil);
-			if ((!usrconfig.Deleted) && strlen(usrconfig.sUserName))
-			    set_color(CYAN, BLACK);
-			else
-			    set_color(LIGHTBLUE, BLACK);
-			snprintf(temp, 81, "%3d.  %-32s", o + i, usrconfig.sUserName);
-			temp[37] = 0;
-			mbse_mvprintw(y, x, temp);
-			y++;
-		    }
+	    fil = fopen(temp, "rb");
+	    if (fil == NULL ||
+		ValidateEditableUsersDatabase(fil, temp, &listed_records) != 0 ||
+		listed_records != records) {
+		if (fil == NULL)
+		    WriteError("$Cannot open %s", temp);
+		else
+		    fclose(fil);
+		UsrUpdated = 0;
+		CloseUsers(FALSE);
+		working(2, 0, 0);
+		open_bbs();
+		return;
+	    }
+
+	    x = 2;
+	    y = 7;
+	    read_failed = FALSE;
+	    set_color(CYAN, BLACK);
+	    for (i = 1; i <= 20; i++) {
+		if (i == 11) {
+		    x = 42;
+		    y = 7;
 		}
-		fclose(fil);
+		if ((o + i) <= records) {
+		    if (ReadUserRecord(fil, temp, (o + i) - 1) != 0) {
+			read_failed = TRUE;
+			break;
+		    }
+		    if ((!usrconfig.Deleted) && strlen(usrconfig.sUserName))
+			set_color(CYAN, BLACK);
+		    else
+			set_color(LIGHTBLUE, BLACK);
+		    snprintf(line, sizeof(line), "%3d.  %-32s", o + i,
+			     usrconfig.sUserName);
+		    line[37] = 0;
+		    mbse_mvprintw(y, x, line);
+		    y++;
+		}
+	    }
+
+	    if (fclose(fil) != 0) {
+		WriteError("$Cannot close %s", temp);
+		read_failed = TRUE;
+	    }
+	    if (read_failed) {
+		UsrUpdated = 0;
+		CloseUsers(FALSE);
+		working(2, 0, 0);
+		open_bbs();
+		return;
 	    }
 	}
 	strcpy(pick, select_pick(records, 20));
 		
 	if (strncmp(pick, "-", 1) == 0) {
-	    CloseUsers(FALSE);
+	    if (CloseUsers(FALSE) != 0)
+		working(2, 0, 0);
 	    open_bbs();
 	    return;
 	}
@@ -605,7 +996,13 @@ void EditUsers(void)
 		o = o - 20;
 
 	if ((atoi(pick) >= 1) && (atoi(pick) <= records)) {
-	    EditUsrRec(atoi(pick));
+	    if (EditUsrRec(atoi(pick)) != 0) {
+		UsrUpdated = 0;
+		if (CloseUsers(FALSE) != 0)
+		    working(2, 0, 0);
+		open_bbs();
+		return;
+	    }
 	    o = ((atoi(pick) - 1) / 20) * 20;
 	}
     }
@@ -615,9 +1012,12 @@ void EditUsers(void)
 
 void InitUsers(void)
 {
-    CountUsers();
-    OpenUsers();
-    CloseUsers(TRUE);
+    if (CountUsers() == -1)
+	return;
+    if (OpenUsers() == -1)
+	return;
+    if (CloseUsers(TRUE) != 0)
+	WriteError("Cannot initialize users database");
 }
 
 
@@ -625,23 +1025,33 @@ void InitUsers(void)
 void users_doc(void)
 {
     char    temp[PATH_MAX];
+    char    datafile[PATH_MAX];
     FILE    *wp, *ip, *fp;
-    int	    nr = 0;
+    int	    nr;
+    int	    records;
     time_t  tt;
 
-    snprintf(temp, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
-    if ((fp = fopen(temp, "r")) == NULL)
+    snprintf(datafile, PATH_MAX, "%s/etc/users.data", getenv("MBSE_ROOT"));
+    if ((fp = fopen(datafile, "rb")) == NULL)
 	return;
 
-    fread(&usrconfighdr, sizeof(usrconfighdr), 1, fp);
+    if (ValidateUsersDatabase(fp, datafile, &records) != 0) {
+	fclose(fp);
+	return;
+    }
 
     ip = open_webdoc((char *)"users.html", (char *)"BBS Users", NULL);
+    if (ip == NULL) {
+	fclose(fp);
+	return;
+    }
     fprintf(ip, "<A HREF=\"index.html\">Main</A>\n");
     fprintf(ip, "<UL>\n");
 		    
-    while (fread(&usrconfig, usrconfighdr.recsize, 1, fp) == 1) {
-	nr++;
-	snprintf(temp, 81, "user_%d.html", nr);
+    for (nr = 0; nr < records; nr++) {
+	if (ReadUserRecord(fp, datafile, nr) != 0)
+	    break;
+	snprintf(temp, 81, "user_%d.html", nr + 1);
 	fprintf(ip, "<LI><A HREF=\"%s\">%s</A></LI>\n", temp, usrconfig.sUserName);
 	if ((wp = open_webdoc(temp, (char *)"BBS User", usrconfig.sUserName))) {
 	    fprintf(wp, "<A HREF=\"index.html\">Main</A>&nbsp;<A HREF=\"users.html\">Back</A>\n");
@@ -714,7 +1124,8 @@ void users_doc(void)
     fprintf(ip, "</UL>\n");
     close_webdoc(ip);
 	    
-    fclose(fp);
+    if (fclose(fp) != 0)
+	WriteError("$Cannot close %s", datafile);
 }
 
 
