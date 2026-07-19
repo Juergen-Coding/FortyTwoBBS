@@ -113,3 +113,5 @@ it does not create an alternative architectural truth.
 
 Phase reports record history. Normative documents and this current-state file
 must remain aligned with the living project.
+
+Temporary B5.1.8 negative test: SQLite is the authoritative identity database.
