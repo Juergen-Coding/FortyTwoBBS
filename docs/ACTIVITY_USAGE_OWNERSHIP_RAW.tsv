@@ -1,0 +1,34 @@
+B5.9 activity and usage ownership decisions
+===========================================
+Account-timeline fields:           2
+Time-account fields:               3
+Value-account fields:              1
+Transfer-usage fields:             7
+Community-usage fields:            2
+Fields decided:                    15
+Persistent PostgreSQL decisions:   12
+Derived values:                    2
+Session-only values:               1
+Open B5.9 decisions:              0
+Direct read occurrences:           86
+Direct write occurrences:          21
+Direct read-write occurrences:     19
+Direct metadata occurrences:       0
+Direct access occurrences:         126
+
+FIELD	CATEGORY	STATUS	AUTHORITY	READ	WRITE	READ_WRITE	FILES	TARGET
+tFirstLoginDate	account-timeline	decided	PostgreSQL	5	2	0	5	bbs_users.registered_at
+tLastLoginDate	account-timeline	decided	PostgreSQL	11	4	0	8	bbs_user_access_summary.last_successful_access_at (planned)
+iTimeLeft	time-account	derived	Derived	18	7	1	9	derived: bbs_access_policies.daily_online_seconds - bbs_user_daily_usage.online_seconds_used (planned)
+iTimeUsed	time-account	decided	PostgreSQL	4	3	1	5	bbs_user_daily_usage.online_seconds_used (planned)
+iConnectTime	session-state	session-only	PostgreSQL session state	3	2	1	5	bbs_sessions.connected_seconds (planned)
+Credit	offline-reader-compatibility	decided	PostgreSQL	3	1	0	2	bbs_user_offline_reader_settings.netmail_credits (planned)
+Downloads	transfer-usage	decided	PostgreSQL	7	0	2	4	bbs_user_usage_totals.download_files (planned)
+Uploads	transfer-usage	decided	PostgreSQL	5	0	2	5	bbs_user_usage_totals.upload_files (planned)
+DownloadK	transfer-usage	decided	PostgreSQL	5	0	1	4	bbs_user_usage_totals.download_bytes (planned)
+UploadK	transfer-usage	decided	PostgreSQL	6	0	1	4	bbs_user_usage_totals.upload_bytes (planned)
+DownloadsToday	transfer-policy-derived	derived	Derived	1	1	0	2	derived: bbs_access_policies.daily_download_file_limit (planned)
+DownloadKToday	daily-transfer-quota	decided	PostgreSQL	4	1	2	3	bbs_user_daily_usage.download_balance_bytes (planned)
+UploadKToday	daily-transfer-usage	decided	PostgreSQL	1	0	1	1	bbs_user_daily_usage.upload_bytes (planned)
+iTotalCalls	community-usage	decided	PostgreSQL	9	0	2	8	bbs_user_access_summary.successful_access_count (planned)
+iPosted	community-usage	decided	PostgreSQL	4	0	5	7	bbs_user_usage_totals.messages_posted (planned)

@@ -1,0 +1,28 @@
+B5.9 activity and usage access analysis
+=======================================
+Account-timeline fields:          2
+Time-account fields:              3
+Value-account fields:             1
+Transfer-usage fields:            7
+Community-usage fields:           2
+Fields analyzed:                  15
+Direct access occurrences:        126
+Fields already decided:           0
+Fields still open:                15
+
+FIELD	CATEGORY	READ	WRITE	READ_WRITE	METADATA	FILES	COMPONENTS	AUTHORITY	STATUS	MBSETUP_WRITES
+tFirstLoginDate	account-timeline	5	2	0	0	5	fortytwo-auth,mbsebbs,mbsetup,mbutils	Legacy bis zur Einzelentscheidung	open	0
+tLastLoginDate	account-timeline	11	4	0	0	8	fortytwo-auth,mbnntp,mbsebbs,mbsetup,mbutils	Legacy bis zur Einzelentscheidung	open	0
+iTimeLeft	time-account	18	7	1	0	9	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+iTimeUsed	time-account	4	3	1	0	5	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+iConnectTime	time-account	3	2	1	0	5	mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+Credit	value-account	3	1	0	0	2	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+Downloads	transfer-usage	7	0	2	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	0
+Uploads	transfer-usage	5	0	2	0	5	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	0
+DownloadK	transfer-usage	5	0	1	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	0
+UploadK	transfer-usage	6	0	1	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	0
+DownloadsToday	transfer-usage	1	1	0	0	2	mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+DownloadKToday	transfer-usage	4	1	2	0	3	mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+UploadKToday	transfer-usage	1	0	1	0	1	mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+iTotalCalls	community-usage	9	0	2	0	8	mbnntp,mbsebbs,mbsetup,mbutils	Legacy bis zur Einzelentscheidung	open	0
+iPosted	community-usage	4	0	5	0	7	mbnntp,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	0
