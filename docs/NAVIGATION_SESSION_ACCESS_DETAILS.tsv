@@ -1,0 +1,52 @@
+FIELD	CATEGORY	KIND	PATH	LINE	COLUMN	VARIABLE	EXPRESSION	SOURCE
+sComment	comment-mailbox	read	fortytwo-auth/src/legacy_userdb.c	667	39	record	record.sComment	!fixed_text_is_terminated(record.sComment,
+sComment	comment-mailbox	metadata	fortytwo-auth/src/legacy_userdb.c	668	46	record	record.sComment	sizeof(record.sComment)) ||
+sComment	comment-mailbox	read	fortytwo-auth/src/legacy_userdb.c	693	21	record	record.sComment	record.sComment, &audit->registration_marker_present,
+sComment	comment-mailbox	write	fortytwo-auth/src/legacy_userdb_provision.c	418	12	record	record->sComment	memcpy(record->sComment, record_marker, strlen(record_marker) + 1U);
+sComment	comment-mailbox	read	fortytwo-auth/src/legacy_userdb_provision.c	1199	39	record	record.sComment	!fixed_text_is_terminated(record.sComment,
+sComment	comment-mailbox	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1200	46	record	record.sComment	sizeof(record.sComment)) ||
+sComment	comment-mailbox	read	fortytwo-auth/src/legacy_userdb_provision.c	1217	20	record	record.sComment	if (strcmp(record.sComment, expected_record_marker) == 0 &&
+sComment	comment-mailbox	read	fortytwo-auth/src/legacy_userdb_provision.c	2374	37	record	record.sComment	fixed_text_is_terminated(record.sComment,
+sComment	comment-mailbox	metadata	fortytwo-auth/src/legacy_userdb_provision.c	2375	44	record	record.sComment	sizeof(record.sComment)) &&
+sComment	comment-mailbox	read	fortytwo-auth/src/legacy_userdb_provision.c	2380	19	record	record.sComment	strcmp(record.sComment, expected_record_marker) == 0 &&
+sComment	comment-mailbox	read	mbsebbs/door.c	267	28	exitinfo	exitinfo.sComment	"fprintf(fp, ""%s\r\n"", exitinfo.sComment);"
+sComment	comment-mailbox	write	mbsetup/m_users.c	152	5	user	user->sComment[sizeof(user->sComment) - 1]	user->sComment[sizeof(user->sComment) - 1] = '\0';
+sComment	comment-mailbox	read	mbsetup/m_users.c	539	22	usrconfig	usrconfig.sComment	show_str( 18,17,63, usrconfig.sComment);
+sComment	comment-mailbox	write	mbsetup/m_users.c	864	26	usrconfig	usrconfig.sComment	"case 9 :E_STR( 18,17,62,usrconfig.sComment,       ""A ^Comment^ for this user""); break;"
+sComment	comment-mailbox	read	mbsetup/m_users.c	1076	42	usrconfig	usrconfig.sComment	"add_webtable(wp, (char *)""Comment"", usrconfig.sComment);"
+Email	comment-mailbox	write	fortytwo-auth/src/legacy_userdb_provision.c	439	5	record	record->Email	record->Email = registration->defaults.email ? 1U : 0U;
+Email	comment-mailbox	read	mbfido/mbmsg.c	341	10	usrconfig	usrconfig.Email	if (usrconfig.Email && strlen(usrconfig.Name)) {
+Email	comment-mailbox	read	mbfido/scan.c	171	10	usrconfig	usrconfig.Email	if (usrconfig.Email && strlen(usrconfig.Name)) {
+Email	comment-mailbox	read	mbsebbs/email.c	70	9	exitinfo	exitinfo.Email	if (exitinfo.Email)
+Email	comment-mailbox	read	mbsebbs/email.c	1085	10	exitinfo	exitinfo.Email	if (!exitinfo.Email)
+Email	comment-mailbox	read	mbsebbs/funcs.c	235	41	exitinfo	exitinfo.Email	if ((CFG.EmailMode == E_PRMISP) && exitinfo.Email && CFG.GiveEmail)
+Email	comment-mailbox	read	mbsebbs/mail.c	2522	9	exitinfo	exitinfo.Email	if (exitinfo.Email && strlen(exitinfo.Password)) {
+Email	comment-mailbox	read	mbsebbs/mail.c	2749	9	exitinfo	exitinfo.Email	if (exitinfo.Email) {
+Email	comment-mailbox	write	mbsebbs/newuser.c	405	5	usrconfig	usrconfig.Email	usrconfig.Email = CFG.GiveEmail;
+Email	comment-mailbox	read	mbsebbs/offline.c	829	9	exitinfo	exitinfo.Email	if (exitinfo.Email)
+Email	comment-mailbox	read	mbsebbs/user.c	494	34	exitinfo	exitinfo.Email	ChangeHomeDir(exitinfo.Name, exitinfo.Email);
+Email	comment-mailbox	read	mbsetup/m_users.c	544	26	usrconfig	usrconfig.Email	show_bool( 9,68, usrconfig.Email);
+Email	comment-mailbox	write	mbsetup/m_users.c	869	26	usrconfig	usrconfig.Email	"case 13:E_BOOL( 9,68,   usrconfig.Email,          ""User has a ^private email^ mailbox""); break;"
+Email	comment-mailbox	read	mbsetup/m_users.c	1080	56	usrconfig	usrconfig.Email	"add_webtable(wp, (char *)""Has e-mail"", getboolean(usrconfig.Email));"
+iLastFileArea	navigation-state	write	fortytwo-auth/src/legacy_userdb_provision.c	443	5	record	record->iLastFileArea	record->iLastFileArea = 1;
+iLastFileArea	navigation-state	write	mbsebbs/bye.c	118	13	usrconfig	usrconfig.iLastFileArea	usrconfig.iLastFileArea = iAreaNumber;
+iLastFileArea	navigation-state	write	mbsebbs/newuser.c	459	5	usrconfig	usrconfig.iLastFileArea	usrconfig.iLastFileArea   = 1;
+iLastFileArea	navigation-state	read	mbsebbs/user.c	326	19	usrconfig	usrconfig.iLastFileArea	iAreaNumber = usrconfig.iLastFileArea;
+iLastFileArea	navigation-state	read	mbsebbs/user.c	585	17	exitinfo	exitinfo.iLastFileArea	SetFileArea(exitinfo.iLastFileArea);
+iLastMsgArea	navigation-state	write	fortytwo-auth/src/legacy_userdb_provision.c	444	5	record	record->iLastMsgArea	record->iLastMsgArea = 1;
+iLastMsgArea	navigation-state	write	mbsebbs/bye.c	119	13	usrconfig	usrconfig.iLastMsgArea	usrconfig.iLastMsgArea = iMsgAreaNumber;
+iLastMsgArea	navigation-state	write	mbsebbs/newuser.c	460	5	usrconfig	usrconfig.iLastMsgArea	usrconfig.iLastMsgArea    = 1;
+iLastMsgArea	navigation-state	read	mbsebbs/offline.c	714	16	exitinfo	exitinfo.iLastMsgArea	SetMsgArea(exitinfo.iLastMsgArea);
+iLastMsgArea	navigation-state	read	mbsebbs/user.c	327	22	usrconfig	usrconfig.iLastMsgArea	iMsgAreaNumber = usrconfig.iLastMsgArea;
+iLastMsgArea	navigation-state	read	mbsebbs/user.c	590	16	usrconfig	usrconfig.iLastMsgArea	SetMsgArea(usrconfig.iLastMsgArea);
+OLRext	offline-reader-state	write	mbsebbs/offline.c	1208	9	exitinfo	exitinfo.OLRext	exitinfo.OLRext = 0;
+OLRext	offline-reader-state	read	mbsebbs/offline.c	1211	74	exitinfo	exitinfo.OLRext	"snprintf(Pktname, 32, ""%s%s%d"", CFG.bbsid , Extensions[tp->tm_wday], exitinfo.OLRext);"
+OLRext	offline-reader-state	read-write	mbsebbs/offline.c	1434	9	exitinfo	exitinfo.OLRext	exitinfo.OLRext++;
+OLRext	offline-reader-state	read	mbsebbs/offline.c	1435	13	exitinfo	exitinfo.OLRext	if (exitinfo.OLRext > 9)
+OLRext	offline-reader-state	write	mbsebbs/offline.c	1436	13	exitinfo	exitinfo.OLRext	exitinfo.OLRext = 0; /* After 9, go back to 0 */
+OLRext	offline-reader-state	read	mbsetup/m_users.c	625	21	usrconfig	usrconfig.OLRext	show_int( 17,71,   usrconfig.OLRext);
+OLRext	offline-reader-state	write	mbsetup/m_users.c	697	34	usrconfig	usrconfig.OLRext	"case 25:E_INT( 17,71,usrconfig.OLRext,       ""Next ^OLR^ packet extension""); break;"
+OLRlast	offline-reader-state	read	mbsebbs/offline.c	1207	22	exitinfo	exitinfo.OLRlast	if (strcmp(Temp2,exitinfo.OLRlast)) { /* Last download wasn't today */
+OLRlast	offline-reader-state	write	mbsebbs/offline.c	1437	18	exitinfo	exitinfo.OLRlast	"snprintf(exitinfo.OLRlast, 12, ""%s"", Temp2); /* Save the last download date/time */"
+OLRlast	offline-reader-state	write	mbsetup/m_users.c	159	5	user	user->OLRlast[sizeof(user->OLRlast) - 1]	user->OLRlast[sizeof(user->OLRlast) - 1] = '\0';
+iStatus	session-runtime	write	mbsebbs/whoson.c	218	5	exitinfo	exitinfo.iStatus	exitinfo.iStatus = iStatus;

@@ -1,0 +1,33 @@
+B5.10 navigation and session ownership
+=======================================
+Fields documented:                  21
+Persistent PostgreSQL decisions:    6
+Session-only values:                1
+Retired legacy fields:              14
+Open B5.10 decisions:               0
+Fields with direct access:          7
+Fields without direct access:       14
+Direct access occurrences:          51
+
+FIELD	CATEGORY	READ	WRITE	READ_WRITE	METADATA	ACCESS_COUNT	FILES	COMPONENTS	STATUS	AUTHORITY	TARGET
+sComment	comment-mailbox	9	3	0	3	15	4	fortytwo-auth,mbsebbs,mbsetup	persistent	PostgreSQL	bbs_user_admin_notes (planned).note_text
+Email	comment-mailbox	11	3	0	0	14	10	fortytwo-auth,mbfido,mbsebbs,mbsetup	persistent	PostgreSQL	bbs_user_mailbox_settings (planned).private_mailbox_enabled
+iLastFileArea	navigation-state	2	3	0	0	5	4	fortytwo-auth,mbsebbs	persistent	PostgreSQL	bbs_user_navigation_state (planned).last_file_area_id
+iLastFileGroup	navigation-state	0	0	0	0	0	0		retired	none	—
+iLastMsgArea	navigation-state	3	3	0	0	6	5	fortytwo-auth,mbsebbs	persistent	PostgreSQL	bbs_user_navigation_state (planned).last_message_area_id
+iLastMsgGroup	navigation-state	0	0	0	0	0	0		retired	none	—
+LastPktNum	offline-reader-state	0	0	0	0	0	0		retired	none	—
+OLRext	offline-reader-state	3	3	1	0	7	2	mbsebbs,mbsetup	persistent	PostgreSQL	bbs_user_offline_reader_state (planned).packet_extension_counter
+OLRlast	offline-reader-state	1	2	0	0	3	2	mbsebbs,mbsetup	persistent	PostgreSQL	bbs_user_offline_reader_state (planned).last_download_on
+xChat	session-runtime	0	0	0	0	0	0		retired	none	—
+xFsMsged	session-runtime	0	0	0	0	0	0		retired	none	—
+xScreenLen	session-runtime	0	0	0	0	0	0		retired	none	—
+xHangUps	session-runtime	0	0	0	0	0	0		retired	none	—
+Paged	session-runtime	0	0	0	0	0	0		retired	none	—
+iTransferTime	session-runtime	0	0	0	0	0	0		retired	none	—
+iStatus	session-runtime	0	1	0	0	1	1	mbsebbs	session-only	runtime session	bbs_sessions.activity_status_code
+CrtDef	iemsi-compatibility	0	0	0	0	0	0		retired	none	—
+Protocol	iemsi-compatibility	0	0	0	0	0	0		retired	none	—
+IEMSI	iemsi-compatibility	0	0	0	0	0	0		retired	none	—
+ieMNU	iemsi-compatibility	0	0	0	0	0	0		retired	none	—
+ieTAB	iemsi-compatibility	0	0	0	0	0	0		retired	none	—

@@ -1,0 +1,36 @@
+B5.10 navigation and session access analysis
+============================================
+Comment/mailbox fields:          2
+Navigation fields:               4
+Offline-reader state fields:     3
+Session-runtime fields:          7
+IEMSI compatibility fields:      5
+Fields analyzed:                 21
+Fields with direct access:       7
+Fields without direct access:    14
+Direct access occurrences:       51
+Fields already decided:          0
+Fields still open:               21
+
+FIELD	CATEGORY	READ	WRITE	READ_WRITE	METADATA	FILES	COMPONENTS	AUTHORITY	STATUS	MBSETUP_WRITES
+sComment	comment-mailbox	9	3	0	3	4	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+Email	comment-mailbox	11	3	0	0	10	fortytwo-auth,mbfido,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+iLastFileArea	navigation-state	2	3	0	0	4	fortytwo-auth,mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+iLastFileGroup	navigation-state	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+iLastMsgArea	navigation-state	3	3	0	0	5	fortytwo-auth,mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+iLastMsgGroup	navigation-state	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+LastPktNum	offline-reader-state	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+OLRext	offline-reader-state	3	3	1	0	2	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+OLRlast	offline-reader-state	1	2	0	0	2	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+xChat	session-runtime	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+xFsMsged	session-runtime	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+xScreenLen	session-runtime	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+xHangUps	session-runtime	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+Paged	session-runtime	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+iTransferTime	session-runtime	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+iStatus	session-runtime	0	1	0	0	1	mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+CrtDef	iemsi-compatibility	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+Protocol	iemsi-compatibility	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+IEMSI	iemsi-compatibility	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+ieMNU	iemsi-compatibility	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
+ieTAB	iemsi-compatibility	0	0	0	0	0		Legacy bis zur Einzelentscheidung	open	0
