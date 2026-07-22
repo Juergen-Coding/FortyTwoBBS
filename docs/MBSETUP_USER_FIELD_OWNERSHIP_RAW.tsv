@@ -1,0 +1,21 @@
+B5.6 user-field ownership baseline
+==================================
+Fields documented:                  72
+Ownership decisions retained:       10
+Open ownership decisions:           62
+Fields with direct writers:         58
+Fields without direct writers:      14
+Fields directly written by mbsetup: 40
+Fields exposed to record rewrites:  72
+
+Decided fields:
+  sUserName: PostgreSQL -> bbs_user_profiles.display_name
+  Name: PostgreSQL -> bbs_legacy_mbse_bindings.legacy_name
+  xPassword: PostgreSQL-Credential -> not migrated
+  Security: PostgreSQL -> bbs_user_roles / bbs_role_capabilities.Rollen- und Capability-Zuordnung
+  Deleted: PostgreSQL -> bbs_users.account_state / deleted_at
+  LockedOut: PostgreSQL -> bbs_users.account_state / locked_reason
+  tLastPwdChange: PostgreSQL -> bbs_password_credentials.changed_at
+  iLanguage: PostgreSQL -> bbs_user_profiles.language_code
+  sHandle: PostgreSQL -> bbs_user_profiles.handle
+  Password: PostgreSQL-Credential -> not migrated
