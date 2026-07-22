@@ -1,0 +1,10 @@
+userrec whole-record access candidates
+======================================
+Candidate occurrences: 140
+Source files involved: 24
+
+KIND	OCCURRENCES	FILES
+metadata	57	14
+record-read	23	9
+record-read-write	3	1
+record-write	57	23

@@ -1,0 +1,81 @@
+userrec direct field-access analysis
+====================================
+Fields reported:             72
+Fields directly referenced: 58
+Fields without direct refs: 14
+Direct member occurrences:  991
+Source files involved:      44
+
+FIELD	READ	WRITE	READ_WRITE	METADATA	FILES
+sUserName	95	4	4	3	27
+Name	158	4	0	3	33
+xPassword	2	1	0	0	1
+sVoicePhone	10	4	0	0	5
+sDataPhone	9	5	0	0	5
+sLocation	15	4	1	0	10
+address	25	3	0	0	4
+sDateOfBirth	9	5	0	0	6
+tFirstLoginDate	5	2	0	0	5
+tLastLoginDate	11	4	0	0	8
+Security	91	6	0	0	18
+sComment	9	3	0	3	4
+sExpiryDate	4	4	0	0	5
+ExpirySec	3	3	0	0	4
+sSex	5	7	0	0	3
+Hidden	6	1	0	0	4
+HotKeys	7	7	0	0	7
+GraphMode	20	7	0	0	9
+Deleted	14	2	0	0	9
+NeverDelete	3	1	0	0	2
+xChat	0	0	0	0	0
+LockedOut	8	1	0	0	5
+DoNotDisturb	7	4	0	0	5
+Cls	2	3	0	0	3
+More	2	3	0	0	3
+xFsMsged	0	0	0	0	0
+MailScan	6	8	0	0	6
+Guest	5	1	0	0	4
+OL_ExtInfo	8	3	0	0	4
+iTotalCalls	9	0	2	0	8
+iTimeLeft	18	7	1	0	9
+iConnectTime	3	2	1	0	5
+iTimeUsed	4	3	1	0	5
+xScreenLen	0	0	0	0	0
+tLastPwdChange	2	3	0	0	4
+xHangUps	0	0	0	0	0
+Credit	3	1	0	0	2
+Paged	0	0	0	0	0
+MsgEditor	7	9	0	0	7
+LastPktNum	0	0	0	0	0
+Archiver	10	6	0	0	5
+iLastFileArea	2	3	0	0	4
+iLastFileGroup	0	0	0	0	0
+sProtocol	6	5	1	0	7
+Downloads	7	0	2	0	4
+Uploads	5	0	2	0	5
+UploadK	6	0	1	0	4
+DownloadK	5	0	1	0	4
+DownloadKToday	4	1	2	0	3
+UploadKToday	1	0	1	0	1
+iTransferTime	0	0	0	0	0
+iLastMsgArea	3	3	0	0	5
+iLastMsgGroup	0	0	0	0	0
+iPosted	4	0	5	0	7
+iLanguage	4	4	0	0	6
+sHandle	46	7	0	4	15
+iStatus	0	1	0	0	1
+DownloadsToday	1	1	0	0	2
+CrtDef	0	0	0	0	0
+Protocol	0	0	0	0	0
+IEMSI	0	0	0	0	0
+ieMNU	0	0	0	0	0
+ieTAB	0	0	0	0	0
+ieASCII8	0	2	0	0	2
+ieNEWS	6	5	0	0	6
+ieFILE	6	8	0	0	6
+Email	11	3	0	0	10
+FSemacs	6	3	0	0	4
+Password	11	6	0	7	9
+Charset	21	3	0	0	9
+OLRext	3	3	1	0	2
+OLRlast	1	2	0	0	2
