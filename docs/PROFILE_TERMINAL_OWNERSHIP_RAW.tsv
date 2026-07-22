@@ -1,0 +1,40 @@
+B5.8 profile and terminal ownership decisions
+=============================================
+Profile fields:                     9
+Terminal-preference fields:         15
+Fields decided:                     24
+Retained PostgreSQL decisions:      3
+New PostgreSQL decisions:           18
+Retired legacy fields:              3
+Open B5.8 decisions:              0
+Direct read occurrences:            332
+Direct write occurrences:           119
+Direct read-write occurrences:      6
+Direct metadata occurrences:        7
+Direct access occurrences:          464
+
+FIELD	CATEGORY	STATUS	AUTHORITY	READ	WRITE	READ_WRITE	FILES	TARGET
+sUserName	profile-identity	retained	PostgreSQL	95	4	4	27	bbs_user_profiles.display_name
+sHandle	profile-identity	retained	PostgreSQL	46	7	0	15	bbs_user_profiles.handle
+iLanguage	profile-preference	retained	PostgreSQL	4	4	0	6	bbs_user_profiles.language_code
+sVoicePhone	private-profile	decided	PostgreSQL	10	4	0	5	bbs_user_private_profiles.voice_phone (planned)
+sDataPhone	private-profile	decided	PostgreSQL	9	5	0	5	bbs_user_private_profiles.data_phone (planned)
+sLocation	public-profile	decided	PostgreSQL	15	4	1	10	bbs_user_profiles.location_text (planned)
+address	private-profile	decided	PostgreSQL	25	3	0	4	bbs_user_private_profiles.postal_address_lines (planned)
+sDateOfBirth	private-profile	decided	PostgreSQL	9	5	0	6	bbs_user_private_profiles.date_of_birth (planned)
+sSex	private-profile	decided	PostgreSQL	5	7	0	3	bbs_user_private_profiles.sex_code (planned)
+HotKeys	terminal-preference	decided	PostgreSQL	7	7	0	7	bbs_user_preferences.hotkeys_enabled (planned)
+GraphMode	terminal-preference	decided	PostgreSQL	20	7	0	9	bbs_user_preferences.ansi_enabled (planned)
+DoNotDisturb	terminal-preference	decided	PostgreSQL	7	4	0	5	bbs_user_preferences.do_not_disturb (planned)
+Cls	retired-preference	retired	Retired	2	3	0	3	—
+More	retired-preference	retired	Retired	2	3	0	3	—
+MailScan	login-preference	decided	PostgreSQL	6	8	0	6	bbs_user_preferences.scan_new_mail (planned)
+OL_ExtInfo	offline-reader-preference	decided	PostgreSQL	8	3	0	4	bbs_user_preferences.offline_extended_info (planned)
+MsgEditor	editor-preference	decided	PostgreSQL	7	9	0	7	bbs_user_preferences.message_editor (planned)
+Archiver	offline-reader-preference	decided	PostgreSQL	10	6	0	5	bbs_user_preferences.archive_format (planned)
+sProtocol	transfer-preference	decided	PostgreSQL	6	5	1	7	bbs_user_preferences.transfer_protocol (planned)
+ieASCII8	retired-preference	retired	Retired	0	2	0	2	—
+ieNEWS	login-preference	decided	PostgreSQL	6	5	0	6	bbs_user_preferences.show_news_on_login (planned)
+ieFILE	login-preference	decided	PostgreSQL	6	8	0	6	bbs_user_preferences.show_new_files_on_login (planned)
+FSemacs	editor-preference	decided	PostgreSQL	6	3	0	4	bbs_user_preferences.fs_editor_keymap (planned)
+Charset	terminal-preference	decided	PostgreSQL	21	3	0	9	bbs_user_preferences.character_set (planned)
