@@ -1,0 +1,34 @@
+B5.8 profile and terminal-preference access analysis
+====================================================
+Profile fields:                  9
+Terminal-preference fields:      15
+Fields analyzed:                 24
+Direct access occurrences:       464
+Fields already PostgreSQL-led:   3
+Fields still open:               21
+
+FIELD	CATEGORY	READ	WRITE	READ_WRITE	METADATA	FILES	COMPONENTS	AUTHORITY	STATUS	MBSETUP_WRITES
+sUserName	profile	95	4	4	3	27	fortytwo-auth,lib,mbfido,mbsebbs,mbsetup,mbutils,unix	PostgreSQL	decided	2
+sHandle	profile	46	7	0	4	15	fortytwo-auth,lib,mbsebbs,mbsetup,unix	PostgreSQL	decided	2
+iLanguage	profile	4	4	0	0	6	fortytwo-auth,mbsebbs,mbsetup	PostgreSQL	decided	1
+sVoicePhone	profile	10	4	0	0	5	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+sDataPhone	profile	9	5	0	0	5	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+sLocation	profile	15	4	1	0	10	mbnntp,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+address	profile	25	3	0	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+sDateOfBirth	profile	9	5	0	0	6	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+sSex	profile	5	7	0	0	3	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	3
+HotKeys	terminal-preference	7	7	0	0	7	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+GraphMode	terminal-preference	20	7	0	0	9	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+DoNotDisturb	terminal-preference	7	4	0	0	5	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+Cls	terminal-preference	2	3	0	0	3	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+More	terminal-preference	2	3	0	0	3	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+MailScan	terminal-preference	6	8	0	0	6	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+OL_ExtInfo	terminal-preference	8	3	0	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+MsgEditor	terminal-preference	7	9	0	0	7	fortytwo-auth,mbsebbs,mbsetup,mbutils	Legacy bis zur Einzelentscheidung	open	1
+Archiver	terminal-preference	10	6	0	0	5	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+sProtocol	terminal-preference	6	5	1	0	7	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+ieASCII8	terminal-preference	0	2	0	0	2	fortytwo-auth,mbsebbs	Legacy bis zur Einzelentscheidung	open	0
+ieNEWS	terminal-preference	6	5	0	0	6	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+ieFILE	terminal-preference	6	8	0	0	6	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+FSemacs	terminal-preference	6	3	0	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+Charset	terminal-preference	21	3	0	0	9	fortytwo-auth,mbnntp,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
