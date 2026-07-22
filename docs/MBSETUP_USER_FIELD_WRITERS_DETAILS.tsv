@@ -1,0 +1,278 @@
+SCOPE	FIELD	KIND	PATH	LINE	COLUMN	VARIABLE	EXPRESSION	SOURCE
+field	sUserName	write	fortytwo-auth/src/legacy_userdb_provision.c	415	12	record	record->sUserName	memcpy(record->sUserName, registration->display_name,
+field	sUserName	read-write	lib/jammsg.c	144	25	_usr	_usr.sUserName	mycrc = StringCRC32(tl(_usr.sUserName));
+field	sUserName	read-write	lib/jammsg.c	834	31	_usr	_usr.sUserName	mycrc = StringCRC32(tl(_usr.sUserName));
+field	sUserName	read-write	lib/jammsg.c	850	31	_usr	_usr.sUserName	mycrc = StringCRC32(tl(_usr.sUserName));
+field	sUserName	read-write	mbsebbs/mail.c	2460	21	usrconfig	usrconfig.sUserName	if (StringCRC32(tl(usrconfig.sUserName)) == Crc) {
+field	sUserName	write	mbsebbs/newuser.c	192	12	usrconfig	usrconfig.sUserName	strcpy(usrconfig.sUserName, FullName);
+field	sUserName	write	mbsetup/m_users.c	144	5	user	user->sUserName[sizeof(user->sUserName) - 1]	user->sUserName[sizeof(user->sUserName) - 1] = '\0';
+field	sUserName	write	mbsetup/m_users.c	847	26	usrconfig	usrconfig.sUserName	"case 1:	E_STR(  6,17,35,usrconfig.sUserName,      ""The ^First and Last name^ of this user""); break;"
+field	Name	write	fortytwo-auth/src/legacy_userdb_provision.c	417	12	record	record->Name	memcpy(record->Name, registration->legacy_name, legacy_length + 1U);
+field	Name	write	mbnntp/auth.c	153	2	usrconfig	usrconfig.Name[sizeof(usrconfig.Name) - 1]	usrconfig.Name[sizeof(usrconfig.Name) - 1] = '\0';
+field	Name	write	mbsebbs/newuser.c	193	12	usrconfig	usrconfig.Name	strcpy(usrconfig.Name, UnixName);
+field	Name	write	mbsetup/m_users.c	145	5	user	user->Name[sizeof(user->Name) - 1]	user->Name[sizeof(user->Name) - 1] = '\0';
+field	xPassword	write	fortytwo-auth/src/legacy_userdb_provision.c	424	5	record	record->xPassword	record->xPassword = 0U;
+field	sVoicePhone	write	mbsebbs/change.c	671	13	exitinfo	exitinfo.sVoicePhone	strcpy(exitinfo.sVoicePhone, temp);
+field	sVoicePhone	write	mbsebbs/newuser.c	216	10	usrconfig	usrconfig.sVoicePhone	strcpy(usrconfig.sVoicePhone, temp);
+field	sVoicePhone	write	mbsetup/m_users.c	146	5	user	user->sVoicePhone[sizeof(user->sVoicePhone) - 1]	user->sVoicePhone[sizeof(user->sVoicePhone) - 1] = '\0';
+field	sVoicePhone	write	mbsetup/m_users.c	646	37	usrconfig	usrconfig.sVoicePhone	"case 6: E_STR(11,17,16, usrconfig.sVoicePhone, ""The ^Voice Phone^ number of this user""); break;"
+field	sDataPhone	write	mbsebbs/change.c	704	13	exitinfo	exitinfo.sDataPhone	strcpy(exitinfo.sDataPhone, temp);
+field	sDataPhone	write	mbsebbs/newuser.c	239	10	usrconfig	usrconfig.sDataPhone	strcpy(usrconfig.sDataPhone, usrconfig.sVoicePhone);
+field	sDataPhone	write	mbsebbs/newuser.c	249	10	usrconfig	usrconfig.sDataPhone	strcpy(usrconfig.sDataPhone, temp);
+field	sDataPhone	write	mbsetup/m_users.c	147	5	user	user->sDataPhone[sizeof(user->sDataPhone) - 1]	user->sDataPhone[sizeof(user->sDataPhone) - 1] = '\0';
+field	sDataPhone	write	mbsetup/m_users.c	647	37	usrconfig	usrconfig.sDataPhone	"case 7: E_STR(12,17,16, usrconfig.sDataPhone,  ""The ^Data Phone^ number of this user""); break;"
+field	sLocation	write	mbsebbs/change.c	558	12	exitinfo	exitinfo.sLocation	Setup(exitinfo.sLocation,temp);
+field	sLocation	read-write	mbsebbs/door.c	354	38	exitinfo	exitinfo.sLocation	"fprintf(fp, ""%s\r\n"", tu(exitinfo.sLocation));"
+field	sLocation	write	mbsebbs/newuser.c	280	10	usrconfig	usrconfig.sLocation	strcpy(usrconfig.sLocation, temp);
+field	sLocation	write	mbsetup/m_users.c	148	5	user	user->sLocation[sizeof(user->sLocation) - 1]	user->sLocation[sizeof(user->sLocation) - 1] = '\0';
+field	sLocation	write	mbsetup/m_users.c	642	36	usrconfig	usrconfig.sLocation	"case 2: E_STR( 7,17,27,usrconfig.sLocation,""The users ^Location^""); break;"
+field	address	write	mbsebbs/change.c	602	9	exitinfo	exitinfo.address[i]	Setup(exitinfo.address[i], temp);
+field	address	write	mbsebbs/newuser.c	298	11	usrconfig	usrconfig.address[i]	GetstrC(usrconfig.address[i], 40);
+field	address	write	mbsetup/m_users.c	645	37	usrconfig	usrconfig.address[j-3]	"case 5: E_STR(j+5,17,40,usrconfig.address[j-3],""^Address^""); break;"
+field	sDateOfBirth	write	mbsebbs/change.c	823	12	exitinfo	exitinfo.sDateOfBirth	Setup(exitinfo.sDateOfBirth, temp);
+field	sDateOfBirth	write	mbsebbs/newuser.c	393	14	usrconfig	usrconfig.sDateOfBirth	strcpy(usrconfig.sDateOfBirth,temp);
+field	sDateOfBirth	write	mbsebbs/user.c	369	9	usrconfig	usrconfig.sDateOfBirth	strcpy(usrconfig.sDateOfBirth, exitinfo.sDateOfBirth);
+field	sDateOfBirth	write	mbsetup/m_users.c	151	5	user	user->sDateOfBirth[sizeof(user->sDateOfBirth) - 1]	user->sDateOfBirth[sizeof(user->sDateOfBirth) - 1] = '\0';
+field	sDateOfBirth	write	mbsetup/m_users.c	648	37	usrconfig	usrconfig.sDateOfBirth	"case 8: E_STR(13,17,10, usrconfig.sDateOfBirth,""The ^Date of Birth^ in DD-MM-YYYY format""); break;"
+field	tFirstLoginDate	write	fortytwo-auth/src/legacy_userdb_provision.c	425	5	record	record->tFirstLoginDate	record->tFirstLoginDate = (int32_t)registration->registered_at;
+field	tFirstLoginDate	write	mbsebbs/newuser.c	400	5	usrconfig	usrconfig.tFirstLoginDate	usrconfig.tFirstLoginDate = ltime; /* Set first login date to current date */
+field	tLastLoginDate	write	fortytwo-auth/src/legacy_userdb_provision.c	426	5	record	record->tLastLoginDate	record->tLastLoginDate = 0;
+field	tLastLoginDate	write	mbnntp/auth.c	191	5	usrconfig	usrconfig.tLastLoginDate	usrconfig.tLastLoginDate = time(NULL);
+field	tLastLoginDate	write	mbsebbs/newuser.c	401	5	usrconfig	usrconfig.tLastLoginDate	usrconfig.tLastLoginDate = (time_t)0; /* To force setting new limits */
+field	tLastLoginDate	write	mbsebbs/user.c	462	5	usrconfig	usrconfig.tLastLoginDate	usrconfig.tLastLoginDate = ltime; /* Set current login to current date */
+field	Security	write	fortytwo-auth/src/legacy_userdb_provision.c	427	5	record	record->Security.level	record->Security.level = registration->defaults.security_level;
+field	Security	write	fortytwo-auth/src/legacy_userdb_provision.c	428	5	record	record->Security.flags	record->Security.flags = registration->defaults.security_flags;
+field	Security	write	fortytwo-auth/src/legacy_userdb_provision.c	429	5	record	record->Security.notflags	record->Security.notflags = registration->defaults.security_notflags;
+field	Security	write	mbsebbs/newuser.c	404	5	usrconfig	usrconfig.Security	usrconfig.Security = CFG.newuser_access;
+field	Security	write	mbsebbs/user.c	387	2	usrconfig	usrconfig.Security	usrconfig.Security = usrconfig.ExpirySec;
+field	Security	write	mbsetup/m_users.c	849	3	usrconfig	usrconfig.Security	"usrconfig.Security = edit_usec(7,17,usrconfig.Security, (char *)""15.2   EDIT USER SECURITY"");"
+field	sComment	write	fortytwo-auth/src/legacy_userdb_provision.c	418	12	record	record->sComment	memcpy(record->sComment, record_marker, strlen(record_marker) + 1U);
+field	sComment	write	mbsetup/m_users.c	152	5	user	user->sComment[sizeof(user->sComment) - 1]	user->sComment[sizeof(user->sComment) - 1] = '\0';
+field	sComment	write	mbsetup/m_users.c	864	26	usrconfig	usrconfig.sComment	"case 9 :E_STR( 18,17,62,usrconfig.sComment,       ""A ^Comment^ for this user""); break;"
+field	sExpiryDate	write	fortytwo-auth/src/legacy_userdb_provision.c	419	12	record	record->sExpiryDate	"memcpy(record->sExpiryDate, ""00-00-0000"", sizeof(""00-00-0000""));"
+field	sExpiryDate	write	mbsebbs/newuser.c	402	12	usrconfig	usrconfig.sExpiryDate	"strcpy(usrconfig.sExpiryDate,""00-00-0000"");"
+field	sExpiryDate	write	mbsetup/m_users.c	153	5	user	user->sExpiryDate[sizeof(user->sExpiryDate) - 1]	user->sExpiryDate[sizeof(user->sExpiryDate) - 1] = '\0';
+field	sExpiryDate	write	mbsetup/m_users.c	858	26	usrconfig	usrconfig.sExpiryDate	"case 3 :E_STR(  8,17,10,usrconfig.sExpiryDate,    ""The ^Expiry Date^ in DD-MM-YYYY format, 00-00-0000 is no expire""); break;"
+field	ExpirySec	write	fortytwo-auth/src/legacy_userdb_provision.c	430	5	record	record->ExpirySec	record->ExpirySec = record->Security;
+field	ExpirySec	write	mbsebbs/newuser.c	403	5	usrconfig	usrconfig.ExpirySec	usrconfig.ExpirySec = CFG.newuser_access;
+field	ExpirySec	write	mbsetup/m_users.c	859	26	usrconfig	usrconfig.ExpirySec.level	"case 4 :E_INT(  9,17,   usrconfig.ExpirySec.level,""The ^Expiry Level^ for this user""); break;"
+field	sSex	write	fortytwo-auth/src/legacy_userdb_provision.c	420	12	record	record->sSex	"memcpy(record->sSex, ""Unknown"", sizeof(""Unknown""));"
+field	sSex	write	mbsebbs/newuser.c	347	12	usrconfig	usrconfig.sSex	"snprintf(usrconfig.sSex, 8, ""Male"");"
+field	sSex	write	mbsebbs/newuser.c	353	12	usrconfig	usrconfig.sSex	"snprintf(usrconfig.sSex, 8, ""Female"");"
+field	sSex	write	mbsebbs/newuser.c	365	11	usrconfig	usrconfig.sSex	"snprintf(usrconfig.sSex, 8, ""Unknown""); /* If set off, set to Unknown */"
+field	sSex	write	mbsetup/m_users.c	154	5	user	user->sSex[sizeof(user->sSex) - 1]	user->sSex[sizeof(user->sSex) - 1] = '\0';
+field	sSex	write	mbsetup/m_users.c	659	12	usrconfig	usrconfig.sSex	"strcpy(usrconfig.sSex, ""Female"");"
+field	sSex	write	mbsetup/m_users.c	661	12	usrconfig	usrconfig.sSex	"strcpy(usrconfig.sSex, ""Male\0\0"");"
+field	Hidden	write	mbsetup/m_users.c	861	26	usrconfig	usrconfig.Hidden	"case 6 :E_BOOL(15,17,   usrconfig.Hidden,         ""Is user ^hidden^ on the BBS""); break;"
+field	HotKeys	write	fortytwo-auth/src/legacy_userdb_provision.c	432	5	record	record->HotKeys	record->HotKeys = 1U;
+field	HotKeys	write	mbsebbs/change.c	345	2	exitinfo	exitinfo.HotKeys	exitinfo.HotKeys = FALSE;
+field	HotKeys	write	mbsebbs/change.c	349	2	exitinfo	exitinfo.HotKeys	exitinfo.HotKeys = TRUE;
+field	HotKeys	write	mbsebbs/newuser.c	441	3	usrconfig	usrconfig.HotKeys	usrconfig.HotKeys = TRUE;
+field	HotKeys	write	mbsebbs/newuser.c	445	3	usrconfig	usrconfig.HotKeys	usrconfig.HotKeys = FALSE;
+field	HotKeys	write	mbsebbs/newuser.c	453	2	usrconfig	usrconfig.HotKeys	usrconfig.HotKeys = TRUE; /* Default set it to Hotkeys */
+field	HotKeys	write	mbsetup/m_users.c	686	34	usrconfig	usrconfig.HotKeys	"case 15:E_BOOL( 7,71,usrconfig.HotKeys,      ""Is user using ^HotKeys^ for menus""); break;"
+field	GraphMode	write	fortytwo-auth/src/legacy_userdb_provision.c	431	5	record	record->GraphMode	record->GraphMode = 1U;
+field	GraphMode	write	mbsebbs/change.c	632	9	exitinfo	exitinfo.GraphMode	exitinfo.GraphMode = FALSE;
+field	GraphMode	write	mbsebbs/change.c	636	9	exitinfo	exitinfo.GraphMode	exitinfo.GraphMode = TRUE;
+field	GraphMode	write	mbsebbs/newuser.c	417	17	usrconfig	usrconfig.GraphMode	usrconfig.GraphMode = TRUE;
+field	GraphMode	write	mbsebbs/newuser.c	421	17	usrconfig	usrconfig.GraphMode	usrconfig.GraphMode = FALSE;
+field	GraphMode	write	mbsebbs/newuser.c	429	9	usrconfig	usrconfig.GraphMode	usrconfig.GraphMode = TRUE; /* Default set it to ANSI */
+field	GraphMode	write	mbsetup/m_users.c	687	34	usrconfig	usrconfig.GraphMode	"case 16:E_BOOL( 8,71,usrconfig.GraphMode,    ""Is user using ^ANSI^ color""); break;"
+field	Deleted	write	mbsetup/m_users.c	862	26	usrconfig	usrconfig.Deleted	"case 7 :E_BOOL(16,17,   usrconfig.Deleted,        ""Is user marked for ^deletion^""); break;"
+field	Deleted	write	mbutils/mbuser.c	286	3	usr	usr.Deleted	usr.Deleted = TRUE;
+field	NeverDelete	write	mbsetup/m_users.c	863	26	usrconfig	usrconfig.NeverDelete	"case 8 :E_BOOL(17,17,   usrconfig.NeverDelete,    ""^Never delete^ this user""); break;"
+field	LockedOut	write	mbsetup/m_users.c	866	26	usrconfig	usrconfig.LockedOut	"case 10:E_BOOL( 6,68,   usrconfig.LockedOut,      ""User is ^Locked Out^ of this BBS""); break;"
+field	DoNotDisturb	write	mbsebbs/change.c	505	2	exitinfo	exitinfo.DoNotDisturb	exitinfo.DoNotDisturb = FALSE;
+field	DoNotDisturb	write	mbsebbs/change.c	509	2	exitinfo	exitinfo.DoNotDisturb	exitinfo.DoNotDisturb = TRUE;
+field	DoNotDisturb	write	mbsebbs/newuser.c	463	5	usrconfig	usrconfig.DoNotDisturb	usrconfig.DoNotDisturb = FALSE;
+field	DoNotDisturb	write	mbsetup/m_users.c	688	34	usrconfig	usrconfig.DoNotDisturb	"case 17:E_BOOL( 9,71,usrconfig.DoNotDisturb, ""User will not be ^disturbed^""); break;"
+field	Cls	write	fortytwo-auth/src/legacy_userdb_provision.c	433	5	record	record->Cls	record->Cls = 1U;
+field	Cls	write	mbsebbs/newuser.c	520	5	usrconfig	usrconfig.Cls	usrconfig.Cls          = TRUE;
+field	Cls	write	mbsetup/m_users.c	689	34	usrconfig	usrconfig.Cls	"case 18:E_BOOL(10,71,usrconfig.Cls,          ""Send ^ClearScreen code^ to users terminal""); break;"
+field	More	write	fortytwo-auth/src/legacy_userdb_provision.c	434	5	record	record->More	record->More = 1U;
+field	More	write	mbsebbs/newuser.c	521	5	usrconfig	usrconfig.More	usrconfig.More         = TRUE;
+field	More	write	mbsetup/m_users.c	690	34	usrconfig	usrconfig.More	"case 19:E_BOOL(11,71,usrconfig.More,         ""User uses the ^More prompt^""); break;"
+field	MailScan	write	fortytwo-auth/src/legacy_userdb_provision.c	435	5	record	record->MailScan	record->MailScan = registration->defaults.mail_scan ? 1U : 0U;
+field	MailScan	write	mbsebbs/change.c	371	2	exitinfo	exitinfo.MailScan	exitinfo.MailScan = FALSE;
+field	MailScan	write	mbsebbs/change.c	375	2	exitinfo	exitinfo.MailScan	exitinfo.MailScan = TRUE;
+field	MailScan	write	mbsebbs/newuser.c	466	14	usrconfig	usrconfig.MailScan	case NO:    usrconfig.MailScan = FALSE;
+field	MailScan	write	mbsebbs/newuser.c	468	14	usrconfig	usrconfig.MailScan	case YES:   usrconfig.MailScan = TRUE;
+field	MailScan	write	mbsebbs/newuser.c	479	8	usrconfig	usrconfig.MailScan	usrconfig.MailScan = TRUE;
+field	MailScan	write	mbsebbs/newuser.c	483	8	usrconfig	usrconfig.MailScan	usrconfig.MailScan = FALSE;
+field	MailScan	write	mbsetup/m_users.c	693	34	usrconfig	usrconfig.MailScan	"case 21:E_BOOL(13,71,usrconfig.MailScan,     ""Don't check for ^new mail^""); break;"
+field	Guest	write	mbsetup/m_users.c	867	26	usrconfig	usrconfig.Guest	"case 11:E_BOOL( 7,68,   usrconfig.Guest,          ""This is a ^Guest^ account""); break;"
+field	OL_ExtInfo	write	mbsebbs/change.c	1089	2	exitinfo	exitinfo.OL_ExtInfo	exitinfo.OL_ExtInfo = FALSE;
+field	OL_ExtInfo	write	mbsebbs/change.c	1093	2	exitinfo	exitinfo.OL_ExtInfo	exitinfo.OL_ExtInfo = TRUE;
+field	OL_ExtInfo	write	mbsetup/m_users.c	868	26	usrconfig	usrconfig.OL_ExtInfo	"case 12:E_BOOL( 8,68,   usrconfig.OL_ExtInfo,     ""Add ^Extended Message Info^ in OLR download""); break;"
+field	iTotalCalls	read-write	mbnntp/auth.c	192	5	usrconfig	usrconfig.iTotalCalls	usrconfig.iTotalCalls++;
+field	iTotalCalls	read-write	mbsebbs/user.c	463	5	usrconfig	usrconfig.iTotalCalls	usrconfig.iTotalCalls++;
+field	iTimeLeft	write	fortytwo-auth/src/legacy_userdb_provision.c	440	5	record	record->iTimeLeft	record->iTimeLeft = 20;
+field	iTimeLeft	write	mbsebbs/newuser.c	455	5	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft    = 20;  /* Set Timeleft in users file to 20 */
+field	iTimeLeft	read-write	mbsebbs/timecheck.c	109	6	exitinfo	exitinfo.iTimeLeft	exitinfo.iTimeLeft    -= Elapsed;
+field	iTimeLeft	write	mbsebbs/user.c	419	2	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = 0; /* Could not find limit, so set to Zero */
+field	iTimeLeft	write	mbsebbs/user.c	431	3	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = LIMIT.Time;
+field	iTimeLeft	write	mbsebbs/user.c	433	3	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = 86400;
+field	iTimeLeft	write	mbsetup/m_users.c	758	17	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = LIMIT.Time;
+field	iTimeLeft	write	mbsetup/m_users.c	760	17	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = 86400;
+field	iConnectTime	read-write	mbsebbs/timecheck.c	110	6	exitinfo	exitinfo.iConnectTime	exitinfo.iConnectTime += Elapsed;
+field	iConnectTime	write	mbsebbs/user.c	435	6	usrconfig	usrconfig.iConnectTime	"usrconfig.iConnectTime = 0;	     /* Set connect time to Zero          */"
+field	iConnectTime	write	mbsebbs/user.c	449	5	usrconfig	usrconfig.iConnectTime	usrconfig.iConnectTime = 0;
+field	iTimeUsed	read-write	mbsebbs/timecheck.c	111	6	exitinfo	exitinfo.iTimeUsed	exitinfo.iTimeUsed    += Elapsed;
+field	iTimeUsed	write	mbsebbs/user.c	420	2	usrconfig	usrconfig.iTimeUsed	usrconfig.iTimeUsed = 0; /* Set to Zero as well  */
+field	iTimeUsed	write	mbsebbs/user.c	434	6	usrconfig	usrconfig.iTimeUsed	usrconfig.iTimeUsed    = 0;          /* Set time used today to Zero       */
+field	iTimeUsed	write	mbsetup/m_users.c	761	13	usrconfig	usrconfig.iTimeUsed	usrconfig.iTimeUsed = 0;
+field	tLastPwdChange	write	fortytwo-auth/src/legacy_userdb_provision.c	441	5	record	record->tLastPwdChange	record->tLastPwdChange = (int32_t)registration->registered_at;
+field	tLastPwdChange	write	mbsebbs/change.c	224	6	exitinfo	exitinfo.tLastPwdChange	exitinfo.tLastPwdChange = time(NULL);
+field	tLastPwdChange	write	mbsebbs/newuser.c	458	5	usrconfig	usrconfig.tLastPwdChange	usrconfig.tLastPwdChange  = ltime; /* Days Since Last Password Change */
+field	Credit	write	mbsetup/m_users.c	860	26	usrconfig	usrconfig.Credit	"case 5 :E_INT( 14,17,   usrconfig.Credit,         ""Users ^Credit^""); break;"
+field	MsgEditor	write	fortytwo-auth/src/legacy_userdb_provision.c	442	5	record	record->MsgEditor	record->MsgEditor = registration->defaults.message_editor;
+field	MsgEditor	write	mbsebbs/change.c	444	2	exitinfo	exitinfo.MsgEditor	exitinfo.MsgEditor = LINEEDIT;
+field	MsgEditor	write	mbsebbs/change.c	447	2	exitinfo	exitinfo.MsgEditor	exitinfo.MsgEditor = FSEDIT;
+field	MsgEditor	write	mbsebbs/change.c	450	2	exitinfo	exitinfo.MsgEditor	exitinfo.MsgEditor = EXTEDIT;
+field	MsgEditor	write	mbsebbs/newuser.c	107	2	usrconfig	usrconfig.MsgEditor	usrconfig.MsgEditor = EXTEDIT;
+field	MsgEditor	write	mbsebbs/newuser.c	109	2	usrconfig	usrconfig.MsgEditor	usrconfig.MsgEditor = FSEDIT;
+field	MsgEditor	write	mbsetup/m_users.c	691	21	usrconfig	usrconfig.MsgEditor	case 20:usrconfig.MsgEditor = edit_msgeditor(12,71,usrconfig.MsgEditor);
+field	MsgEditor	write	mbutils/mbuser.c	345	7	usr	usr.MsgEditor	usr.MsgEditor = EXTEDIT;
+field	MsgEditor	write	mbutils/mbuser.c	347	7	usr	usr.MsgEditor	usr.MsgEditor = FSEDIT;
+field	Archiver	write	mbsebbs/change.c	918	13	exitinfo	exitinfo.Archiver	strncpy(exitinfo.Archiver, archiver.name, 6);
+field	Archiver	write	mbsebbs/user.c	355	2	usrconfig	usrconfig.Archiver[0]	usrconfig.Archiver[0] = 'Z';
+field	Archiver	write	mbsebbs/user.c	356	2	usrconfig	usrconfig.Archiver[1]	usrconfig.Archiver[1] = 'I';
+field	Archiver	write	mbsebbs/user.c	357	2	usrconfig	usrconfig.Archiver[2]	usrconfig.Archiver[2] = 'P';
+field	Archiver	write	mbsetup/m_users.c	155	5	user	user->Archiver[sizeof(user->Archiver) - 1]	user->Archiver[sizeof(user->Archiver) - 1] = '\0';
+field	Archiver	write	mbsetup/m_users.c	676	32	usrconfig	usrconfig.Archiver	strcpy(usrconfig.Archiver, temp);
+field	iLastFileArea	write	fortytwo-auth/src/legacy_userdb_provision.c	443	5	record	record->iLastFileArea	record->iLastFileArea = 1;
+field	iLastFileArea	write	mbsebbs/bye.c	118	13	usrconfig	usrconfig.iLastFileArea	usrconfig.iLastFileArea = iAreaNumber;
+field	iLastFileArea	write	mbsebbs/newuser.c	459	5	usrconfig	usrconfig.iLastFileArea	usrconfig.iLastFileArea   = 1;
+field	sProtocol	write	fortytwo-auth/src/legacy_userdb_provision.c	421	12	record	record->sProtocol	memcpy(record->sProtocol, registration->defaults.protocol,
+field	sProtocol	write	mbsebbs/change.c	1018	16	exitinfo	exitinfo.sProtocol	Setup(exitinfo.sProtocol, sProtName);
+field	sProtocol	write	mbsebbs/newuser.c	462	14	usrconfig	usrconfig.sProtocol	"snprintf(usrconfig.sProtocol, 21, ""%s"", (char *) Language(65));"
+field	sProtocol	read-write	mbsebbs/user.c	453	9	usrconfig	usrconfig.sProtocol	tlf(usrconfig.sProtocol);
+field	sProtocol	write	mbsetup/m_users.c	156	5	user	user->sProtocol[sizeof(user->sProtocol) - 1]	user->sProtocol[sizeof(user->sProtocol) - 1] = '\0';
+field	sProtocol	write	mbsetup/m_users.c	670	32	usrconfig	usrconfig.sProtocol	strcpy(usrconfig.sProtocol, temp);
+field	Downloads	read-write	mbsebbs/file.c	397	5	exitinfo	exitinfo.Downloads	exitinfo.Downloads += Count;          /* Increase download counter      */
+field	Downloads	read-write	mbsebbs/file.c	1042	2	exitinfo	exitinfo.Downloads	exitinfo.Downloads++;    /* Increase download counter */
+field	Uploads	read-write	mbsebbs/file.c	1344	5	exitinfo	exitinfo.Uploads	exitinfo.Uploads += Count;
+field	Uploads	read-write	mbsebbs/filesub.c	736	3	exitinfo	exitinfo.Uploads	exitinfo.Uploads++;
+field	UploadK	read-write	mbsebbs/filesub.c	738	3	exitinfo	exitinfo.UploadK	exitinfo.UploadK += (Size / 1024);
+field	DownloadK	read-write	mbsebbs/file.c	399	5	exitinfo	exitinfo.DownloadK	exitinfo.DownloadK += (Size / 1024);  /* Increase amount download today */
+field	DownloadKToday	read-write	mbsebbs/file.c	407	2	exitinfo	exitinfo.DownloadKToday	exitinfo.DownloadKToday -= (Size / 1024);
+field	DownloadKToday	read-write	mbsebbs/filesub.c	747	3	exitinfo	exitinfo.DownloadKToday	exitinfo.DownloadKToday += (Size / 1024);
+field	DownloadKToday	write	mbsebbs/user.c	441	3	usrconfig	usrconfig.DownloadKToday	usrconfig.DownloadKToday = LIMIT.DownK;
+field	UploadKToday	read-write	mbsebbs/filesub.c	740	3	exitinfo	exitinfo.UploadKToday	exitinfo.UploadKToday += (Size / 1024);
+field	iLastMsgArea	write	fortytwo-auth/src/legacy_userdb_provision.c	444	5	record	record->iLastMsgArea	record->iLastMsgArea = 1;
+field	iLastMsgArea	write	mbsebbs/bye.c	119	13	usrconfig	usrconfig.iLastMsgArea	usrconfig.iLastMsgArea = iMsgAreaNumber;
+field	iLastMsgArea	write	mbsebbs/newuser.c	460	5	usrconfig	usrconfig.iLastMsgArea	usrconfig.iLastMsgArea    = 1;
+field	iPosted	read-write	mbnntp/rfc2ftn.c	769	4	usrconfig	usrconfig.iPosted	usrconfig.iPosted++;
+field	iPosted	read-write	mbsebbs/email.c	347	5	exitinfo	exitinfo.iPosted	exitinfo.iPosted++;
+field	iPosted	read-write	mbsebbs/mail.c	870	5	exitinfo	exitinfo.iPosted	exitinfo.iPosted++;
+field	iPosted	read-write	mbsebbs/offline.c	1635	6	exitinfo	exitinfo.iPosted	exitinfo.iPosted += i;
+field	iPosted	read-write	mbsebbs/offline.c	2457	2	exitinfo	exitinfo.iPosted	exitinfo.iPosted += nPosted;
+field	iLanguage	write	fortytwo-auth/src/legacy_userdb_provision.c	445	5	record	record->iLanguage	record->iLanguage = registration->defaults.language;
+field	iLanguage	write	mbsebbs/change.c	131	6	exitinfo	exitinfo.iLanguage	exitinfo.iLanguage = iLang;
+field	iLanguage	write	mbsebbs/newuser.c	103	5	usrconfig	usrconfig.iLanguage	usrconfig.iLanguage = iLang;
+field	iLanguage	write	mbsetup/m_users.c	682	14	usrconfig	usrconfig.iLanguage	"case 14:usrconfig.iLanguage = PickLanguage((char *)""15.14"");"
+field	sHandle	write	fortytwo-auth/src/legacy_userdb_provision.c	1301	16	existing	existing.sHandle	memset(existing.sHandle, 0, sizeof(existing.sHandle));
+field	sHandle	write	fortytwo-auth/src/legacy_userdb_provision.c	1302	24	existing	existing.sHandle	"(void)snprintf(existing.sHandle, sizeof(existing.sHandle), ""%s"","
+field	sHandle	write	mbsebbs/change.c	322	12	exitinfo	exitinfo.sHandle	Setup(exitinfo.sHandle, temp);
+field	sHandle	write	mbsebbs/newuser.c	326	14	usrconfig	usrconfig.sHandle	"strcpy(usrconfig.sHandle, """");"
+field	sHandle	write	mbsebbs/newuser.c	328	14	usrconfig	usrconfig.sHandle	strcpy(usrconfig.sHandle, temp);
+field	sHandle	write	mbsetup/m_users.c	157	5	user	user->sHandle[sizeof(user->sHandle) - 1]	user->sHandle[sizeof(user->sHandle) - 1] = '\0';
+field	sHandle	write	mbsetup/m_users.c	641	36	usrconfig	usrconfig.sHandle	"case 1: E_STR( 6,17,35,usrconfig.sHandle,  ""The ^Handle^ of this user""); break;"
+field	iStatus	write	mbsebbs/whoson.c	218	5	exitinfo	exitinfo.iStatus	exitinfo.iStatus = iStatus;
+field	DownloadsToday	write	mbsebbs/user.c	444	17	usrconfig	usrconfig.DownloadsToday	usrconfig.DownloadsToday = LIMIT.DownF;
+field	ieASCII8	write	fortytwo-auth/src/legacy_userdb_provision.c	438	5	record	record->ieASCII8	record->ieASCII8 = 1U;
+field	ieASCII8	write	mbsebbs/newuser.c	522	5	usrconfig	usrconfig.ieASCII8	usrconfig.ieASCII8     = TRUE;
+field	ieNEWS	write	fortytwo-auth/src/legacy_userdb_provision.c	437	5	record	record->ieNEWS	record->ieNEWS = 1U;
+field	ieNEWS	write	mbsebbs/change.c	721	2	exitinfo	exitinfo.ieNEWS	exitinfo.ieNEWS = FALSE;
+field	ieNEWS	write	mbsebbs/change.c	725	2	exitinfo	exitinfo.ieNEWS	exitinfo.ieNEWS = TRUE;
+field	ieNEWS	write	mbsebbs/newuser.c	519	5	usrconfig	usrconfig.ieNEWS	usrconfig.ieNEWS       = TRUE;
+field	ieNEWS	write	mbsetup/m_users.c	694	34	usrconfig	usrconfig.ieNEWS	"case 22:E_BOOL(14,71,usrconfig.ieNEWS,       ""Show ^News Bulletins^ when logging in""); break;"
+field	ieFILE	write	fortytwo-auth/src/legacy_userdb_provision.c	436	5	record	record->ieFILE	record->ieFILE = registration->defaults.new_file_scan ? 1U : 0U;
+field	ieFILE	write	mbsebbs/change.c	397	2	exitinfo	exitinfo.ieFILE	exitinfo.ieFILE = FALSE;
+field	ieFILE	write	mbsebbs/change.c	401	2	exitinfo	exitinfo.ieFILE	exitinfo.ieFILE = TRUE;
+field	ieFILE	write	mbsebbs/newuser.c	493	14	usrconfig	usrconfig.ieFILE	case NO:    usrconfig.ieFILE = FALSE;
+field	ieFILE	write	mbsebbs/newuser.c	495	14	usrconfig	usrconfig.ieFILE	case YES:   usrconfig.ieFILE = TRUE;
+field	ieFILE	write	mbsebbs/newuser.c	506	8	usrconfig	usrconfig.ieFILE	usrconfig.ieFILE = TRUE;
+field	ieFILE	write	mbsebbs/newuser.c	510	8	usrconfig	usrconfig.ieFILE	usrconfig.ieFILE = FALSE;
+field	ieFILE	write	mbsetup/m_users.c	695	34	usrconfig	usrconfig.ieFILE	"case 23:E_BOOL(15,71,usrconfig.ieFILE,       ""Show ^New Files^ when logging in""); break;"
+field	Email	write	fortytwo-auth/src/legacy_userdb_provision.c	439	5	record	record->Email	record->Email = registration->defaults.email ? 1U : 0U;
+field	Email	write	mbsebbs/newuser.c	405	5	usrconfig	usrconfig.Email	usrconfig.Email = CFG.GiveEmail;
+field	Email	write	mbsetup/m_users.c	869	26	usrconfig	usrconfig.Email	"case 13:E_BOOL( 9,68,   usrconfig.Email,          ""User has a ^private email^ mailbox""); break;"
+field	FSemacs	write	mbsebbs/change.c	480	2	exitinfo	exitinfo.FSemacs	exitinfo.FSemacs = FALSE;
+field	FSemacs	write	mbsebbs/change.c	484	2	exitinfo	exitinfo.FSemacs	exitinfo.FSemacs = TRUE;
+field	FSemacs	write	mbsetup/m_users.c	696	34	usrconfig	usrconfig.FSemacs	"case 24:E_BOOL(16,71,usrconfig.FSemacs,      ""Use ^Emacs^ or Wordstar shorcut keys in FS editor""); break;"
+field	Password	write	mbnntp/auth.c	154	2	usrconfig	usrconfig.Password[sizeof(usrconfig.Password) - 1]	usrconfig.Password[sizeof(usrconfig.Password) - 1] = '\0';
+field	Password	write	mbsebbs/change.c	222	14	exitinfo	exitinfo.Password	memset(&exitinfo.Password, 0, sizeof(exitinfo.Password));
+field	Password	write	mbsebbs/change.c	223	13	exitinfo	exitinfo.Password	strcpy(exitinfo.Password, temp2);
+field	Password	write	mbsebbs/newuser.c	186	13	usrconfig	usrconfig.Password	memset(&usrconfig.Password, 0, sizeof(usrconfig.Password));
+field	Password	write	mbsebbs/newuser.c	187	14	usrconfig	usrconfig.Password	"snprintf(usrconfig.Password, Max_passlen +1, ""%s"", temp2);"
+field	Password	write	mbsetup/m_users.c	158	5	user	user->Password[sizeof(user->Password) - 1]	user->Password[sizeof(user->Password) - 1] = '\0';
+field	Charset	write	fortytwo-auth/src/legacy_userdb_provision.c	446	5	record	record->Charset	record->Charset = registration->defaults.charset;
+field	Charset	write	mbsebbs/change.c	1156	6	exitinfo	exitinfo.Charset	exitinfo.Charset = i;
+field	Charset	write	mbsetup/m_users.c	680	14	usrconfig	usrconfig.Charset	case 13:usrconfig.Charset = edit_charset(18,17, usrconfig.Charset); break;
+field	OLRext	write	mbsebbs/offline.c	1208	9	exitinfo	exitinfo.OLRext	exitinfo.OLRext = 0;
+field	OLRext	read-write	mbsebbs/offline.c	1434	9	exitinfo	exitinfo.OLRext	exitinfo.OLRext++;
+field	OLRext	write	mbsebbs/offline.c	1436	13	exitinfo	exitinfo.OLRext	exitinfo.OLRext = 0; /* After 9, go back to 0 */
+field	OLRext	write	mbsetup/m_users.c	697	34	usrconfig	usrconfig.OLRext	"case 25:E_INT( 17,71,usrconfig.OLRext,       ""Next ^OLR^ packet extension""); break;"
+field	OLRlast	write	mbsebbs/offline.c	1437	18	exitinfo	exitinfo.OLRlast	"snprintf(exitinfo.OLRlast, 12, ""%s"", Temp2); /* Save the last download date/time */"
+field	OLRlast	write	mbsetup/m_users.c	159	5	user	user->OLRlast[sizeof(user->OLRlast) - 1]	user->OLRlast[sizeof(user->OLRlast) - 1] = '\0';
+record		record-write	fortytwo-auth/src/legacy_userdb.c	654	17	record	record	memset(&record, 0, sizeof(record));
+record		record-write	fortytwo-auth/src/legacy_userdb.c	655	32	record	record	if (read_exact_at(fd, &record, sizeof(record), offset) != 0) {
+record		record-write	fortytwo-auth/src/legacy_userdb_provision.c	412	12	record	record	memset(record, 0, sizeof(*record));
+record		record-write	fortytwo-auth/src/legacy_userdb_provision.c	1185	17	record	record	memset(&record, 0, sizeof(record));
+record		record-write	fortytwo-auth/src/legacy_userdb_provision.c	1186	32	record	record	if (read_exact_at(fd, &record, sizeof(record), offset) != 0) {
+record		record-write	fortytwo-auth/src/legacy_userdb_provision.c	1294	32	existing	existing	if (read_exact_at(fd, &existing, sizeof(existing),
+record		record-write	fortytwo-auth/src/legacy_userdb_provision.c	2361	13	record	record	memcpy(&record, prepared->record_bytes, sizeof(record));
+record		record-write	fortytwo-auth/src/legacy_userdb_provision.c	2448	37	record	record	if (build_record(registration, &record) != 0) {
+record		record-write	lib/dbuser.c	49	10	usr	usr	memset(&usr, 0, sizeof(usr));
+record		record-write	lib/dbuser.c	95	11	usr	usr	memset(&usr, 0, sizeof(usr));
+record		record-write	lib/dbuser.c	105	16	usr	usr	while (fread(&usr, (size_t)usrhdr.recsize, 1, fil) == 1) {
+record		record-write	lib/jammsg.c	143	19	_usr	_usr	while (fread(&_usr, _usrhdr.recsize, 1, fp) == 1) {
+record		record-write	lib/jammsg.c	833	18	_usr	_usr	while (fread(&_usr, _usrhdr.recsize, 1, usrF) == 1) {
+record		record-write	lib/jammsg.c	848	16	_usr	_usr	memset(&_usr, 0, sizeof(usr));
+record		record-write	lib/jammsg.c	849	19	_usr	_usr	if (fread(&_usr, _usrhdr.recsize, 1, usrF) == 1) {
+record		record-write	mbfido/mbmsg.c	340	16	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pAreas) == 1) {
+record		record-write	mbfido/scan.c	170	16	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pAreas) == 1) {
+record		record-write	mbnntp/auth.c	150	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbnntp/auth.c	151	13	usrconfig	usrconfig	if (fread(&usrconfig, usrconfighdr.recsize, 1, fp) != 1)
+record		record-write	mbnntp/auth.c	168	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbnntp/auth.c	177	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbnntp/auth.c	187	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbnntp/auth.c	201	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbnntp/mbnntp.c	178	13	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbnntp/rfc2ftn.c	768	18	usrconfig	usrconfig	if (fread(&usrconfig, usrconfighdr.recsize, 1, qfp) == 1) {
+record		record-write	mbsebbs/bye.c	114	27	exitinfo	exitinfo	fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+record		record-write	mbsebbs/bye.c	117	13	usrconfig	usrconfig	usrconfig = exitinfo;
+record		record-write	mbsebbs/change.c	267	23	u	u	while (fread(&u, uhdr.recsize, 1, fp) == 1) {
+record		record-write	mbsebbs/dispfile.c	74	23	u	u	while (fread(&u, uhdr.recsize, 1, pUsrConfig) == 1)
+record		record-write	mbsebbs/exitinfo.c	88	16	usrconfig	usrconfig	if (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) != 1) {
+record		record-write	mbsebbs/exitinfo.c	95	5	exitinfo	exitinfo	exitinfo = usrconfig;
+record		record-write	mbsebbs/exitinfo.c	135	16	exitinfo	exitinfo	if (fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+record		record-write	mbsebbs/funcs.c	97	17	us	us	while (fread(&us, ushdr.recsize, 1, fp) == 1) {
+record		record-write	mbsebbs/mail.c	2459	19	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) == 1) {
+record		record-write	mbsebbs/mail.c	2476	9	usrconfig	usrconfig	fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig);
+record		record-write	mbsebbs/newuser.c	94	13	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbsebbs/newuser.c	95	13	exitinfo	exitinfo	memset(&exitinfo, 0, sizeof(exitinfo));
+record		record-write	mbsebbs/newuser.c	537	20	us	us	while ((fread(&us, usrconfighdr.recsize, 1, pUsrConfig) == 1) && (!Found)) {
+record		record-write	mbsebbs/newuser.c	914	23	u	u	while (fread(&u, uhdr.recsize, 1, fp) == 1) {
+record		record-write	mbsebbs/user.c	196	19	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) == 1) {
+record		record-write	mbsebbs/userlist.c	93	19	u	u	while (fread(&u, uhdr.recsize, 1, pUsrConfig) == 1) {
+record		record-write	mbsebbs/whoson.c	116	18	us	us	while (fread(&us, ushdr.recsize, 1, fp) == 1) {
+record		record-write	mbsebbs/whoson.c	303	20	us	us	while (fread(&us, ushdr.recsize, 1, fp) == 1) {
+record		record-write	mbsetup/m_limits.c	588	20	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, up) == 1) {
+record		record-write	mbsetup/m_users.c	199	13	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbsetup/m_users.c	200	16	usrconfig	usrconfig	if (fread(&usrconfig, (size_t)usrconfighdr.recsize, 1, fil) != 1) {
+record		record-read-write	mbsetup/m_users.c	206	33	usrconfig	usrconfig	TerminateUserRecordStrings(&usrconfig);
+record		record-read-write	mbsetup/m_users.c	231	33	usrconfig	usrconfig	TerminateUserRecordStrings(&usrconfig);
+record		record-write	mbsetup/m_users.c	376	17	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record		record-write	mbsetup/m_users.c	377	20	usrconfig	usrconfig	if (fread(&usrconfig, oldsize, 1, fin) != 1) {
+record		record-read-write	mbsetup/m_users.c	382	37	usrconfig	usrconfig	TerminateUserRecordStrings(&usrconfig);
+record		record-write	mbutils/mbuser.c	210	19	usr	usr	while (fread(&usr, oldsize, 1,fin) == 1) {
+record		record-write	mbutils/mbuser.c	242	13	usr	usr	memset(&usr, 0, sizeof(usr));
+record		record-write	mbutils/mbuser.c	243	19	usr	usr	while (fread(&usr, oldsize, 1,fin) == 1) {
+record		record-write	mbutils/mbuser.c	246	10	usr	usr	memset(&usr, 0, sizeof(usr));
+record		record-write	mbutils/mbuser.c	260	16	usr	usr	while (fread(&usr, sizeof(usr), 1, fout)  == 1) {
+record		record-write	mbutils/mbuser.c	302	16	usr	usr	while (fread(&usr, sizeof(usr), 1, fout) == 1) {
+record		record-write	mbutils/mbuser.c	343	11	usr	usr	memset(&usr, 0, sizeof(usr));
+record		record-write	mbutils/mbuser.c	372	16	usr	usr	while (fread(&usr, sizeof(usr), 1,fout) == 1) {
+record		record-write	unix/mblogin.c	604	18	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, ufp) == 1) {

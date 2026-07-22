@@ -1,0 +1,92 @@
+userrec writer analysis
+=======================
+Fields with direct writers:       58
+Direct writer occurrences:        217
+Direct writer source files:       18
+Whole-record writer occurrences:  60
+Whole-record writer source files: 23
+
+FIELD	WRITE	READ_WRITE	OCCURRENCES	FILES	COMPONENTS
+sUserName	4	4	8	5	fortytwo-auth,lib,mbsebbs,mbsetup
+Name	4	0	4	4	fortytwo-auth,mbnntp,mbsebbs,mbsetup
+xPassword	1	0	1	1	fortytwo-auth
+sVoicePhone	4	0	4	3	mbsebbs,mbsetup
+sDataPhone	5	0	5	3	mbsebbs,mbsetup
+sLocation	4	1	5	4	mbsebbs,mbsetup
+address	3	0	3	3	mbsebbs,mbsetup
+sDateOfBirth	5	0	5	4	mbsebbs,mbsetup
+tFirstLoginDate	2	0	2	2	fortytwo-auth,mbsebbs
+tLastLoginDate	4	0	4	4	fortytwo-auth,mbnntp,mbsebbs
+Security	6	0	6	4	fortytwo-auth,mbsebbs,mbsetup
+sComment	3	0	3	2	fortytwo-auth,mbsetup
+sExpiryDate	4	0	4	3	fortytwo-auth,mbsebbs,mbsetup
+ExpirySec	3	0	3	3	fortytwo-auth,mbsebbs,mbsetup
+sSex	7	0	7	3	fortytwo-auth,mbsebbs,mbsetup
+Hidden	1	0	1	1	mbsetup
+HotKeys	7	0	7	4	fortytwo-auth,mbsebbs,mbsetup
+GraphMode	7	0	7	4	fortytwo-auth,mbsebbs,mbsetup
+Deleted	2	0	2	2	mbsetup,mbutils
+NeverDelete	1	0	1	1	mbsetup
+LockedOut	1	0	1	1	mbsetup
+DoNotDisturb	4	0	4	3	mbsebbs,mbsetup
+Cls	3	0	3	3	fortytwo-auth,mbsebbs,mbsetup
+More	3	0	3	3	fortytwo-auth,mbsebbs,mbsetup
+MailScan	8	0	8	4	fortytwo-auth,mbsebbs,mbsetup
+Guest	1	0	1	1	mbsetup
+OL_ExtInfo	3	0	3	2	mbsebbs,mbsetup
+iTotalCalls	0	2	2	2	mbnntp,mbsebbs
+iTimeLeft	7	1	8	5	fortytwo-auth,mbsebbs,mbsetup
+iConnectTime	2	1	3	2	mbsebbs
+iTimeUsed	3	1	4	3	mbsebbs,mbsetup
+tLastPwdChange	3	0	3	3	fortytwo-auth,mbsebbs
+Credit	1	0	1	1	mbsetup
+MsgEditor	9	0	9	5	fortytwo-auth,mbsebbs,mbsetup,mbutils
+Archiver	6	0	6	3	mbsebbs,mbsetup
+iLastFileArea	3	0	3	3	fortytwo-auth,mbsebbs
+sProtocol	5	1	6	5	fortytwo-auth,mbsebbs,mbsetup
+Downloads	0	2	2	1	mbsebbs
+Uploads	0	2	2	2	mbsebbs
+UploadK	0	1	1	1	mbsebbs
+DownloadK	0	1	1	1	mbsebbs
+DownloadKToday	1	2	3	3	mbsebbs
+UploadKToday	0	1	1	1	mbsebbs
+iLastMsgArea	3	0	3	3	fortytwo-auth,mbsebbs
+iPosted	0	5	5	4	mbnntp,mbsebbs
+iLanguage	4	0	4	4	fortytwo-auth,mbsebbs,mbsetup
+sHandle	7	0	7	4	fortytwo-auth,mbsebbs,mbsetup
+iStatus	1	0	1	1	mbsebbs
+DownloadsToday	1	0	1	1	mbsebbs
+ieASCII8	2	0	2	2	fortytwo-auth,mbsebbs
+ieNEWS	5	0	5	4	fortytwo-auth,mbsebbs,mbsetup
+ieFILE	8	0	8	4	fortytwo-auth,mbsebbs,mbsetup
+Email	3	0	3	3	fortytwo-auth,mbsebbs,mbsetup
+FSemacs	3	0	3	2	mbsebbs,mbsetup
+Password	6	0	6	4	mbnntp,mbsebbs,mbsetup
+Charset	3	0	3	3	fortytwo-auth,mbsebbs,mbsetup
+OLRext	3	1	4	2	mbsebbs,mbsetup
+OLRlast	2	0	2	2	mbsebbs,mbsetup
+
+WHOLE_RECORD_PATH	RECORD_WRITE	RECORD_READ_WRITE
+fortytwo-auth/src/legacy_userdb.c	2	0
+fortytwo-auth/src/legacy_userdb_provision.c	6	0
+lib/dbuser.c	3	0
+lib/jammsg.c	4	0
+mbfido/mbmsg.c	1	0
+mbfido/scan.c	1	0
+mbnntp/auth.c	6	0
+mbnntp/mbnntp.c	1	0
+mbnntp/rfc2ftn.c	1	0
+mbsebbs/bye.c	2	0
+mbsebbs/change.c	1	0
+mbsebbs/dispfile.c	1	0
+mbsebbs/exitinfo.c	3	0
+mbsebbs/funcs.c	1	0
+mbsebbs/mail.c	2	0
+mbsebbs/newuser.c	4	0
+mbsebbs/user.c	1	0
+mbsebbs/userlist.c	1	0
+mbsebbs/whoson.c	2	0
+mbsetup/m_limits.c	1	0
+mbsetup/m_users.c	4	3
+mbutils/mbuser.c	8	0
+unix/mblogin.c	1	0

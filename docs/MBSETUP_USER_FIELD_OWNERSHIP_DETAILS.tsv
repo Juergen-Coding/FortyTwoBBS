@@ -1,0 +1,73 @@
+FIELD	MEANING	AUTHORITY	POSTGRESQL_TABLE	POSTGRESQL_TARGET	DECISION_STATUS	DIRECT_WRITE	DIRECT_READ_WRITE	DIRECT_WRITER_FILE_COUNT	DIRECT_WRITER_FILES	DIRECT_WRITER_COMPONENTS	MBSETUP_DIRECT_WRITES	WHOLE_RECORD_EXPOSURE
+sUserName	User First and Last Name	PostgreSQL	bbs_user_profiles	display_name	decided	4	4	5	fortytwo-auth/src/legacy_userdb_provision.c,lib/jammsg.c,mbsebbs/mail.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,lib,mbsebbs,mbsetup	2	yes
+Name	Unix name	PostgreSQL	bbs_legacy_mbse_bindings	legacy_name	decided	4	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbnntp/auth.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbnntp,mbsebbs,mbsetup	1	yes
+xPassword	Keine Quellcodebeschreibung	PostgreSQL-Credential	—	—	decided	1	0	1	fortytwo-auth/src/legacy_userdb_provision.c	fortytwo-auth	0	yes
+sVoicePhone	Voice Number	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	4	0	3	mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	mbsebbs,mbsetup	2	yes
+sDataPhone	Data/Business Number	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	5	0	3	mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	mbsebbs,mbsetup	2	yes
+sLocation	Users Location	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	4	1	4	mbsebbs/change.c,mbsebbs/door.c,mbsebbs/newuser.c,mbsetup/m_users.c	mbsebbs,mbsetup	2	yes
+address	Users address	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
+sDateOfBirth	Date of Birth	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	5	0	4	mbsebbs/change.c,mbsebbs/newuser.c,mbsebbs/user.c,mbsetup/m_users.c	mbsebbs,mbsetup	2	yes
+tFirstLoginDate	Date of First Login	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	2	0	2	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c	fortytwo-auth,mbsebbs	0	yes
+tLastLoginDate	Date of Last Login	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	4	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbnntp/auth.c,mbsebbs/newuser.c,mbsebbs/user.c	fortytwo-auth,mbnntp,mbsebbs	0	yes
+Security	User Security Level	PostgreSQL	bbs_user_roles / bbs_role_capabilities	Rollen- und Capability-Zuordnung	decided	6	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsebbs/user.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+sComment	User Comment	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	2	fortytwo-auth/src/legacy_userdb_provision.c,mbsetup/m_users.c	fortytwo-auth,mbsetup	2	yes
+sExpiryDate	User Expiry Date	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	4	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	2	yes
+ExpirySec	Expiry Security Level	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+sSex	Users Sex	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	7	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	3	yes
+Hidden	Hide User from Lists	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	0	1	mbsetup/m_users.c	mbsetup	1	yes
+HotKeys	Hot-Keys ON/OFF	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	7	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+GraphMode	ANSI ON/OFF	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	7	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+Deleted	Deleted Status	PostgreSQL	bbs_users	account_state / deleted_at	decided	2	0	2	mbsetup/m_users.c,mbutils/mbuser.c	mbsetup,mbutils	1	yes
+NeverDelete	Never Delete User	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	0	1	mbsetup/m_users.c	mbsetup	1	yes
+xChat	Keine Quellcodebeschreibung	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+LockedOut	User is locked out	PostgreSQL	bbs_users	account_state / locked_reason	decided	1	0	1	mbsetup/m_users.c	mbsetup	1	yes
+DoNotDisturb	DoNot disturb	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	4	0	3	mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
+Cls	CLS on/off	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+More	More prompt	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+xFsMsged	Keine Quellcodebeschreibung	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+MailScan	New Mail scan	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	8	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+Guest	Is guest account	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	0	1	mbsetup/m_users.c	mbsetup	1	yes
+OL_ExtInfo	OLR extended msg info	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	2	mbsebbs/change.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
+iTotalCalls	Total number of calls	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	2	2	mbnntp/auth.c,mbsebbs/user.c	mbnntp,mbsebbs	0	yes
+iTimeLeft	Time left today	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	7	1	5	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsebbs/timecheck.c,mbsebbs/user.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	2	yes
+iConnectTime	Connect time this call	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	2	1	2	mbsebbs/timecheck.c,mbsebbs/user.c	mbsebbs	0	yes
+iTimeUsed	Time used today	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	1	3	mbsebbs/timecheck.c,mbsebbs/user.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
+xScreenLen	Keine Quellcodebeschreibung	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+tLastPwdChange	Date last password chg	PostgreSQL	bbs_password_credentials	changed_at	decided	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c	fortytwo-auth,mbsebbs	0	yes
+xHangUps	Keine Quellcodebeschreibung	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+Credit	Users credit	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	0	1	mbsetup/m_users.c	mbsetup	1	yes
+Paged	Times paged today	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+MsgEditor	Message Editor to use	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	9	0	5	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c,mbutils/mbuser.c	fortytwo-auth,mbsebbs,mbsetup,mbutils	1	yes
+LastPktNum	Todays Last packet number	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+Archiver	Archiver to use	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	6	0	3	mbsebbs/change.c,mbsebbs/user.c,mbsetup/m_users.c	mbsebbs,mbsetup	2	yes
+iLastFileArea	Number of last file area	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/bye.c,mbsebbs/newuser.c	fortytwo-auth,mbsebbs	0	yes
+iLastFileGroup	Number of last file group	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+sProtocol	Users default protocol	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	5	1	5	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsebbs/user.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	2	yes
+Downloads	Total number of d/l's	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	2	1	mbsebbs/file.c	mbsebbs	0	yes
+Uploads	Total number of uploads	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	2	2	mbsebbs/file.c,mbsebbs/filesub.c	mbsebbs	0	yes
+UploadK	Upload KiloBytes	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	1	1	mbsebbs/filesub.c	mbsebbs	0	yes
+DownloadK	Download KiloBytes	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	1	1	mbsebbs/file.c	mbsebbs	0	yes
+DownloadKToday	KB Downloaded today	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	2	3	mbsebbs/file.c,mbsebbs/filesub.c,mbsebbs/user.c	mbsebbs	0	yes
+UploadKToday	KB Uploaded today	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	1	1	mbsebbs/filesub.c	mbsebbs	0	yes
+iTransferTime	Last file transfer time	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+iLastMsgArea	Number of last msg area	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/bye.c,mbsebbs/newuser.c	fortytwo-auth,mbsebbs	0	yes
+iLastMsgGroup	Number of last msg group	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+iPosted	Number of msgs posted	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	5	4	mbnntp/rfc2ftn.c,mbsebbs/email.c,mbsebbs/mail.c,mbsebbs/offline.c	mbnntp,mbsebbs	0	yes
+iLanguage	Current Language	PostgreSQL	bbs_user_profiles	language_code	decided	4	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+sHandle	Users Handle	PostgreSQL	bbs_user_profiles	handle	decided	7	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	2	yes
+iStatus	WhosDoingWhat status	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	0	1	mbsebbs/whoson.c	mbsebbs	0	yes
+DownloadsToday	Downloads today	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	1	0	1	mbsebbs/user.c	mbsebbs	0	yes
+CrtDef	IEMSI Terminal emulation	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+Protocol	IEMSI protocol	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+IEMSI	Is this a IEMSI session	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+ieMNU	Can do ASCII download	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+ieTAB	Can handle TAB character	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	0	0	0			0	yes
+ieASCII8	Can handle 8-bit IBM-PC	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	2	0	2	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c	fortytwo-auth,mbsebbs	0	yes
+ieNEWS	Show bulletins	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	5	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+ieFILE	Check for new files	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	8	0	4	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+Email	Has private email box	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/newuser.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+FSemacs	FSedit uses emacs keys	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	2	mbsebbs/change.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
+Password	Plain password	PostgreSQL-Credential	—	—	decided	6	0	4	mbnntp/auth.c,mbsebbs/change.c,mbsebbs/newuser.c,mbsetup/m_users.c	mbnntp,mbsebbs,mbsetup	1	yes
+Charset	Character set	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	0	3	fortytwo-auth/src/legacy_userdb_provision.c,mbsebbs/change.c,mbsetup/m_users.c	fortytwo-auth,mbsebbs,mbsetup	1	yes
+OLRext	OLR extension counter	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	3	1	2	mbsebbs/offline.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
+OLRlast	OLR last download date	Legacy bis zur Einzelentscheidung	noch nicht festgelegt	noch nicht festgelegt	open	2	0	2	mbsebbs/offline.c,mbsetup/m_users.c	mbsebbs,mbsetup	1	yes
