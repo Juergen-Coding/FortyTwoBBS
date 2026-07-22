@@ -1,0 +1,16 @@
+B5.7 account-lifecycle access analysis
+======================================
+Lifecycle fields:              8
+Direct access occurrences:     153
+Fields already PostgreSQL-led: 3
+Fields still open:             5
+
+FIELD	READ	WRITE	READ_WRITE	METADATA	FILES	COMPONENTS	AUTHORITY	STATUS	MBSETUP_WRITES
+Security	91	6	0	0	18	fortytwo-auth,mbnntp,mbsebbs,mbsetup,mbutils	PostgreSQL	decided	1
+Deleted	14	2	0	0	9	fortytwo-auth,lib,mbnntp,mbsebbs,mbsetup,mbutils,unix	PostgreSQL	decided	1
+LockedOut	8	1	0	0	5	fortytwo-auth,mbnntp,mbsebbs,mbsetup,unix	PostgreSQL	decided	1
+NeverDelete	3	1	0	0	2	mbsetup,mbutils	Legacy bis zur Einzelentscheidung	open	1
+Guest	5	1	0	0	4	mbsebbs,mbsetup,mbutils	Legacy bis zur Einzelentscheidung	open	1
+Hidden	6	1	0	0	4	mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1
+sExpiryDate	4	4	0	0	5	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	2
+ExpirySec	3	3	0	0	4	fortytwo-auth,mbsebbs,mbsetup	Legacy bis zur Einzelentscheidung	open	1

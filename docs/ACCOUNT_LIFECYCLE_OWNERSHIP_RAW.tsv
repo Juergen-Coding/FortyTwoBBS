@@ -1,0 +1,20 @@
+B5.7 account-lifecycle ownership decisions
+==========================================
+Lifecycle fields:              8
+Retained decisions:            3
+New B5.7 decisions:            5
+Open B5.7 decisions:           0
+Direct read occurrences:       134
+Direct write occurrences:      19
+Direct read-write occurrences: 0
+Direct access occurrences:     153
+
+FIELD	CATEGORY	STATUS	READ	WRITE	FILES	TARGET
+Security	authorization	retained	91	6	18	bbs_user_roles / bbs_role_capabilities
+Deleted	account-state	retained	14	2	9	bbs_users.account_state / deleted_at
+LockedOut	account-state	retained	8	1	5	bbs_users.account_state / locked_reason
+NeverDelete	retention-policy	decided	3	1	2	bbs_users.auto_delete_exempt (planned)
+Guest	account-kind	decided	5	1	4	bbs_users.account_kind (planned)
+Hidden	profile-visibility	decided	6	1	4	bbs_user_profiles.is_hidden (planned)
+sExpiryDate	authorization-expiry	decided	4	4	5	bbs_user_authorization_expiry.effective_at (planned)
+ExpirySec	authorization-expiry	decided	3	3	4	bbs_user_authorization_expiry.post_expiry_policy (planned)
