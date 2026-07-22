@@ -1,0 +1,992 @@
+FIELD	KIND	PATH	LINE	COLUMN	VARIABLE	EXPRESSION	SOURCE
+Archiver	read	mbsebbs/change.c	851	36	exitinfo	exitinfo.Archiver	"Syslog('+', ""Old archiver %s"", exitinfo.Archiver);"
+Archiver	read	mbsebbs/change.c	920	47	exitinfo	exitinfo.Archiver	"snprintf(temp, 81, ""%s %s"", Language(89), exitinfo.Archiver);"
+Archiver	read	mbsebbs/change.c	923	36	exitinfo	exitinfo.Archiver	"Syslog('+', ""New archiver %s"", exitinfo.Archiver);"
+Archiver	read	mbsebbs/dispfile.c	572	28	exitinfo	exitinfo.Archiver	"snprintf(temp, 81, ""%s"", exitinfo.Archiver);"
+Archiver	read	mbsebbs/offline.c	1393	53	exitinfo	exitinfo.Archiver	if (archiver.available && (!strcmp(archiver.name, exitinfo.Archiver))) {
+Archiver	read	mbsebbs/offline.c	2143	53	exitinfo	exitinfo.Archiver	if (archiver.available && (!strcmp(archiver.name, exitinfo.Archiver))) {
+Archiver	read	mbsebbs/offline.c	2866	56	exitinfo	exitinfo.Archiver	if (archiver.available && (!strcmp(archiver.name, exitinfo.Archiver))) {
+Archiver	read	mbsebbs/user.c	354	9	usrconfig	usrconfig.Archiver[0]	if (usrconfig.Archiver[0] == '\0') {
+Archiver	read	mbsetup/m_users.c	610	21	usrconfig	usrconfig.Archiver	show_str( 17,17, 5,usrconfig.Archiver);
+Archiver	read	mbsetup/m_users.c	1104	43	usrconfig	usrconfig.Archiver	"add_webtable(wp, (char *)""Archiver"", usrconfig.Archiver);"
+Archiver	write	mbsebbs/change.c	918	13	exitinfo	exitinfo.Archiver	strncpy(exitinfo.Archiver, archiver.name, 6);
+Archiver	write	mbsebbs/user.c	355	2	usrconfig	usrconfig.Archiver[0]	usrconfig.Archiver[0] = 'Z';
+Archiver	write	mbsebbs/user.c	356	2	usrconfig	usrconfig.Archiver[1]	usrconfig.Archiver[1] = 'I';
+Archiver	write	mbsebbs/user.c	357	2	usrconfig	usrconfig.Archiver[2]	usrconfig.Archiver[2] = 'P';
+Archiver	write	mbsetup/m_users.c	155	5	user	user->Archiver[sizeof(user->Archiver) - 1]	user->Archiver[sizeof(user->Archiver) - 1] = '\0';
+Archiver	write	mbsetup/m_users.c	676	32	usrconfig	usrconfig.Archiver	strcpy(usrconfig.Archiver, temp);
+Charset	read	mbnntp/auth.c	157	20	usrconfig	usrconfig.Charset	usercharset = usrconfig.Charset;
+Charset	read	mbsebbs/change.c	1121	52	exitinfo	exitinfo.Charset	"Syslog('+', ""Old character set %s"", getftnchrs(exitinfo.Charset));"
+Charset	read	mbsebbs/change.c	1148	36	exitinfo	exitinfo.Charset	"if (((strcmp(temp, """")) == 0) && (exitinfo.Charset != FTNC_NONE)) {"
+Charset	read	mbsebbs/change.c	1157	53	exitinfo	exitinfo.Charset	"Syslog('+', ""New character set %s"", getftnchrs(exitinfo.Charset));"
+Charset	read	mbsebbs/change.c	1159	36	exitinfo	exitinfo.Charset	setlocale(LC_CTYPE, getlocale(exitinfo.Charset));
+Charset	read	mbsebbs/change.c	1160	14	exitinfo	exitinfo.Charset	utf8 = (exitinfo.Charset == FTNC_UTF8);
+Charset	read	mbsebbs/dispfile.c	568	39	exitinfo	exitinfo.Charset	"snprintf(temp, 81, ""%s"", getftnchrs(exitinfo.Charset));"
+Charset	read	mbsebbs/email.c	292	9	exitinfo	exitinfo.Charset	if (exitinfo.Charset != FTNC_NONE) {
+Charset	read	mbsebbs/email.c	293	82	exitinfo	exitinfo.Charset	"snprintf(temp, PATH_MAX, ""\001Content-Type: text/plain; charset=%s"", getrfcchrs(exitinfo.Charset));"
+Charset	read	mbsebbs/email.c	465	39	exitinfo	exitinfo.Charset	chartran_init(charsin, get_ic_ftn(exitinfo.Charset), 'b');
+Charset	read	mbsebbs/mail.c	1306	39	exitinfo	exitinfo.Charset	chartran_init(charsin, get_ic_ftn(exitinfo.Charset), 'b');
+Charset	read	mbsebbs/msgutil.c	207	8	exitinfo	exitinfo.Charset	if (exitinfo.Charset != FTNC_NONE) {
+Charset	read	mbsebbs/msgutil.c	208	88	exitinfo	exitinfo.Charset	"snprintf(temp, PATH_MAX, ""\001Content-Type: text/plain; charset=%s"", getrfcchrs(exitinfo.Charset));"
+Charset	read	mbsebbs/msgutil.c	224	9	exitinfo	exitinfo.Charset	if (exitinfo.Charset != FTNC_NONE) {
+Charset	read	mbsebbs/msgutil.c	225	54	exitinfo	exitinfo.Charset	"snprintf(temp, PATH_MAX, ""\001CHRS: %s"", getftnchrs(exitinfo.Charset));"
+Charset	read	mbsebbs/user.c	269	13	usrconfig	usrconfig.Charset	utf8 = (usrconfig.Charset == FTNC_UTF8);
+Charset	read	mbsebbs/user.c	485	9	exitinfo	exitinfo.Charset	if (exitinfo.Charset == FTNC_NONE) {
+Charset	read	mbsebbs/user.c	489	35	exitinfo	exitinfo.Charset	setlocale(LC_CTYPE, getlocale(exitinfo.Charset));
+Charset	read	mbsetup/m_users.c	611	21	usrconfig	usrconfig.Charset	show_charset(18,17,usrconfig.Charset);
+Charset	read	mbsetup/m_users.c	680	54	usrconfig	usrconfig.Charset	case 13:usrconfig.Charset = edit_charset(18,17, usrconfig.Charset); break;
+Charset	read	mbsetup/m_users.c	1105	59	usrconfig	usrconfig.Charset	"add_webtable(wp, (char *)""Character set"", getftnchrs(usrconfig.Charset));"
+Charset	write	fortytwo-auth/src/legacy_userdb_provision.c	446	5	record	record->Charset	record->Charset = registration->defaults.charset;
+Charset	write	mbsebbs/change.c	1156	6	exitinfo	exitinfo.Charset	exitinfo.Charset = i;
+Charset	write	mbsetup/m_users.c	680	14	usrconfig	usrconfig.Charset	case 13:usrconfig.Charset = edit_charset(18,17, usrconfig.Charset); break;
+Cls	read	mbsetup/m_users.c	618	21	usrconfig	usrconfig.Cls	show_bool(10,71,   usrconfig.Cls);
+Cls	read	mbsetup/m_users.c	1111	58	usrconfig	usrconfig.Cls	"add_webtable(wp, (char *)""Clear Screen"", getboolean(usrconfig.Cls));"
+Cls	write	fortytwo-auth/src/legacy_userdb_provision.c	433	5	record	record->Cls	record->Cls = 1U;
+Cls	write	mbsebbs/newuser.c	520	5	usrconfig	usrconfig.Cls	usrconfig.Cls          = TRUE;
+Cls	write	mbsetup/m_users.c	689	34	usrconfig	usrconfig.Cls	"case 18:E_BOOL(10,71,usrconfig.Cls,          ""Send ^ClearScreen code^ to users terminal""); break;"
+Credit	read	mbsebbs/offline.c	1241	25	exitinfo	exitinfo.Credit	Inf.credits = le_us(exitinfo.Credit);
+Credit	read	mbsetup/m_users.c	535	29	usrconfig	usrconfig.Credit	show_int( 14,17,    usrconfig.Credit);
+Credit	read	mbsetup/m_users.c	1073	41	usrconfig	usrconfig.Credit	"add_webdigit(wp, (char *)""Credit"", usrconfig.Credit);"
+Credit	write	mbsetup/m_users.c	860	26	usrconfig	usrconfig.Credit	"case 5 :E_INT( 14,17,   usrconfig.Credit,         ""Users ^Credit^""); break;"
+Deleted	read	fortytwo-auth/src/legacy_userdb.c	690	30	record	record.Deleted	audit->deleted = record.Deleted != 0U;
+Deleted	read	lib/dbuser.c	79	8	usr	usr.Deleted	if (!usr.Deleted)
+Deleted	read	mbnntp/auth.c	172	9	usrconfig	usrconfig.Deleted	if (usrconfig.Deleted || usrconfig.LockedOut) {
+Deleted	read	mbsebbs/dispfile.c	75	19	u	u.Deleted	if ((!u.Deleted) && (strlen(u.sUserName) > 0))
+Deleted	read	mbsebbs/user.c	225	9	usrconfig	usrconfig.Deleted	if (usrconfig.Deleted || usrconfig.LockedOut) {
+Deleted	read	mbsebbs/user.c	229	25	usrconfig	usrconfig.Deleted	usrconfig.Name, usrconfig.Deleted, usrconfig.LockedOut);
+Deleted	read	mbsebbs/userlist.c	103	24	u	u.Deleted	if ((!u.Hidden) && (!u.Deleted)) {
+Deleted	read	mbsebbs/userlist.c	124	30	u	u.Deleted	} else if ((!u.Hidden) && (!u.Deleted) && (strlen(u.sUserName) > 0)) {
+Deleted	read	mbsetup/m_users.c	537	22	usrconfig	usrconfig.Deleted	show_bool(16,17,    usrconfig.Deleted);
+Deleted	read	mbsetup/m_users.c	957	13	usrconfig	usrconfig.Deleted	if ((!usrconfig.Deleted) && strlen(usrconfig.sUserName))
+Deleted	read	mbutils/mbuser.c	212	7	usr	usr.Deleted	if (!usr.Deleted && strlen(usr.sUserName)) {
+Deleted	read	mbutils/mbuser.c	307	10	usr	usr.Deleted	if (usr.Deleted) {
+Deleted	read	unix/mblogin.c	610	9	usrconfig	usrconfig.Deleted	if (usrconfig.Deleted || usrconfig.LockedOut) {
+Deleted	read	unix/mblogin.c	616	19	usrconfig	usrconfig.Deleted	(unsigned)usrconfig.Deleted,
+Deleted	write	mbsetup/m_users.c	862	26	usrconfig	usrconfig.Deleted	"case 7 :E_BOOL(16,17,   usrconfig.Deleted,        ""Is user marked for ^deletion^""); break;"
+Deleted	write	mbutils/mbuser.c	286	3	usr	usr.Deleted	usr.Deleted = TRUE;
+DoNotDisturb	read	mbsebbs/change.c	504	8	exitinfo	exitinfo.DoNotDisturb	if(exitinfo.DoNotDisturb) {
+DoNotDisturb	read	mbsebbs/change.c	515	42	exitinfo	exitinfo.DoNotDisturb	"Syslog('+', ""Do not disturb now %s"", exitinfo.DoNotDisturb?""True"":""False"");"
+DoNotDisturb	read	mbsebbs/change.c	516	16	exitinfo	exitinfo.DoNotDisturb	UserSilent(exitinfo.DoNotDisturb);
+DoNotDisturb	read	mbsebbs/dispfile.c	524	29	exitinfo	exitinfo.DoNotDisturb	"snprintf(temp, 81, ""%s"", exitinfo.DoNotDisturb?(char *)Language(147):(char *)Language(148));"
+DoNotDisturb	read	mbsebbs/user.c	597	16	usrconfig	usrconfig.DoNotDisturb	UserSilent(usrconfig.DoNotDisturb);
+DoNotDisturb	read	mbsetup/m_users.c	617	21	usrconfig	usrconfig.DoNotDisturb	show_bool( 9,71,   usrconfig.DoNotDisturb);
+DoNotDisturb	read	mbsetup/m_users.c	1110	60	usrconfig	usrconfig.DoNotDisturb	"add_webtable(wp, (char *)""Do not disturb"", getboolean(usrconfig.DoNotDisturb));"
+DoNotDisturb	write	mbsebbs/change.c	505	2	exitinfo	exitinfo.DoNotDisturb	exitinfo.DoNotDisturb = FALSE;
+DoNotDisturb	write	mbsebbs/change.c	509	2	exitinfo	exitinfo.DoNotDisturb	exitinfo.DoNotDisturb = TRUE;
+DoNotDisturb	write	mbsebbs/newuser.c	463	5	usrconfig	usrconfig.DoNotDisturb	usrconfig.DoNotDisturb = FALSE;
+DoNotDisturb	write	mbsetup/m_users.c	688	34	usrconfig	usrconfig.DoNotDisturb	"case 17:E_BOOL( 9,71,usrconfig.DoNotDisturb, ""User will not be ^disturbed^""); break;"
+DownloadK	read	mbsebbs/dispfile.c	380	28	exitinfo	exitinfo.DownloadK	"snprintf(temp, 81, ""%u"", exitinfo.DownloadK);"
+DownloadK	read	mbsebbs/dispfile.c	388	28	exitinfo	exitinfo.DownloadK	"snprintf(temp, 81, ""%u"", exitinfo.DownloadK + exitinfo.UploadK);"
+DownloadK	read	mbsebbs/door.c	266	28	exitinfo	exitinfo.DownloadK	"fprintf(fp, ""%d\r\n"", exitinfo.DownloadK);"
+DownloadK	read	mbsetup/m_users.c	548	19	usrconfig	usrconfig.DownloadK	show_int( 12,68, usrconfig.DownloadK);
+DownloadK	read	mbsetup/m_users.c	1083	52	usrconfig	usrconfig.DownloadK	"add_webdigit(wp, (char *)""Downloaded KBytes"", usrconfig.DownloadK);"
+DownloadK	read-write	mbsebbs/file.c	399	5	exitinfo	exitinfo.DownloadK	exitinfo.DownloadK += (Size / 1024);  /* Increase amount download today */
+DownloadKToday	read	mbsebbs/filesub.c	436	7	exitinfo	exitinfo.DownloadKToday	if ((exitinfo.DownloadKToday <= 0) || ((CostSize / 1024) > exitinfo.DownloadKToday)) {
+DownloadKToday	read	mbsebbs/filesub.c	436	61	exitinfo	exitinfo.DownloadKToday	if ((exitinfo.DownloadKToday <= 0) || ((CostSize / 1024) > exitinfo.DownloadKToday)) {
+DownloadKToday	read	mbsebbs/filesub.c	448	65	exitinfo	exitinfo.DownloadKToday	"snprintf(temp, 81, ""%s%u Kbytes."", (char *) Language(254), exitinfo.DownloadKToday);"
+DownloadKToday	read	mbsebbs/filesub.c	748	36	exitinfo	exitinfo.DownloadKToday	"Syslog('b', ""DownloadKToday %d"", exitinfo.DownloadKToday);"
+DownloadKToday	read-write	mbsebbs/file.c	407	2	exitinfo	exitinfo.DownloadKToday	exitinfo.DownloadKToday -= (Size / 1024);
+DownloadKToday	read-write	mbsebbs/filesub.c	747	3	exitinfo	exitinfo.DownloadKToday	exitinfo.DownloadKToday += (Size / 1024);
+DownloadKToday	write	mbsebbs/user.c	441	3	usrconfig	usrconfig.DownloadKToday	usrconfig.DownloadKToday = LIMIT.DownK;
+Downloads	read	mbsebbs/dispfile.c	376	28	exitinfo	exitinfo.Downloads	"snprintf(temp, 81, ""%d"", exitinfo.Downloads);"
+Downloads	read	mbsebbs/door.c	246	28	exitinfo	exitinfo.Downloads	"fprintf(fp, ""%d\r\n"", exitinfo.Downloads);"
+Downloads	read	mbsebbs/file.c	245	50	exitinfo	exitinfo.Downloads	"snprintf(local, PATH_MAX, ""./tag/filedesc.%d"", exitinfo.Downloads % 256);"
+Downloads	read	mbsebbs/file.c	306	89	exitinfo	exitinfo.Downloads	"snprintf(local, PATH_MAX, ""%s/%s/tag/filedesc.%d"", CFG.bbs_usersdir, exitinfo.Name, exitinfo.Downloads % 256);"
+Downloads	read	mbsebbs/file.c	308	45	exitinfo	exitinfo.Downloads	"snprintf(temp, PATH_MAX, ""filedesc.%d"", exitinfo.Downloads % 256);"
+Downloads	read	mbsetup/m_users.c	547	19	usrconfig	usrconfig.Downloads	show_int( 11,68, usrconfig.Downloads);
+Downloads	read	mbsetup/m_users.c	1082	50	usrconfig	usrconfig.Downloads	"add_webdigit(wp, (char *)""total downloads"", usrconfig.Downloads);"
+Downloads	read-write	mbsebbs/file.c	397	5	exitinfo	exitinfo.Downloads	exitinfo.Downloads += Count;          /* Increase download counter      */
+Downloads	read-write	mbsebbs/file.c	1042	2	exitinfo	exitinfo.Downloads	exitinfo.Downloads++;    /* Increase download counter */
+DownloadsToday	read	mbsebbs/door.c	264	28	exitinfo	exitinfo.DownloadsToday	"fprintf(fp, ""%d\r\n"", exitinfo.DownloadsToday);"
+DownloadsToday	write	mbsebbs/user.c	444	17	usrconfig	usrconfig.DownloadsToday	usrconfig.DownloadsToday = LIMIT.DownF;
+Email	read	mbfido/mbmsg.c	341	10	usrconfig	usrconfig.Email	if (usrconfig.Email && strlen(usrconfig.Name)) {
+Email	read	mbfido/scan.c	171	10	usrconfig	usrconfig.Email	if (usrconfig.Email && strlen(usrconfig.Name)) {
+Email	read	mbsebbs/email.c	70	9	exitinfo	exitinfo.Email	if (exitinfo.Email)
+Email	read	mbsebbs/email.c	1085	10	exitinfo	exitinfo.Email	if (!exitinfo.Email)
+Email	read	mbsebbs/funcs.c	235	41	exitinfo	exitinfo.Email	if ((CFG.EmailMode == E_PRMISP) && exitinfo.Email && CFG.GiveEmail)
+Email	read	mbsebbs/mail.c	2522	9	exitinfo	exitinfo.Email	if (exitinfo.Email && strlen(exitinfo.Password)) {
+Email	read	mbsebbs/mail.c	2749	9	exitinfo	exitinfo.Email	if (exitinfo.Email) {
+Email	read	mbsebbs/offline.c	829	9	exitinfo	exitinfo.Email	if (exitinfo.Email)
+Email	read	mbsebbs/user.c	494	34	exitinfo	exitinfo.Email	ChangeHomeDir(exitinfo.Name, exitinfo.Email);
+Email	read	mbsetup/m_users.c	544	26	usrconfig	usrconfig.Email	show_bool( 9,68, usrconfig.Email);
+Email	read	mbsetup/m_users.c	1080	56	usrconfig	usrconfig.Email	"add_webtable(wp, (char *)""Has e-mail"", getboolean(usrconfig.Email));"
+Email	write	fortytwo-auth/src/legacy_userdb_provision.c	439	5	record	record->Email	record->Email = registration->defaults.email ? 1U : 0U;
+Email	write	mbsebbs/newuser.c	405	5	usrconfig	usrconfig.Email	usrconfig.Email = CFG.GiveEmail;
+Email	write	mbsetup/m_users.c	869	26	usrconfig	usrconfig.Email	"case 13:E_BOOL( 9,68,   usrconfig.Email,          ""User has a ^private email^ mailbox""); break;"
+ExpirySec	read	mbsebbs/user.c	387	23	usrconfig	usrconfig.ExpirySec	usrconfig.Security = usrconfig.ExpirySec;
+ExpirySec	read	mbsetup/m_users.c	517	21	usrconfig	usrconfig.ExpirySec.level	show_int( 9,17,    usrconfig.ExpirySec.level);
+ExpirySec	read	mbsetup/m_users.c	1066	56	usrconfig	usrconfig.ExpirySec	"web_secflags(wp, (char *)""Expiry security level"", usrconfig.ExpirySec);"
+ExpirySec	write	fortytwo-auth/src/legacy_userdb_provision.c	430	5	record	record->ExpirySec	record->ExpirySec = record->Security;
+ExpirySec	write	mbsebbs/newuser.c	403	5	usrconfig	usrconfig.ExpirySec	usrconfig.ExpirySec = CFG.newuser_access;
+ExpirySec	write	mbsetup/m_users.c	859	26	usrconfig	usrconfig.ExpirySec.level	"case 4 :E_INT(  9,17,   usrconfig.ExpirySec.level,""The ^Expiry Level^ for this user""); break;"
+FSemacs	read	mbsebbs/change.c	479	9	exitinfo	exitinfo.FSemacs	if (exitinfo.FSemacs) {
+FSemacs	read	mbsebbs/change.c	490	58	exitinfo	exitinfo.FSemacs	"Syslog('+', ""FS editor shortcut keys changed to %s"", exitinfo.FSemacs?""Emacs"":""Wordstar"");"
+FSemacs	read	mbsebbs/dispfile.c	548	28	exitinfo	exitinfo.FSemacs	"snprintf(temp, 81, ""%s"", exitinfo.FSemacs?(char *)Language(147):(char *)Language(148));"
+FSemacs	read	mbsebbs/mail.c	2928	34	exitinfo	exitinfo.FSemacs	"fprintf(fd,""BBSFSEDKEYS='%d'\n"",exitinfo.FSemacs);"
+FSemacs	read	mbsetup/m_users.c	624	21	usrconfig	usrconfig.FSemacs	show_bool(16,71,   usrconfig.FSemacs);
+FSemacs	read	mbsetup/m_users.c	1117	63	usrconfig	usrconfig.FSemacs	"add_webtable(wp, (char *)""Emacs editor keys"", getboolean(usrconfig.FSemacs));"
+FSemacs	write	mbsebbs/change.c	480	2	exitinfo	exitinfo.FSemacs	exitinfo.FSemacs = FALSE;
+FSemacs	write	mbsebbs/change.c	484	2	exitinfo	exitinfo.FSemacs	exitinfo.FSemacs = TRUE;
+FSemacs	write	mbsetup/m_users.c	696	34	usrconfig	usrconfig.FSemacs	"case 24:E_BOOL(16,71,usrconfig.FSemacs,      ""Use ^Emacs^ or Wordstar shorcut keys in FS editor""); break;"
+GraphMode	read	mbsebbs/change.c	631	9	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/change.c	641	42	exitinfo	exitinfo.GraphMode	"Syslog ('+', ""Graphics mode now %s"", exitinfo.GraphMode?""On"":""Off"");"
+GraphMode	read	mbsebbs/dispfile.c	245	9	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/dispfile.c	496	28	exitinfo	exitinfo.GraphMode	"snprintf(temp, 81, ""%s"", exitinfo.GraphMode?(char *)Language(147):(char *)Language(148));"
+GraphMode	read	mbsebbs/door.c	233	10	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/door.c	302	10	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/door.c	355	17	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/lastcallers.c	82	6	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/lastcallers.c	93	6	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/lastcallers.c	106	6	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/lastcallers.c	118	7	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/lastcallers.c	126	7	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/lastcallers.c	164	6	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/mail.c	2931	32	exitinfo	exitinfo.GraphMode	"fprintf(fd,""ANSIMODE='%d'\n"", exitinfo.GraphMode);"
+GraphMode	read	mbsebbs/term.c	62	9	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/term.c	84	9	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/term.c	106	9	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) {
+GraphMode	read	mbsebbs/term.c	179	9	exitinfo	exitinfo.GraphMode	if (exitinfo.GraphMode) { /* User has ANSI enabled */
+GraphMode	read	mbsetup/m_users.c	616	21	usrconfig	usrconfig.GraphMode	show_bool( 8,71,   usrconfig.GraphMode);
+GraphMode	read	mbsetup/m_users.c	1109	60	usrconfig	usrconfig.GraphMode	"add_webtable(wp, (char *)""Use ANSI color"", getboolean(usrconfig.GraphMode));"
+GraphMode	write	fortytwo-auth/src/legacy_userdb_provision.c	431	5	record	record->GraphMode	record->GraphMode = 1U;
+GraphMode	write	mbsebbs/change.c	632	9	exitinfo	exitinfo.GraphMode	exitinfo.GraphMode = FALSE;
+GraphMode	write	mbsebbs/change.c	636	9	exitinfo	exitinfo.GraphMode	exitinfo.GraphMode = TRUE;
+GraphMode	write	mbsebbs/newuser.c	417	17	usrconfig	usrconfig.GraphMode	usrconfig.GraphMode = TRUE;
+GraphMode	write	mbsebbs/newuser.c	421	17	usrconfig	usrconfig.GraphMode	usrconfig.GraphMode = FALSE;
+GraphMode	write	mbsebbs/newuser.c	429	9	usrconfig	usrconfig.GraphMode	usrconfig.GraphMode = TRUE; /* Default set it to ANSI */
+GraphMode	write	mbsetup/m_users.c	687	34	usrconfig	usrconfig.GraphMode	"case 16:E_BOOL( 8,71,usrconfig.GraphMode,    ""Is user using ^ANSI^ color""); break;"
+Guest	read	mbsebbs/bye.c	102	10	usrconfig	usrconfig.Guest	if (!usrconfig.Guest) {
+Guest	read	mbsebbs/change.c	169	9	exitinfo	exitinfo.Guest	if (exitinfo.Guest) {
+Guest	read	mbsetup/m_users.c	542	26	usrconfig	usrconfig.Guest	show_bool( 7,68, usrconfig.Guest);
+Guest	read	mbsetup/m_users.c	1078	56	usrconfig	usrconfig.Guest	"add_webtable(wp, (char *)""Guest user"", getboolean(usrconfig.Guest));"
+Guest	read	mbutils/mbuser.c	273	83	usr	usr.Guest	if ((((t_start - Last) / 86400) > days) && (usr.Security.level < level) && (!usr.Guest) &&
+Guest	write	mbsetup/m_users.c	867	26	usrconfig	usrconfig.Guest	"case 11:E_BOOL( 7,68,   usrconfig.Guest,          ""This is a ^Guest^ account""); break;"
+Hidden	read	mbsebbs/misc.c	213	17	exitinfo	exitinfo.Hidden	LCALL.Hidden = exitinfo.Hidden;
+Hidden	read	mbsebbs/user.c	93	22	usrconfig	usrconfig.Hidden	if (!usrconfig.Hidden) {
+Hidden	read	mbsebbs/userlist.c	103	9	u	u.Hidden	if ((!u.Hidden) && (!u.Deleted)) {
+Hidden	read	mbsebbs/userlist.c	124	15	u	u.Hidden	} else if ((!u.Hidden) && (!u.Deleted) && (strlen(u.sUserName) > 0)) {
+Hidden	read	mbsetup/m_users.c	536	29	usrconfig	usrconfig.Hidden	show_bool(15,17,    usrconfig.Hidden);
+Hidden	read	mbsetup/m_users.c	1074	63	usrconfig	usrconfig.Hidden	"add_webtable(wp, (char *)""Hidden from lists"", getboolean(usrconfig.Hidden));"
+Hidden	write	mbsetup/m_users.c	861	26	usrconfig	usrconfig.Hidden	"case 6 :E_BOOL(15,17,   usrconfig.Hidden,         ""Is user ^hidden^ on the BBS""); break;"
+HotKeys	read	mbsebbs/change.c	344	9	exitinfo	exitinfo.HotKeys	if (exitinfo.HotKeys) {
+HotKeys	read	mbsebbs/change.c	356	42	exitinfo	exitinfo.HotKeys	"Syslog('+', ""Hotkeys changed to %s"", exitinfo.HotKeys?""True"":""False"");"
+HotKeys	read	mbsebbs/dispfile.c	500	28	exitinfo	exitinfo.HotKeys	"snprintf(temp, 81, ""%s"", exitinfo.HotKeys?(char *)Language(147):(char *)Language(148));"
+HotKeys	read	mbsebbs/menu.c	209	10	exitinfo	exitinfo.HotKeys	if (exitinfo.HotKeys) {
+HotKeys	read	mbsebbs/offline.c	1236	9	exitinfo	exitinfo.HotKeys	if (exitinfo.HotKeys)
+HotKeys	read	mbsetup/m_users.c	615	21	usrconfig	usrconfig.HotKeys	show_bool( 7,71,   usrconfig.HotKeys);
+HotKeys	read	mbsetup/m_users.c	1108	57	usrconfig	usrconfig.HotKeys	"add_webtable(wp, (char *)""Use hotkeys"", getboolean(usrconfig.HotKeys));"
+HotKeys	write	fortytwo-auth/src/legacy_userdb_provision.c	432	5	record	record->HotKeys	record->HotKeys = 1U;
+HotKeys	write	mbsebbs/change.c	345	2	exitinfo	exitinfo.HotKeys	exitinfo.HotKeys = FALSE;
+HotKeys	write	mbsebbs/change.c	349	2	exitinfo	exitinfo.HotKeys	exitinfo.HotKeys = TRUE;
+HotKeys	write	mbsebbs/newuser.c	441	3	usrconfig	usrconfig.HotKeys	usrconfig.HotKeys = TRUE;
+HotKeys	write	mbsebbs/newuser.c	445	3	usrconfig	usrconfig.HotKeys	usrconfig.HotKeys = FALSE;
+HotKeys	write	mbsebbs/newuser.c	453	2	usrconfig	usrconfig.HotKeys	usrconfig.HotKeys = TRUE; /* Default set it to Hotkeys */
+HotKeys	write	mbsetup/m_users.c	686	34	usrconfig	usrconfig.HotKeys	"case 15:E_BOOL( 7,71,usrconfig.HotKeys,      ""Is user using ^HotKeys^ for menus""); break;"
+LockedOut	read	fortytwo-auth/src/legacy_userdb.c	691	33	record	record.LockedOut	audit->locked_out = record.LockedOut != 0U;
+LockedOut	read	mbnntp/auth.c	172	30	usrconfig	usrconfig.LockedOut	if (usrconfig.Deleted || usrconfig.LockedOut) {
+LockedOut	read	mbsebbs/user.c	225	30	usrconfig	usrconfig.LockedOut	if (usrconfig.Deleted || usrconfig.LockedOut) {
+LockedOut	read	mbsebbs/user.c	229	44	usrconfig	usrconfig.LockedOut	usrconfig.Name, usrconfig.Deleted, usrconfig.LockedOut);
+LockedOut	read	mbsetup/m_users.c	541	26	usrconfig	usrconfig.LockedOut	show_bool( 6,68, usrconfig.LockedOut);
+LockedOut	read	mbsetup/m_users.c	1077	56	usrconfig	usrconfig.LockedOut	"add_webtable(wp, (char *)""Locked out"", getboolean(usrconfig.LockedOut));"
+LockedOut	read	unix/mblogin.c	610	30	usrconfig	usrconfig.LockedOut	if (usrconfig.Deleted || usrconfig.LockedOut) {
+LockedOut	read	unix/mblogin.c	617	19	usrconfig	usrconfig.LockedOut	(unsigned)usrconfig.LockedOut);
+LockedOut	write	mbsetup/m_users.c	866	26	usrconfig	usrconfig.LockedOut	"case 10:E_BOOL( 6,68,   usrconfig.LockedOut,      ""User is ^Locked Out^ of this BBS""); break;"
+MailScan	read	mbsebbs/change.c	370	9	exitinfo	exitinfo.MailScan	if (exitinfo.MailScan) {
+MailScan	read	mbsebbs/change.c	382	49	exitinfo	exitinfo.MailScan	"Syslog('+', ""New Mail Check changed to %s"", exitinfo.MailScan ?""True"":""False"");"
+MailScan	read	mbsebbs/dispfile.c	528	28	exitinfo	exitinfo.MailScan	"snprintf(temp, 81, ""%s"", exitinfo.MailScan?(char *)Language(147):(char *)Language(148));"
+MailScan	read	mbsebbs/user.c	569	9	exitinfo	exitinfo.MailScan	if (exitinfo.MailScan) {
+MailScan	read	mbsetup/m_users.c	621	21	usrconfig	usrconfig.MailScan	show_bool(13,71,   usrconfig.MailScan);
+MailScan	read	mbsetup/m_users.c	1114	59	usrconfig	usrconfig.MailScan	"add_webtable(wp, (char *)""Scan new mail"", getboolean(usrconfig.MailScan));"
+MailScan	write	fortytwo-auth/src/legacy_userdb_provision.c	435	5	record	record->MailScan	record->MailScan = registration->defaults.mail_scan ? 1U : 0U;
+MailScan	write	mbsebbs/change.c	371	2	exitinfo	exitinfo.MailScan	exitinfo.MailScan = FALSE;
+MailScan	write	mbsebbs/change.c	375	2	exitinfo	exitinfo.MailScan	exitinfo.MailScan = TRUE;
+MailScan	write	mbsebbs/newuser.c	466	14	usrconfig	usrconfig.MailScan	case NO:    usrconfig.MailScan = FALSE;
+MailScan	write	mbsebbs/newuser.c	468	14	usrconfig	usrconfig.MailScan	case YES:   usrconfig.MailScan = TRUE;
+MailScan	write	mbsebbs/newuser.c	479	8	usrconfig	usrconfig.MailScan	usrconfig.MailScan = TRUE;
+MailScan	write	mbsebbs/newuser.c	483	8	usrconfig	usrconfig.MailScan	usrconfig.MailScan = FALSE;
+MailScan	write	mbsetup/m_users.c	693	34	usrconfig	usrconfig.MailScan	"case 21:E_BOOL(13,71,usrconfig.MailScan,     ""Don't check for ^new mail^""); break;"
+More	read	mbsetup/m_users.c	619	21	usrconfig	usrconfig.More	show_bool(11,71,   usrconfig.More);
+More	read	mbsetup/m_users.c	1112	57	usrconfig	usrconfig.More	"add_webtable(wp, (char *)""More prompt"", getboolean(usrconfig.More));"
+More	write	fortytwo-auth/src/legacy_userdb_provision.c	434	5	record	record->More	record->More = 1U;
+More	write	mbsebbs/newuser.c	521	5	usrconfig	usrconfig.More	usrconfig.More         = TRUE;
+More	write	mbsetup/m_users.c	690	34	usrconfig	usrconfig.More	"case 19:E_BOOL(11,71,usrconfig.More,         ""User uses the ^More prompt^""); break;"
+MsgEditor	read	mbsebbs/change.c	428	48	exitinfo	exitinfo.MsgEditor	"snprintf(temp, 81, "" %s "", Language(387 + (exitinfo.MsgEditor & 3)));"
+MsgEditor	read	mbsebbs/change.c	460	48	exitinfo	exitinfo.MsgEditor	"snprintf(temp, 81, "" %s "", Language(387 + (exitinfo.MsgEditor & 3)));"
+MsgEditor	read	mbsebbs/dispfile.c	536	10	exitinfo	exitinfo.MsgEditor	switch(exitinfo.MsgEditor) {
+MsgEditor	read	mbsebbs/mail.c	387	13	exitinfo	exitinfo.MsgEditor	switch (exitinfo.MsgEditor) {
+MsgEditor	read	mbsetup/m_users.c	620	24	usrconfig	usrconfig.MsgEditor	show_msgeditor(12,71, usrconfig.MsgEditor);
+MsgEditor	read	mbsetup/m_users.c	691	64	usrconfig	usrconfig.MsgEditor	case 20:usrconfig.MsgEditor = edit_msgeditor(12,71,usrconfig.MsgEditor);
+MsgEditor	read	mbsetup/m_users.c	1113	62	usrconfig	usrconfig.MsgEditor	"add_webtable(wp, (char *)""Message editor"", getmsgeditor(usrconfig.MsgEditor));"
+MsgEditor	write	fortytwo-auth/src/legacy_userdb_provision.c	442	5	record	record->MsgEditor	record->MsgEditor = registration->defaults.message_editor;
+MsgEditor	write	mbsebbs/change.c	444	2	exitinfo	exitinfo.MsgEditor	exitinfo.MsgEditor = LINEEDIT;
+MsgEditor	write	mbsebbs/change.c	447	2	exitinfo	exitinfo.MsgEditor	exitinfo.MsgEditor = FSEDIT;
+MsgEditor	write	mbsebbs/change.c	450	2	exitinfo	exitinfo.MsgEditor	exitinfo.MsgEditor = EXTEDIT;
+MsgEditor	write	mbsebbs/newuser.c	107	2	usrconfig	usrconfig.MsgEditor	usrconfig.MsgEditor = EXTEDIT;
+MsgEditor	write	mbsebbs/newuser.c	109	2	usrconfig	usrconfig.MsgEditor	usrconfig.MsgEditor = FSEDIT;
+MsgEditor	write	mbsetup/m_users.c	691	21	usrconfig	usrconfig.MsgEditor	case 20:usrconfig.MsgEditor = edit_msgeditor(12,71,usrconfig.MsgEditor);
+MsgEditor	write	mbutils/mbuser.c	345	7	usr	usr.MsgEditor	usr.MsgEditor = EXTEDIT;
+MsgEditor	write	mbutils/mbuser.c	347	7	usr	usr.MsgEditor	usr.MsgEditor = FSEDIT;
+Name	metadata	fortytwo-auth/src/legacy_userdb.c	662	59	record	record.Name	if (!fixed_text_is_terminated(record.Name, sizeof(record.Name)) ||
+Name	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1194	59	record	record.Name	if (!fixed_text_is_terminated(record.Name, sizeof(record.Name)) ||
+Name	metadata	fortytwo-auth/src/legacy_userdb_provision.c	2371	57	record	record.Name	return fixed_text_is_terminated(record.Name, sizeof(record.Name)) &&
+Name	read	fortytwo-auth/src/legacy_userdb.c	662	39	record	record.Name	if (!fixed_text_is_terminated(record.Name, sizeof(record.Name)) ||
+Name	read	fortytwo-auth/src/legacy_userdb.c	684	34	record	record.Name	"""%s"", record.Name);"
+Name	read	fortytwo-auth/src/legacy_userdb.c	689	28	record	record.Name[0]	audit->empty = record.Name[0] == '\0';
+Name	read	fortytwo-auth/src/legacy_userdb.c	703	13	record	record.Name[0]	if (record.Name[0] != '\0') {
+Name	read	fortytwo-auth/src/legacy_userdb.c	705	66	record	record.Name	"sizeof(names[name_count].name), ""%s"", record.Name);"
+Name	read	fortytwo-auth/src/legacy_userdb.c	711	32	record	record.Name	ascii_case_compare(record.Name, query->legacy_name) == 0) {
+Name	read	fortytwo-auth/src/legacy_userdb_provision.c	550	31	record	record->Name	return ascii_case_compare(record->Name, value) == 0 ||
+Name	read	fortytwo-auth/src/legacy_userdb_provision.c	1194	39	record	record.Name	if (!fixed_text_is_terminated(record.Name, sizeof(record.Name)) ||
+Name	read	fortytwo-auth/src/legacy_userdb_provision.c	1226	13	record	record.Name[0]	if (record.Name[0] != '\0') {
+Name	read	fortytwo-auth/src/legacy_userdb_provision.c	1228	66	record	record.Name	"sizeof(names[name_count].name), ""%s"", record.Name);"
+Name	read	fortytwo-auth/src/legacy_userdb_provision.c	2371	37	record	record.Name	return fixed_text_is_terminated(record.Name, sizeof(record.Name)) &&
+Name	read	fortytwo-auth/src/legacy_userdb_provision.c	2378	19	record	record.Name	strcmp(record.Name, prepared->legacy_name) == 0 &&
+Name	read	lib/dbuser.c	78	14	usr	usr.Name	(strcmp(usr.Name, Name) == 0)) {
+Name	read	mbfido/ftn2rfc.c	238	35	usr	usr.Name	"snprintf(buf, size, ""%s@%s"", usr.Name, CFG.sysdomain);"
+Name	read	mbfido/mbmsg.c	341	36	usrconfig	usrconfig.Name	if (usrconfig.Email && strlen(usrconfig.Name)) {
+Name	read	mbfido/mbmsg.c	343	59	usrconfig	usrconfig.Name	"snprintf(Name, PATH_MAX, ""User %s email area: mailbox"", usrconfig.Name);"
+Name	read	mbfido/mbmsg.c	349	65	usrconfig	usrconfig.Name	"snprintf(sAreas, PATH_MAX, ""%s/%s/mailbox"", CFG.bbs_usersdir, usrconfig.Name);"
+Name	read	mbfido/mbmsg.c	362	65	usrconfig	usrconfig.Name	"snprintf(sAreas, PATH_MAX, ""%s/%s/archive"", CFG.bbs_usersdir, usrconfig.Name);"
+Name	read	mbfido/mbmsg.c	363	53	usrconfig	usrconfig.Name	"snprintf(Name, 80, ""User %s email area: archive"", usrconfig.Name);"
+Name	read	mbfido/mbmsg.c	375	63	usrconfig	usrconfig.Name	"snprintf(sAreas, PATH_MAX, ""%s/%s/trash"", CFG.bbs_usersdir, usrconfig.Name);"
+Name	read	mbfido/mbmsg.c	376	51	usrconfig	usrconfig.Name	"snprintf(Name, 80, ""User %s email area: trash"", usrconfig.Name);"
+Name	read	mbfido/scan.c	171	36	usrconfig	usrconfig.Name	if (usrconfig.Email && strlen(usrconfig.Name)) {
+Name	read	mbfido/scan.c	176	29	usrconfig	usrconfig.Name	"printf(""\r%8s %-40s"", usrconfig.Name, usrconfig.sUserName);"
+Name	read	mbfido/scan.c	181	65	usrconfig	usrconfig.Name	"snprintf(sAreas, PATH_MAX, ""%s/%s/mailbox"", CFG.bbs_usersdir, usrconfig.Name);"
+Name	read	mbfido/scan.c	198	57	usrconfig	usrconfig.Name	"Syslog('m', ""Export %lu email from %s"", Number, usrconfig.Name);"
+Name	read	mbnntp/auth.c	155	13	usrconfig	usrconfig.Name	if (strcmp(usrconfig.Name, username) == 0) {
+Name	read	mbnntp/auth.c	207	18	usrconfig	usrconfig.Name	UserCity(mypid, usrconfig.Name, usrconfig.sLocation);
+Name	read	mbnntp/auth.c	209	18	usrconfig	usrconfig.Name	"UserCity(mypid, usrconfig.Name, (char *)""N/A"");"
+Name	read	mbsebbs/bye.c	198	64	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.quote"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/bye.c	201	66	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/data.msg"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/bye.c	204	66	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/door.sys"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/bye.c	207	68	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/door32.sys"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/bye.c	210	70	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/dorinfo1.def"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/change.c	211	64	exitinfo	exitinfo.Name	"Syslog('+', ""%s/bin/mbpasswd %s ******"", getenv(""MBSE_ROOT""), exitinfo.Name);"
+Name	read	mbsebbs/change.c	215	12	exitinfo	exitinfo.Name	args[1] = exitinfo.Name;
+Name	read	mbsebbs/chat.c	239	30	exitinfo	exitinfo.Name	name  = xstrcpy(clencode(exitinfo.Name));
+Name	read	mbsebbs/door.c	156	62	exitinfo	exitinfo.Name	"snprintf(temp1, PATH_MAX, ""%s/%s"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/door.c	161	41	exitinfo	exitinfo.Name	"snprintf(temp1, PATH_MAX, ""%s"", exitinfo.Name);"
+Name	read	mbsebbs/door.c	196	67	exitinfo	exitinfo.Name	"snprintf(temp1, PATH_MAX, ""%s/%s/door.sys"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/door.c	277	69	exitinfo	exitinfo.Name	"snprintf(temp1, PATH_MAX, ""%s/%s/door32.sys"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/door.c	315	71	exitinfo	exitinfo.Name	"snprintf(temp1, PATH_MAX, ""%s/%s/dorinfo1.def"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/email.c	216	68	exitinfo	exitinfo.Name	"snprintf(p, PATH_MAX, ""%s/%s/wrk/%s_%u.msg"", CFG.bbs_usersdir, exitinfo.Name, sMailbox, Num);"
+Name	read	mbsebbs/email.c	327	68	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.signature"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/email.c	368	54	exitinfo	exitinfo.Name	"fprintf(fp, ""%s/%s/mailbox %u\n"", CFG.bbs_usersdir, exitinfo.Name, Msg.Id);"
+Name	read	mbsebbs/email.c	422	62	exitinfo	exitinfo.Name	"snprintf(fn, PATH_MAX, ""%s/%s/.quote"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/email.c	761	40	exitinfo	exitinfo.Name	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+Name	read	mbsebbs/email.c	831	63	exitinfo	exitinfo.Name	"snprintf(tmp, PATH_MAX, ""%s/%s/.quote"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/email.c	893	40	exitinfo	exitinfo.Name	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+Name	read	mbsebbs/email.c	1092	65	exitinfo	exitinfo.Name	"snprintf(sMailpath, PATH_MAX, ""%s/%s/%s"", CFG.bbs_usersdir, exitinfo.Name, p);"
+Name	read	mbsebbs/file.c	190	65	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""-rf %s/%s/tag"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	192	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/tag"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	306	74	exitinfo	exitinfo.Name	"snprintf(local, PATH_MAX, ""%s/%s/tag/filedesc.%d"", CFG.bbs_usersdir, exitinfo.Name, exitinfo.Downloads % 256);"
+Name	read	mbsebbs/file.c	958	58	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	1070	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/wrk"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	1088	62	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/wrk"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	1141	62	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/wrk/"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	1246	64	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/wrk/%s"", CFG.bbs_usersdir, exitinfo.Name, File);"
+Name	read	mbsebbs/file.c	1298	58	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/file.c	1635	63	exitinfo	exitinfo.Name	"snprintf(temp2, PATH_MAX, ""%s/%s/wrk/%s"", CFG.bbs_usersdir, exitinfo.Name, File);"
+Name	read	mbsebbs/file.c	1932	62	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/temptxt"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	470	57	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	486	64	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl/%s"", CFG.bbs_usersdir, exitinfo.Name, fn);"
+Name	read	mbsebbs/filesub.c	529	64	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl/%s"", CFG.bbs_usersdir, exitinfo.Name, fn);"
+Name	read	mbsebbs/filesub.c	566	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	580	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl/%s"", CFG.bbs_usersdir, exitinfo.Name, fn);"
+Name	read	mbsebbs/filesub.c	601	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	603	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/tmp/%s"", CFG.bbs_usersdir, exitinfo.Name, fid);"
+Name	read	mbsebbs/filesub.c	605	71	exitinfo	exitinfo.Name	"snprintf(temp2, PATH_MAX, ""%s/%s/wrk/FILE_ID.DIZ"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	616	57	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	618	67	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""-r -f %s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	862	31	exitinfo	exitinfo.Name	idname = xstrcat(idname, exitinfo.Name);
+Name	read	mbsebbs/filesub.c	1051	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/wrk"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/filesub.c	1080	65	exitinfo	exitinfo.Name	"snprintf(temp1, PATH_MAX, ""%s/%s/wrk/%s"", CFG.bbs_usersdir, exitinfo.Name, fn);"
+Name	read	mbsebbs/filesub.c	1081	65	exitinfo	exitinfo.Name	"snprintf(temp2, PATH_MAX, ""%s/%s/upl/%s"", CFG.bbs_usersdir, exitinfo.Name, fn);"
+Name	read	mbsebbs/fsedit.c	680	70	exitinfo	exitinfo.Name	"snprintf(tmpname, PATH_MAX, ""%s/%s/wrk/%s"", CFG.bbs_usersdir, exitinfo.Name, filname);"
+Name	read	mbsebbs/funcs.c	236	44	exitinfo	exitinfo.Name	"fprintf(fp, ""    email: %s@%s\n"", exitinfo.Name, CFG.sysdomain);"
+Name	read	mbsebbs/mail.c	367	64	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.quote"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/mail.c	453	41	exitinfo	exitinfo.Name	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+Name	read	mbsebbs/mail.c	1152	65	exitinfo	exitinfo.Name	"snprintf(p, PATH_MAX, ""%s/%s/wrk/%d_%u.msg"", CFG.bbs_usersdir, exitinfo.Name, iMsgAreaNumber + 1, Num);"
+Name	read	mbsebbs/mail.c	1316	62	exitinfo	exitinfo.Name	"snprintf(fn, PATH_MAX, ""%s/%s/.quote"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/mail.c	1685	41	exitinfo	exitinfo.Name	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+Name	read	mbsebbs/mail.c	1774	60	exitinfo	exitinfo.Name	"snprintf(tmp, PATH_MAX, ""%s/%s/.quote"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/mail.c	1870	20	exitinfo	exitinfo.Name	if (strcasecmp(p, exitinfo.Name) == 0)
+Name	read	mbsebbs/mail.c	2523	16	exitinfo	exitinfo.Name	check_popmail(exitinfo.Name, exitinfo.Password);
+Name	read	mbsebbs/mail.c	2528	62	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/mailbox"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/mail.c	2915	69	exitinfo	exitinfo.Name	"snprintf(tmpname, PATH_MAX, ""%s/%s/data.msg"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/mail.c	2935	69	exitinfo	exitinfo.Name	"snprintf(tmpname, PATH_MAX, ""%s/%s/edit.msg"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/menu.c	197	9	exitinfo	exitinfo.Name	"Chat(exitinfo.Name, (char *)""#sysop"");"
+Name	read	mbsebbs/misc.c	197	32	exitinfo	exitinfo.Name	"snprintf(LCALL.Name, 9, ""%s"", exitinfo.Name);"
+Name	read	mbsebbs/msgutil.c	273	65	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.signature"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	247	69	exitinfo	exitinfo.Name	"snprintf(Tagname, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	387	69	exitinfo	exitinfo.Name	"snprintf(Tagname, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	590	69	exitinfo	exitinfo.Name	"snprintf(Tagname, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	735	69	exitinfo	exitinfo.Name	"snprintf(Tagname, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	830	16	exitinfo	exitinfo.Name	check_popmail(exitinfo.Name, exitinfo.Password);
+Name	read	mbsebbs/offline.c	837	66	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1002	64	exitinfo	exitinfo.Name	"snprintf(Dirpath, PATH_MAX, ""%s/%s/upl"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1097	60	exitinfo	exitinfo.Name	"snprintf(Dirpath, PATH_MAX, ""%s/%s"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1213	61	exitinfo	exitinfo.Name	"snprintf(Work, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1269	66	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1411	66	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s"", CFG.bbs_usersdir, exitinfo.Name, Pktname);"
+Name	read	mbsebbs/offline.c	1476	60	exitinfo	exitinfo.Name	"snprintf(Dirpath, PATH_MAX, ""%s/%s"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1592	63	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/%s"", CFG.bbs_usersdir, exitinfo.Name, Upr.filename);"
+Name	read	mbsebbs/offline.c	1699	69	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1766	69	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	1854	68	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s.FTI"", CFG.bbs_usersdir, exitinfo.Name, CFG.bbsid);"
+Name	read	mbsebbs/offline.c	1858	68	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s.MIX"", CFG.bbs_usersdir, exitinfo.Name, CFG.bbsid);"
+Name	read	mbsebbs/offline.c	1862	68	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s.DAT"", CFG.bbs_usersdir, exitinfo.Name, CFG.bbsid);"
+Name	read	mbsebbs/offline.c	2003	61	exitinfo	exitinfo.Name	"snprintf(Work, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2015	66	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2171	66	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s"", CFG.bbs_usersdir, exitinfo.Name, Pktname);"
+Name	read	mbsebbs/offline.c	2224	60	exitinfo	exitinfo.Name	"snprintf(Dirpath, PATH_MAX, ""%s/%s"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2266	69	exitinfo	exitinfo.Name	"snprintf(otemp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2533	61	exitinfo	exitinfo.Name	"snprintf(Work, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2728	61	exitinfo	exitinfo.Name	"snprintf(Work, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2739	66	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/.olrtags"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/offline.c	2750	69	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s.info"", CFG.bbs_usersdir, exitinfo.Name, Atag);"
+Name	read	mbsebbs/offline.c	2885	69	exitinfo	exitinfo.Name	"snprintf(Temp, PATH_MAX, ""%s/%s/tmp/%s"", CFG.bbs_usersdir, exitinfo.Name, Pktname);"
+Name	read	mbsebbs/offline.c	2938	61	exitinfo	exitinfo.Name	"snprintf(Work, PATH_MAX, ""%s/%s/tmp"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/page.c	210	12	exitinfo	exitinfo.Name	"Chat(exitinfo.Name, (char *)""#sysop"");"
+Name	read	mbsebbs/pop3.c	63	62	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/mailbox"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/signature.c	118	68	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.signature"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/signature.c	167	68	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.signature"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/signature.c	234	69	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/.signature"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/transfer.c	180	68	exitinfo	exitinfo.Name	"snprintf(symFrom, PATH_MAX, ""%s/%s/tag/%s"", CFG.bbs_usersdir, exitinfo.Name, tmpf->remote);"
+Name	read	mbsebbs/transfer.c	242	58	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/tag"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/transfer.c	275	58	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/tag"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/transfer.c	411	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsebbs/transfer.c	457	67	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl/%s"", CFG.bbs_usersdir, exitinfo.Name, dp->d_name);"
+Name	read	mbsebbs/transfer.c	526	66	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl/%s"", CFG.bbs_usersdir, exitinfo.Name, dp->d_name);"
+Name	read	mbsebbs/user.c	197	13	usrconfig	usrconfig.Name	if (strcmp(usrconfig.Name, sUnixName) == 0) {
+Name	read	mbsebbs/user.c	229	9	usrconfig	usrconfig.Name	usrconfig.Name, usrconfig.Deleted, usrconfig.LockedOut);
+Name	read	mbsebbs/user.c	280	18	usrconfig	usrconfig.Name	UserCity(mypid, usrconfig.Name, usrconfig.sLocation);
+Name	read	mbsebbs/user.c	282	18	usrconfig	usrconfig.Name	"UserCity(mypid, usrconfig.Name, (char *)""N/A"");"
+Name	read	mbsebbs/user.c	306	24	usrconfig	usrconfig.Name	if (strcmp(fullname, usrconfig.Name) == 0) {
+Name	read	mbsebbs/user.c	494	19	exitinfo	exitinfo.Name	ChangeHomeDir(exitinfo.Name, exitinfo.Email);
+Name	read	mbsebbs/userlist.c	98	28	u	u.Name	"snprintf(User, 36, ""%s"", u.Name);"
+Name	read	mbsebbs/userlist.c	110	31	u	u.Name	"snprintf(msg, 81, ""%-25s"", u.Name);"
+Name	read	mbsebbs/userlist.c	131	30	u	u.Name	"snprintf(msg, 81, ""%-25s"", u.Name);"
+Name	read	mbsebbs/whoson.c	117	29	us	us.Name	if (strcmp(fullname, us.Name) == 0) {
+Name	read	mbsebbs/whoson.c	305	32	us	us.Name	"snprintf(User, 36, ""%s"", us.Name);"
+Name	read	mbsebbs/whoson.c	308	32	us	us.Name	"snprintf(User, 36, ""%s"", us.Name);"
+Name	read	mbsebbs/whoson.c	328	30	exitinfo	exitinfo.Name	from = xstrcpy(clencode(exitinfo.Name));
+Name	read	mbsebbs/zmrecv.c	556	32	exitinfo	exitinfo.Name	curfile = xstrcat(curfile, exitinfo.Name);
+Name	read	mbsebbs/zmrecv.c	624	61	exitinfo	exitinfo.Name	"snprintf(temp, PATH_MAX, ""%s/%s/upl"", CFG.bbs_usersdir, exitinfo.Name);"
+Name	read	mbsetup/m_users.c	519	21	usrconfig	usrconfig.Name	show_str(10,17, 8, usrconfig.Name);
+Name	read	mbsetup/m_users.c	1063	44	usrconfig	usrconfig.Name	"add_webtable(wp, (char *)""Unix Name"", usrconfig.Name);"
+Name	read	mbutils/mbuser.c	214	60	usr	usr.Name	if (!strcmp(usr.sUserName, CFG.sysop_name) && !strcmp(usr.Name, CFG.sysop))
+Name	read	mbutils/mbuser.c	309	34	usr	usr.Name	"printf(""Delete user %s\n"", usr.Name);"
+Name	read	mbutils/mbuser.c	312	7	usr	usr.Name[0]	if (usr.Name[0] != '\0') {
+Name	read	mbutils/mbuser.c	315	48	usr	usr.Name	"WriteError(""Cannot delete *nix account %s"", usr.Name);"
+Name	read	mbutils/mbuser.c	318	46	usr	usr.Name	"execute_str((char *)""/usr/sbin/userdel "", usr.Name, NULL,"
+Name	read	mbutils/mbuser.c	321	49	usr	usr.Name	"execute_str((char *)""/usr/sbin/pw userdel "", usr.Name, NULL,"
+Name	read	mbutils/mbuser.c	327	21	usr	usr.Name	"execute_str(cmd, usr.Name, NULL, (char *)""/dev/null"",(char *)""/dev/null"",(char *)""/dev/null"");"
+Name	read	mbutils/mbuser.c	332	27	usr	usr.Name	cmd = xstrcat(cmd, usr.Name);
+Name	read	unix/mblogin.c	607	13	usrconfig	usrconfig.Name	(strcmp(usrconfig.Name, username) == 0)) {
+Name	read	unix/mblogin.c	609	23	usrconfig	usrconfig.Name	STRFCPY(username, usrconfig.Name);
+Name	read	unix/mblogin.c	615	9	usrconfig	usrconfig.Name	usrconfig.Name,
+Name	write	fortytwo-auth/src/legacy_userdb_provision.c	417	12	record	record->Name	memcpy(record->Name, registration->legacy_name, legacy_length + 1U);
+Name	write	mbnntp/auth.c	153	2	usrconfig	usrconfig.Name[sizeof(usrconfig.Name) - 1]	usrconfig.Name[sizeof(usrconfig.Name) - 1] = '\0';
+Name	write	mbsebbs/newuser.c	193	12	usrconfig	usrconfig.Name	strcpy(usrconfig.Name, UnixName);
+Name	write	mbsetup/m_users.c	145	5	user	user->Name[sizeof(user->Name) - 1]	user->Name[sizeof(user->Name) - 1] = '\0';
+NeverDelete	read	mbsetup/m_users.c	538	22	usrconfig	usrconfig.NeverDelete	show_bool(17,17,    usrconfig.NeverDelete);
+NeverDelete	read	mbsetup/m_users.c	1075	58	usrconfig	usrconfig.NeverDelete	"add_webtable(wp, (char *)""Never delete"", getboolean(usrconfig.NeverDelete));"
+NeverDelete	read	mbutils/mbuser.c	274	40	usr	usr.NeverDelete	(usr.sUserName[0] != '\0') && (!usr.NeverDelete)) {
+NeverDelete	write	mbsetup/m_users.c	863	26	usrconfig	usrconfig.NeverDelete	"case 8 :E_BOOL(17,17,   usrconfig.NeverDelete,    ""^Never delete^ this user""); break;"
+OLRext	read	mbsebbs/offline.c	1211	74	exitinfo	exitinfo.OLRext	"snprintf(Pktname, 32, ""%s%s%d"", CFG.bbsid , Extensions[tp->tm_wday], exitinfo.OLRext);"
+OLRext	read	mbsebbs/offline.c	1435	13	exitinfo	exitinfo.OLRext	if (exitinfo.OLRext > 9)
+OLRext	read	mbsetup/m_users.c	625	21	usrconfig	usrconfig.OLRext	show_int( 17,71,   usrconfig.OLRext);
+OLRext	read-write	mbsebbs/offline.c	1434	9	exitinfo	exitinfo.OLRext	exitinfo.OLRext++;
+OLRext	write	mbsebbs/offline.c	1208	9	exitinfo	exitinfo.OLRext	exitinfo.OLRext = 0;
+OLRext	write	mbsebbs/offline.c	1436	13	exitinfo	exitinfo.OLRext	exitinfo.OLRext = 0; /* After 9, go back to 0 */
+OLRext	write	mbsetup/m_users.c	697	34	usrconfig	usrconfig.OLRext	"case 25:E_INT( 17,71,usrconfig.OLRext,       ""Next ^OLR^ packet extension""); break;"
+OLRlast	read	mbsebbs/offline.c	1207	22	exitinfo	exitinfo.OLRlast	if (strcmp(Temp2,exitinfo.OLRlast)) { /* Last download wasn't today */
+OLRlast	write	mbsebbs/offline.c	1437	18	exitinfo	exitinfo.OLRlast	"snprintf(exitinfo.OLRlast, 12, ""%s"", Temp2); /* Save the last download date/time */"
+OLRlast	write	mbsetup/m_users.c	159	5	user	user->OLRlast[sizeof(user->OLRlast) - 1]	user->OLRlast[sizeof(user->OLRlast) - 1] = '\0';
+OL_ExtInfo	read	mbsebbs/change.c	1088	9	exitinfo	exitinfo.OL_ExtInfo	if (exitinfo.OL_ExtInfo) {
+OL_ExtInfo	read	mbsebbs/change.c	1099	45	exitinfo	exitinfo.OL_ExtInfo	"Syslog('+', ""OLR Extended Info now %s"", exitinfo.OL_ExtInfo?""True"":""False"");"
+OL_ExtInfo	read	mbsebbs/dispfile.c	564	28	exitinfo	exitinfo.OL_ExtInfo	"snprintf(temp, 81, ""%s"", exitinfo.OL_ExtInfo?(char *)Language(147):(char *)Language(148));"
+OL_ExtInfo	read	mbsebbs/offline.c	1239	9	exitinfo	exitinfo.OL_ExtInfo	if (exitinfo.OL_ExtInfo)
+OL_ExtInfo	read	mbsebbs/offline.c	1916	74	exitinfo	exitinfo.OL_ExtInfo	"((strncmp(Text, ""\001FMPT "", 6) == 0) && (msgs.Type == NETMAIL)) || (exitinfo.OL_ExtInfo)) {"
+OL_ExtInfo	read	mbsebbs/offline.c	2621	74	exitinfo	exitinfo.OL_ExtInfo	"((strncmp(Text, ""\001FMPT "", 6) == 0) && (msgs.Type == NETMAIL)) || (exitinfo.OL_ExtInfo)) {"
+OL_ExtInfo	read	mbsetup/m_users.c	543	26	usrconfig	usrconfig.OL_ExtInfo	show_bool( 8,68, usrconfig.OL_ExtInfo);
+OL_ExtInfo	read	mbsetup/m_users.c	1079	63	usrconfig	usrconfig.OL_ExtInfo	"add_webtable(wp, (char *)""OLR Extended info"", getboolean(usrconfig.OL_ExtInfo));"
+OL_ExtInfo	write	mbsebbs/change.c	1089	2	exitinfo	exitinfo.OL_ExtInfo	exitinfo.OL_ExtInfo = FALSE;
+OL_ExtInfo	write	mbsebbs/change.c	1093	2	exitinfo	exitinfo.OL_ExtInfo	exitinfo.OL_ExtInfo = TRUE;
+OL_ExtInfo	write	mbsetup/m_users.c	868	26	usrconfig	usrconfig.OL_ExtInfo	"case 12:E_BOOL( 8,68,   usrconfig.OL_ExtInfo,     ""Add ^Extended Message Info^ in OLR download""); break;"
+Password	metadata	fortytwo-auth/src/legacy_userdb.c	670	46	record	record.Password	sizeof(record.Password))) {
+Password	metadata	fortytwo-auth/src/legacy_userdb_provision.c	467	38	record	record->Password	password_index < sizeof(record->Password); ++password_index) {
+Password	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1202	46	record	record.Password	sizeof(record.Password))) {
+Password	metadata	fortytwo-auth/src/legacy_userdb_provision.c	2363	34	record	record.Password	password_index < sizeof(record.Password); ++password_index) {
+Password	metadata	fortytwo-auth/src/legacy_userdb_provision.c	2377	44	record	record.Password	sizeof(record.Password)) &&
+Password	metadata	mbsebbs/change.c	222	43	exitinfo	exitinfo.Password	memset(&exitinfo.Password, 0, sizeof(exitinfo.Password));
+Password	metadata	mbsebbs/newuser.c	186	43	usrconfig	usrconfig.Password	memset(&usrconfig.Password, 0, sizeof(usrconfig.Password));
+Password	read	fortytwo-auth/src/legacy_userdb.c	669	39	record	record.Password	!fixed_text_is_terminated(record.Password,
+Password	read	fortytwo-auth/src/legacy_userdb_provision.c	468	17	record	record->Password[password_index]	if (record->Password[password_index] != '\0') {
+Password	read	fortytwo-auth/src/legacy_userdb_provision.c	1201	39	record	record.Password	!fixed_text_is_terminated(record.Password,
+Password	read	fortytwo-auth/src/legacy_userdb_provision.c	2364	13	record	record.Password[password_index]	if (record.Password[password_index] != '\0') {
+Password	read	fortytwo-auth/src/legacy_userdb_provision.c	2376	37	record	record.Password	fixed_text_is_terminated(record.Password,
+Password	read	mbnntp/auth.c	182	16	usrconfig	usrconfig.Password	if (strcmp(usrconfig.Password, p) != 0) {
+Password	read	mbsebbs/change.c	182	17	exitinfo	exitinfo.Password	if (!strcmp(exitinfo.Password, temp1)) {
+Password	read	mbsebbs/door.c	227	28	exitinfo	exitinfo.Password	"fprintf(fp, ""%s\r\n"", exitinfo.Password);"
+Password	read	mbsebbs/mail.c	2522	34	exitinfo	exitinfo.Password	if (exitinfo.Email && strlen(exitinfo.Password)) {
+Password	read	mbsebbs/mail.c	2523	31	exitinfo	exitinfo.Password	check_popmail(exitinfo.Name, exitinfo.Password);
+Password	read	mbsebbs/offline.c	830	31	exitinfo	exitinfo.Password	check_popmail(exitinfo.Name, exitinfo.Password);
+Password	write	mbnntp/auth.c	154	2	usrconfig	usrconfig.Password[sizeof(usrconfig.Password) - 1]	usrconfig.Password[sizeof(usrconfig.Password) - 1] = '\0';
+Password	write	mbsebbs/change.c	222	14	exitinfo	exitinfo.Password	memset(&exitinfo.Password, 0, sizeof(exitinfo.Password));
+Password	write	mbsebbs/change.c	223	13	exitinfo	exitinfo.Password	strcpy(exitinfo.Password, temp2);
+Password	write	mbsebbs/newuser.c	186	13	usrconfig	usrconfig.Password	memset(&usrconfig.Password, 0, sizeof(usrconfig.Password));
+Password	write	mbsebbs/newuser.c	187	14	usrconfig	usrconfig.Password	"snprintf(usrconfig.Password, Max_passlen +1, ""%s"", temp2);"
+Password	write	mbsetup/m_users.c	158	5	user	user->Password[sizeof(user->Password) - 1]	user->Password[sizeof(user->Password) - 1] = '\0';
+Security	read	fortytwo-auth/src/legacy_userdb_provision.c	430	25	record	record->Security	record->ExpirySec = record->Security;
+Security	read	mbnntp/commands.c	286	56	usrconfig	usrconfig.Security	(strcasecmp(opt, msgs.Newsgroup) == 0) && Access(usrconfig.Security, msgs.RDSec)) {
+Security	read	mbnntp/commands.c	350	82	usrconfig	usrconfig.Security	if (msgs.Active && (msgs.Type == ECHOMAIL) && strlen(msgs.Newsgroup) && Access(usrconfig.Security, msgs.RDSec)) {
+Security	read	mbnntp/commands.c	351	18	usrconfig	usrconfig.Security	if (Access(usrconfig.Security, msgs.WRSec))
+Security	read	mbsebbs/change.c	972	35	exitinfo	exitinfo.Security	if (PROT.Available && Access(exitinfo.Security, PROT.Level)) {
+Security	read	mbsebbs/change.c	994	76	exitinfo	exitinfo.Security	if ((strncmp(PROT.ProtKey, Prot, 1) == 0) && PROT.Available && Access(exitinfo.Security, PROT.Level)) {
+Security	read	mbsebbs/dispfile.c	306	10	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level >= iSec) {
+Security	read	mbsebbs/dispfile.c	460	28	exitinfo	exitinfo.Security.level	"snprintf(temp, 81, ""%d"", exitinfo.Security.level);"
+Security	read	mbsebbs/door.c	228	28	exitinfo	exitinfo.Security.level	"fprintf(fp, ""%d\r\n"", exitinfo.Security.level);"
+Security	read	mbsebbs/door.c	300	28	exitinfo	exitinfo.Security.level	"fprintf(fp, ""%d\r\n"", exitinfo.Security.level); /* User's security level		*/"
+Security	read	mbsebbs/door.c	360	35	exitinfo	exitinfo.Security.level	"fprintf(fp, ""%d\r\n"", exitinfo.Security.level);"
+Security	read	mbsebbs/email.c	568	9	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level >= CFG.sysop_access)
+Security	read	mbsebbs/email.c	575	6	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level >= CFG.sysop_access) {
+Security	read	mbsebbs/file.c	103	16	exitinfo	exitinfo.Security	if (Access(exitinfo.Security, area.LTSec) == FALSE) {
+Security	read	mbsebbs/file.c	555	14	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, area.LTSec)) && (area.Available) && (strlen(area.Password) == 0)) {
+Security	read	mbsebbs/file.c	691	14	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, area.LTSec)) && (area.Available) && (strlen(area.Password) == 0)) {
+Security	read	mbsebbs/file.c	814	14	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, area.LTSec)) && (area.Available) && (strlen(area.Password) == 0) && (area.New)) {
+Security	read	mbsebbs/file.c	930	17	exitinfo	exitinfo.Security	if (!Access(exitinfo.Security, area.UPSec)) {
+Security	read	mbsebbs/file.c	1397	15	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, area.LTSec)) && (area.Available) && (strlen(area.Password) == 0))
+Security	read	mbsebbs/file.c	1414	15	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, area.LTSec)) && (area.Available) && (strlen(area.Password) == 0))
+Security	read	mbsebbs/file.c	1439	14	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, area.LTSec)) && (area.Available)) {
+Security	read	mbsebbs/file.c	1518	14	exitinfo	exitinfo.Security	(Access(exitinfo.Security, area.LTSec) == FALSE) ||
+Security	read	mbsebbs/file.c	1607	16	exitinfo	exitinfo.Security	if (Access(exitinfo.Security, area.DLSec) == FALSE) {
+Security	read	mbsebbs/file.c	1811	16	exitinfo	exitinfo.Security	if (Access(exitinfo.Security, area.LTSec) == FALSE) {
+Security	read	mbsebbs/filesub.c	270	17	exitinfo	exitinfo.Security	if (Access(exitinfo.Security, area.DLSec)) {
+Security	read	mbsebbs/mail.c	143	16	exitinfo	exitinfo.Security	if (Access(exitinfo.Security, msgs.WRSec) == FALSE) {
+Security	read	mbsebbs/mail.c	199	9	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level < CFG.iCrashLevel)
+Security	read	mbsebbs/mail.c	289	36	exitinfo	exitinfo.Security.level	if ((msgs.Type == NETMAIL) && (exitinfo.Security.level >= CFG.iAttachLevel)) {
+Security	read	mbsebbs/mail.c	1066	10	exitinfo	exitinfo.Security.level	if ((exitinfo.Security.level >= CFG.sysop_access) && strlen(msgs.Tag)) {
+Security	read	mbsebbs/mail.c	1129	6	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level >= msgs.SYSec.level)
+Security	read	mbsebbs/mail.c	1263	6	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level >= msgs.SYSec.level)
+Security	read	mbsebbs/mail.c	1516	48	exitinfo	exitinfo.Security.level	if ((msgs.UsrDelete && IsMe(Msg.From)) || (exitinfo.Security.level >= CFG.sysop_access) ||
+Security	read	mbsebbs/mail.c	1517	13	exitinfo	exitinfo.Security	Access(exitinfo.Security, msgs.SYSec)) {
+Security	read	mbsebbs/mail.c	1524	10	exitinfo	exitinfo.Security.level	if ((exitinfo.Security.level >= CFG.sysop_access) || Access(exitinfo.Security, msgs.SYSec))
+Security	read	mbsebbs/mail.c	1524	65	exitinfo	exitinfo.Security	if ((exitinfo.Security.level >= CFG.sysop_access) || Access(exitinfo.Security, msgs.SYSec))
+Security	read	mbsebbs/mail.c	1533	7	exitinfo	exitinfo.Security.level	if ((exitinfo.Security.level >= CFG.sysop_access) || Access(exitinfo.Security, msgs.SYSec)) {
+Security	read	mbsebbs/mail.c	1533	62	exitinfo	exitinfo.Security	if ((exitinfo.Security.level >= CFG.sysop_access) || Access(exitinfo.Security, msgs.SYSec)) {
+Security	read	mbsebbs/mail.c	1578	63	exitinfo	exitinfo.Security.level	if ((msgs.UsrDelete && (IsMe(Msg.From) || IsMe(Msg.To))) || (exitinfo.Security.level >= CFG.sysop_access) ||
+Security	read	mbsebbs/mail.c	1579	26	exitinfo	exitinfo.Security	Access(exitinfo.Security, msgs.SYSec)) {
+Security	read	mbsebbs/mail.c	1907	57	exitinfo	exitinfo.Security.level	(exitinfo.Security.level >= msgs.SYSec.level)
+Security	read	mbsebbs/mail.c	2011	66	exitinfo	exitinfo.Security.level	if ((msgs.UsrDelete && (IsMe(Msg.From) || IsMe(Msg.To))) || (exitinfo.Security.level >= CFG.sysop_access) ||
+Security	read	mbsebbs/mail.c	2012	25	exitinfo	exitinfo.Security	Access(exitinfo.Security, msgs.SYSec)) {
+Security	read	mbsebbs/mail.c	2134	19	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, msgs.RDSec)) && (msgs.Active) && (strlen(msgs.Password) == 0)) {
+Security	read	mbsebbs/mail.c	2179	19	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, msgs.RDSec)) && (msgs.Active) && (strlen(msgs.Password) == 0)) {
+Security	read	mbsebbs/mail.c	2212	19	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, msgs.RDSec)) && (msgs.Active) && (strlen(msgs.Password) == 0)) {
+Security	read	mbsebbs/mail.c	2230	19	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, msgs.RDSec)) && (msgs.Active) && (strlen(msgs.Password) == 0)) {
+Security	read	mbsebbs/mail.c	2257	14	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, msgs.RDSec)) && (msgs.Active)) {
+Security	read	mbsebbs/mail.c	2363	68	exitinfo	exitinfo.Security	if (iMsgAreaNumber > iAreaNum || iMsgAreaNumber < 0 || (Access(exitinfo.Security, msgs.RDSec) == FALSE) || (!msgs.Active)) {
+Security	read	mbsebbs/mail.c	2595	24	exitinfo	exitinfo.Security.level	if ((msgs.Active) && (exitinfo.Security.level >= msgs.RDSec.level)) {
+Security	read	mbsebbs/mail.c	2795	24	exitinfo	exitinfo.Security.level	if ((msgs.Active) && (exitinfo.Security.level >= msgs.RDSec.level)) {
+Security	read	mbsebbs/menu.c	146	18	exitinfo	exitinfo.Security	if ( Le_Access(exitinfo.Security, menus.MenuSecurity) && (UserAge >= le_int(menus.Age))){
+Security	read	mbsebbs/menu.c	156	18	exitinfo	exitinfo.Security	if ( Le_Access(exitinfo.Security, menus.MenuSecurity) && (UserAge >= le_int(menus.Age))){
+Security	read	mbsebbs/menu.c	225	19	exitinfo	exitinfo.Security	if ((Le_Access(exitinfo.Security, menus.MenuSecurity)) && (UserAge >= le_int(menus.Age))) {
+Security	read	mbsebbs/menu.c	380	7	exitinfo	exitinfo.Security.level	if (exitinfo.Security.level >= le_int(menus.MenuSecurity.level)) {
+Security	read	mbsebbs/misc.c	200	19	exitinfo	exitinfo.Security.level	LCALL.SecLevel = exitinfo.Security.level;
+Security	read	mbsebbs/offline.c	277	30	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && (!olrtagrec.Tagged) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	317	30	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	340	30	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	417	30	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && olrtagrec.Tagged && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	457	30	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	484	30	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	608	35	exitinfo	exitinfo.Security	if ((msgs.Active) && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	637	35	exitinfo	exitinfo.Security	if ((msgs.Active) && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname) && (!olrtagrec.Available)) {
+Security	read	mbsebbs/offline.c	657	36	exitinfo	exitinfo.Security	if (((!msgs.Active) || (!Access(exitinfo.Security, msgs.RDSec))) && olrtagrec.Available) {
+Security	read	mbsebbs/offline.c	680	35	exitinfo	exitinfo.Security	if ((msgs.Active) && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	850	28	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname) && olrtagrec.Tagged) {
+Security	read	mbsebbs/offline.c	1285	28	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	1316	25	exitinfo	exitinfo.Security	"case BOTH:	if (Access(exitinfo.Security, msgs.WRSec))"
+Security	read	mbsebbs/offline.c	1320	28	exitinfo	exitinfo.Security	"case PRIVATE:	if (Access(exitinfo.Security, msgs.WRSec))"
+Security	read	mbsebbs/offline.c	1325	27	exitinfo	exitinfo.Security	"case PUBLIC:	if (Access(exitinfo.Security, msgs.WRSec))"
+Security	read	mbsebbs/offline.c	1571	19	exitinfo	exitinfo.Security	if ((Access(exitinfo.Security, msgs.WRSec)) && (msgs.MsgKinds != RONLY)) {
+Security	read	mbsebbs/offline.c	1775	19	exitinfo	exitinfo.Security	(Access(exitinfo.Security, msgs.RDSec)) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	2085	32	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname))
+Security	read	mbsebbs/offline.c	2099	32	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) && strlen(msgs.QWKname)) {
+Security	read	mbsebbs/offline.c	2278	31	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec) &&
+Security	read	mbsebbs/offline.c	2317	58	exitinfo	exitinfo.Security	if (msgs.Active && strlen(msgs.QWKname) && Access(exitinfo.Security, msgs.WRSec) &&
+Security	read	mbsebbs/offline.c	2783	28	exitinfo	exitinfo.Security	if (msgs.Active && Access(exitinfo.Security, msgs.RDSec)) {
+Security	read	mbsebbs/oneline.c	260	29	exitinfo	exitinfo.Security.level	if ((SYSOP == TRUE) || (exitinfo.Security.level >= CFG.sysop_access)) {
+Security	read	mbsebbs/oneline.c	275	26	exitinfo	exitinfo.Security.level	if ((SYSOP == TRUE) || (exitinfo.Security.level >= CFG.sysop_access)) {
+Security	read	mbsebbs/oneline.c	413	23	exitinfo	exitinfo.Security.level	if ((!SYSOP) && (exitinfo.Security.level < CFG.sysop_access)) {
+Security	read	mbsebbs/user.c	409	29	usrconfig	usrconfig.Security.level	if (LIMIT.Security == usrconfig.Security.level) {
+Security	read	mbsebbs/user.c	497	58	exitinfo	exitinfo.Security.level	"Syslog('+', ""Level %d (%s), %d mins. left, port %s"", exitinfo.Security.level, LIMIT.Description, exitinfo.iTimeLeft, pTTY);"
+Security	read	mbsebbs/user.c	535	36	exitinfo	exitinfo.Security.level	"snprintf(temp, PATH_MAX, ""sec%d"", exitinfo.Security.level);"
+Security	read	mbsetup/m_limits.c	590	39	usrconfig	usrconfig.Security.level	if (strlen(usrconfig.sUserName) && (usrconfig.Security.level == LIMIT.Security)) {
+Security	read	mbsetup/m_users.c	515	21	usrconfig	usrconfig.Security.level	show_int( 7,17,    usrconfig.Security.level);
+Security	read	mbsetup/m_users.c	756	31	usrconfig	usrconfig.Security.level	if (LIMIT.Security == usrconfig.Security.level) {
+Security	read	mbsetup/m_users.c	848	18	usrconfig	usrconfig.Security.level	"case 2:	level = usrconfig.Security.level;"
+Security	read	mbsetup/m_users.c	849	39	usrconfig	usrconfig.Security	"usrconfig.Security = edit_usec(7,17,usrconfig.Security, (char *)""15.2   EDIT USER SECURITY"");"
+Security	read	mbsetup/m_users.c	852	16	usrconfig	usrconfig.Security.level	if (level != usrconfig.Security.level) {
+Security	read	mbsetup/m_users.c	1064	49	usrconfig	usrconfig.Security	"web_secflags(wp, (char *)""Security level"", usrconfig.Security);"
+Security	read	mbutils/mbuser.c	273	50	usr	usr.Security.level	if ((((t_start - Last) / 86400) > days) && (usr.Security.level < level) && (!usr.Guest) &&
+Security	write	fortytwo-auth/src/legacy_userdb_provision.c	427	5	record	record->Security.level	record->Security.level = registration->defaults.security_level;
+Security	write	fortytwo-auth/src/legacy_userdb_provision.c	428	5	record	record->Security.flags	record->Security.flags = registration->defaults.security_flags;
+Security	write	fortytwo-auth/src/legacy_userdb_provision.c	429	5	record	record->Security.notflags	record->Security.notflags = registration->defaults.security_notflags;
+Security	write	mbsebbs/newuser.c	404	5	usrconfig	usrconfig.Security	usrconfig.Security = CFG.newuser_access;
+Security	write	mbsebbs/user.c	387	2	usrconfig	usrconfig.Security	usrconfig.Security = usrconfig.ExpirySec;
+Security	write	mbsetup/m_users.c	849	3	usrconfig	usrconfig.Security	"usrconfig.Security = edit_usec(7,17,usrconfig.Security, (char *)""15.2   EDIT USER SECURITY"");"
+UploadK	read	mbsebbs/dispfile.c	384	28	exitinfo	exitinfo.UploadK	"snprintf(temp, 81, ""%u"", exitinfo.UploadK);"
+UploadK	read	mbsebbs/dispfile.c	388	49	exitinfo	exitinfo.UploadK	"snprintf(temp, 81, ""%u"", exitinfo.DownloadK + exitinfo.UploadK);"
+UploadK	read	mbsebbs/door.c	265	28	exitinfo	exitinfo.UploadK	"fprintf(fp, ""%d\r\n"", exitinfo.UploadK);"
+UploadK	read	mbsebbs/filesub.c	741	67	exitinfo	exitinfo.UploadK	"Syslog('b', ""Uploads %d, Kb %d, Kb today %d"", exitinfo.Uploads, exitinfo.UploadK, exitinfo.UploadKToday);"
+UploadK	read	mbsetup/m_users.c	550	19	usrconfig	usrconfig.UploadK	show_int( 14,68, usrconfig.UploadK);
+UploadK	read	mbsetup/m_users.c	1085	50	usrconfig	usrconfig.UploadK	"add_webdigit(wp, (char *)""Uploaded KBytes"", usrconfig.UploadK);"
+UploadK	read-write	mbsebbs/filesub.c	738	3	exitinfo	exitinfo.UploadK	exitinfo.UploadK += (Size / 1024);
+UploadKToday	read	mbsebbs/filesub.c	741	85	exitinfo	exitinfo.UploadKToday	"Syslog('b', ""Uploads %d, Kb %d, Kb today %d"", exitinfo.Uploads, exitinfo.UploadK, exitinfo.UploadKToday);"
+UploadKToday	read-write	mbsebbs/filesub.c	740	3	exitinfo	exitinfo.UploadKToday	exitinfo.UploadKToday += (Size / 1024);
+Uploads	read	mbsebbs/dispfile.c	372	28	exitinfo	exitinfo.Uploads	"snprintf(temp, 81, ""%d"", exitinfo.Uploads);"
+Uploads	read	mbsebbs/door.c	245	28	exitinfo	exitinfo.Uploads	"fprintf(fp, ""%d\r\n"", exitinfo.Uploads);"
+Uploads	read	mbsebbs/filesub.c	741	49	exitinfo	exitinfo.Uploads	"Syslog('b', ""Uploads %d, Kb %d, Kb today %d"", exitinfo.Uploads, exitinfo.UploadK, exitinfo.UploadKToday);"
+Uploads	read	mbsetup/m_users.c	549	19	usrconfig	usrconfig.Uploads	show_int( 13,68, usrconfig.Uploads);
+Uploads	read	mbsetup/m_users.c	1084	48	usrconfig	usrconfig.Uploads	"add_webdigit(wp, (char *)""Total uploads"", usrconfig.Uploads);"
+Uploads	read-write	mbsebbs/file.c	1344	5	exitinfo	exitinfo.Uploads	exitinfo.Uploads += Count;
+Uploads	read-write	mbsebbs/filesub.c	736	3	exitinfo	exitinfo.Uploads	exitinfo.Uploads++;
+address	read	mbsebbs/change.c	575	39	exitinfo	exitinfo.address[0]	"Syslog('+', ""Old address \""%s\"""", exitinfo.address[0]);"
+address	read	mbsebbs/change.c	576	39	exitinfo	exitinfo.address[1]	"Syslog('+', ""            \""%s\"""", exitinfo.address[1]);"
+address	read	mbsebbs/change.c	577	39	exitinfo	exitinfo.address[2]	"Syslog('+', ""            \""%s\"""", exitinfo.address[2]);"
+address	read	mbsebbs/change.c	585	9	exitinfo	exitinfo.address[0]	PUTSTR(exitinfo.address[0]);
+address	read	mbsebbs/change.c	587	9	exitinfo	exitinfo.address[1]	PUTSTR(exitinfo.address[1]);
+address	read	mbsebbs/change.c	589	9	exitinfo	exitinfo.address[2]	PUTSTR(exitinfo.address[2]);
+address	read	mbsebbs/change.c	605	13	exitinfo	exitinfo.address[0]	if (strlen(exitinfo.address[0]) || strlen(exitinfo.address[1]) || strlen(exitinfo.address[2]))
+address	read	mbsebbs/change.c	605	44	exitinfo	exitinfo.address[1]	if (strlen(exitinfo.address[0]) || strlen(exitinfo.address[1]) || strlen(exitinfo.address[2]))
+address	read	mbsebbs/change.c	605	75	exitinfo	exitinfo.address[2]	if (strlen(exitinfo.address[0]) || strlen(exitinfo.address[1]) || strlen(exitinfo.address[2]))
+address	read	mbsebbs/change.c	614	39	exitinfo	exitinfo.address[0]	"Syslog('+', ""New address \""%s\"""", exitinfo.address[0]);"
+address	read	mbsebbs/change.c	615	39	exitinfo	exitinfo.address[1]	"Syslog('+', ""            \""%s\"""", exitinfo.address[1]);"
+address	read	mbsebbs/change.c	616	39	exitinfo	exitinfo.address[2]	"Syslog('+', ""            \""%s\"""", exitinfo.address[2]);"
+address	read	mbsebbs/dispfile.c	552	28	exitinfo	exitinfo.address[0]	"snprintf(temp, 81, ""%s"", exitinfo.address[0]);"
+address	read	mbsebbs/dispfile.c	556	28	exitinfo	exitinfo.address[1]	"snprintf(temp, 81, ""%s"", exitinfo.address[1]);"
+address	read	mbsebbs/dispfile.c	560	28	exitinfo	exitinfo.address[2]	"snprintf(temp, 81, ""%s"", exitinfo.address[2]);"
+address	read	mbsebbs/newuser.c	300	17	usrconfig	usrconfig.address[0]	if (strlen(usrconfig.address[0]) || strlen(usrconfig.address[1]) || strlen(usrconfig.address[2]))
+address	read	mbsebbs/newuser.c	300	49	usrconfig	usrconfig.address[1]	if (strlen(usrconfig.address[0]) || strlen(usrconfig.address[1]) || strlen(usrconfig.address[2]))
+address	read	mbsebbs/newuser.c	300	81	usrconfig	usrconfig.address[2]	if (strlen(usrconfig.address[0]) || strlen(usrconfig.address[1]) || strlen(usrconfig.address[2]))
+address	read	mbsetup/m_users.c	150	9	user	user->address[i][sizeof(user->address[i]	user->address[i][sizeof(user->address[i]) - 1] = '\0';
+address	read	mbsetup/m_users.c	601	21	usrconfig	usrconfig.address[0]	show_str( 8,17,40, usrconfig.address[0]);
+address	read	mbsetup/m_users.c	602	21	usrconfig	usrconfig.address[1]	show_str( 9,17,40, usrconfig.address[1]);
+address	read	mbsetup/m_users.c	603	21	usrconfig	usrconfig.address[2]	show_str(10,17,40, usrconfig.address[2]);
+address	read	mbsetup/m_users.c	1096	42	usrconfig	usrconfig.address[0]	"add_webtable(wp, (char *)""Address"", usrconfig.address[0]);"
+address	read	mbsetup/m_users.c	1097	42	usrconfig	usrconfig.address[1]	"add_webtable(wp, (char *)""Address"", usrconfig.address[1]);"
+address	read	mbsetup/m_users.c	1098	42	usrconfig	usrconfig.address[2]	"add_webtable(wp, (char *)""Address"", usrconfig.address[2]);"
+address	write	mbsebbs/change.c	602	9	exitinfo	exitinfo.address[i]	Setup(exitinfo.address[i], temp);
+address	write	mbsebbs/newuser.c	298	11	usrconfig	usrconfig.address[i]	GetstrC(usrconfig.address[i], 40);
+address	write	mbsetup/m_users.c	645	37	usrconfig	usrconfig.address[j-3]	"case 5: E_STR(j+5,17,40,usrconfig.address[j-3],""^Address^""); break;"
+iConnectTime	read	mbsebbs/dispfile.c	472	28	exitinfo	exitinfo.iConnectTime	"snprintf(temp, 81, ""%d"", exitinfo.iConnectTime);"
+iConnectTime	read	mbsebbs/misc.c	202	19	exitinfo	exitinfo.iConnectTime	LCALL.CallTime = exitinfo.iConnectTime;
+iConnectTime	read	mbsebbs/timestats.c	81	59	exitinfo	exitinfo.iConnectTime	"snprintf(msg, 81, ""%s %d %s"", (char *) Language(138), exitinfo.iConnectTime, (char *) Language(471));"
+iConnectTime	read-write	mbsebbs/timecheck.c	110	6	exitinfo	exitinfo.iConnectTime	exitinfo.iConnectTime += Elapsed;
+iConnectTime	write	mbsebbs/user.c	435	6	usrconfig	usrconfig.iConnectTime	"usrconfig.iConnectTime = 0;	     /* Set connect time to Zero          */"
+iConnectTime	write	mbsebbs/user.c	449	5	usrconfig	usrconfig.iConnectTime	usrconfig.iConnectTime = 0;
+iLanguage	read	mbsebbs/mail.c	2927	34	exitinfo	exitinfo.iLanguage	"fprintf(fd,""BBSLANGUAGE='%c'\n"",exitinfo.iLanguage);"
+iLanguage	read	mbsebbs/user.c	270	18	usrconfig	usrconfig.iLanguage	Set_Language(usrconfig.iLanguage);
+iLanguage	read	mbsetup/m_users.c	613	25	usrconfig	usrconfig.iLanguage	"snprintf(temp, 4, ""%c"",usrconfig.iLanguage);"
+iLanguage	read	mbsetup/m_users.c	1106	30	usrconfig	usrconfig.iLanguage	"snprintf(temp, 4, ""%c"", usrconfig.iLanguage);"
+iLanguage	write	fortytwo-auth/src/legacy_userdb_provision.c	445	5	record	record->iLanguage	record->iLanguage = registration->defaults.language;
+iLanguage	write	mbsebbs/change.c	131	6	exitinfo	exitinfo.iLanguage	exitinfo.iLanguage = iLang;
+iLanguage	write	mbsebbs/newuser.c	103	5	usrconfig	usrconfig.iLanguage	usrconfig.iLanguage = iLang;
+iLanguage	write	mbsetup/m_users.c	682	14	usrconfig	usrconfig.iLanguage	"case 14:usrconfig.iLanguage = PickLanguage((char *)""15.14"");"
+iLastFileArea	read	mbsebbs/user.c	326	19	usrconfig	usrconfig.iLastFileArea	iAreaNumber = usrconfig.iLastFileArea;
+iLastFileArea	read	mbsebbs/user.c	585	17	exitinfo	exitinfo.iLastFileArea	SetFileArea(exitinfo.iLastFileArea);
+iLastFileArea	write	fortytwo-auth/src/legacy_userdb_provision.c	443	5	record	record->iLastFileArea	record->iLastFileArea = 1;
+iLastFileArea	write	mbsebbs/bye.c	118	13	usrconfig	usrconfig.iLastFileArea	usrconfig.iLastFileArea = iAreaNumber;
+iLastFileArea	write	mbsebbs/newuser.c	459	5	usrconfig	usrconfig.iLastFileArea	usrconfig.iLastFileArea   = 1;
+iLastMsgArea	read	mbsebbs/offline.c	714	16	exitinfo	exitinfo.iLastMsgArea	SetMsgArea(exitinfo.iLastMsgArea);
+iLastMsgArea	read	mbsebbs/user.c	327	22	usrconfig	usrconfig.iLastMsgArea	iMsgAreaNumber = usrconfig.iLastMsgArea;
+iLastMsgArea	read	mbsebbs/user.c	590	16	usrconfig	usrconfig.iLastMsgArea	SetMsgArea(usrconfig.iLastMsgArea);
+iLastMsgArea	write	fortytwo-auth/src/legacy_userdb_provision.c	444	5	record	record->iLastMsgArea	record->iLastMsgArea = 1;
+iLastMsgArea	write	mbsebbs/bye.c	119	13	usrconfig	usrconfig.iLastMsgArea	usrconfig.iLastMsgArea = iMsgAreaNumber;
+iLastMsgArea	write	mbsebbs/newuser.c	460	5	usrconfig	usrconfig.iLastMsgArea	usrconfig.iLastMsgArea    = 1;
+iPosted	read	mbsebbs/dispfile.c	512	28	exitinfo	exitinfo.iPosted	"snprintf(temp, 81, ""%d"", exitinfo.iPosted);"
+iPosted	read	mbsebbs/door.c	269	32	exitinfo	exitinfo.iPosted	"fprintf(fp, ""%d\r\n\032"", exitinfo.iPosted);"
+iPosted	read	mbsetup/m_users.c	551	19	usrconfig	usrconfig.iPosted	show_int( 15,68, usrconfig.iPosted);
+iPosted	read	mbsetup/m_users.c	1086	50	usrconfig	usrconfig.iPosted	"add_webdigit(wp, (char *)""Posted messages"", usrconfig.iPosted);"
+iPosted	read-write	mbnntp/rfc2ftn.c	769	4	usrconfig	usrconfig.iPosted	usrconfig.iPosted++;
+iPosted	read-write	mbsebbs/email.c	347	5	exitinfo	exitinfo.iPosted	exitinfo.iPosted++;
+iPosted	read-write	mbsebbs/mail.c	870	5	exitinfo	exitinfo.iPosted	exitinfo.iPosted++;
+iPosted	read-write	mbsebbs/offline.c	1635	6	exitinfo	exitinfo.iPosted	exitinfo.iPosted += i;
+iPosted	read-write	mbsebbs/offline.c	2457	2	exitinfo	exitinfo.iPosted	exitinfo.iPosted += nPosted;
+iStatus	write	mbsebbs/whoson.c	218	5	exitinfo	exitinfo.iStatus	exitinfo.iStatus = iStatus;
+iTimeLeft	read	mbsebbs/dispfile.c	476	28	exitinfo	exitinfo.iTimeLeft	"snprintf(temp, 81, ""%d"", exitinfo.iTimeLeft);"
+iTimeLeft	read	mbsebbs/dispfile.c	504	49	exitinfo	exitinfo.iTimeLeft	"snprintf(temp, 81, ""%d"", exitinfo.iTimeUsed + exitinfo.iTimeLeft);"
+iTimeLeft	read	mbsebbs/door.c	190	16	exitinfo	exitinfo.iTimeLeft	alarm_set((exitinfo.iTimeLeft * 60) - 10);
+iTimeLeft	read	mbsebbs/door.c	191	13	exitinfo	exitinfo.iTimeLeft	Altime((exitinfo.iTimeLeft * 60));
+iTimeLeft	read	mbsebbs/door.c	231	28	exitinfo	exitinfo.iTimeLeft	"fprintf(fp, ""%d\r\n"", exitinfo.iTimeLeft * 60);	/* Seconds	*/"
+iTimeLeft	read	mbsebbs/door.c	232	28	exitinfo	exitinfo.iTimeLeft	"fprintf(fp, ""%d\r\n"", exitinfo.iTimeLeft);	/* Minutes	*/"
+iTimeLeft	read	mbsebbs/door.c	301	28	exitinfo	exitinfo.iTimeLeft	"fprintf(fp, ""%d\r\n"", exitinfo.iTimeLeft);	    /* User's time left in minutes	*/"
+iTimeLeft	read	mbsebbs/door.c	361	35	exitinfo	exitinfo.iTimeLeft	"fprintf(fp, ""%d\r\n"", exitinfo.iTimeLeft);"
+iTimeLeft	read	mbsebbs/timecheck.c	116	9	exitinfo	exitinfo.iTimeLeft	if (exitinfo.iTimeLeft <= 0) {
+iTimeLeft	read	mbsebbs/timestats.c	89	59	exitinfo	exitinfo.iTimeLeft	"snprintf(msg, 81, ""%s %d %s"", (char *) Language(140), exitinfo.iTimeLeft, (char *) Language(471));"
+iTimeLeft	read	mbsebbs/timestats.c	93	80	exitinfo	exitinfo.iTimeLeft	"snprintf(msg, 81, ""%s %d %s"", (char *) Language(141), exitinfo.iTimeUsed + exitinfo.iTimeLeft, (char *) Language(471));"
+iTimeLeft	read	mbsebbs/transfer.c	272	14	exitinfo	exitinfo.iTimeLeft	alarm_set(((exitinfo.iTimeLeft + 10) * 60) - 10);
+iTimeLeft	read	mbsebbs/transfer.c	273	10	exitinfo	exitinfo.iTimeLeft	Altime((exitinfo.iTimeLeft + 10) * 60);
+iTimeLeft	read	mbsebbs/user.c	497	102	exitinfo	exitinfo.iTimeLeft	"Syslog('+', ""Level %d (%s), %d mins. left, port %s"", exitinfo.Security.level, LIMIT.Description, exitinfo.iTimeLeft, pTTY);"
+iTimeLeft	read	mbsebbs/user.c	499	16	exitinfo	exitinfo.iTimeLeft	Time2Go += exitinfo.iTimeLeft * 60;
+iTimeLeft	read	mbsebbs/user.c	500	21	exitinfo	exitinfo.iTimeLeft	iUserTimeLeft = exitinfo.iTimeLeft;
+iTimeLeft	read	mbsetup/m_users.c	553	19	usrconfig	usrconfig.iTimeLeft	show_int( 16,68, usrconfig.iTimeLeft);
+iTimeLeft	read	mbsetup/m_users.c	1087	53	usrconfig	usrconfig.iTimeLeft	"add_webdigit(wp, (char *)""Minutes left today"", usrconfig.iTimeLeft);"
+iTimeLeft	read-write	mbsebbs/timecheck.c	109	6	exitinfo	exitinfo.iTimeLeft	exitinfo.iTimeLeft    -= Elapsed;
+iTimeLeft	write	fortytwo-auth/src/legacy_userdb_provision.c	440	5	record	record->iTimeLeft	record->iTimeLeft = 20;
+iTimeLeft	write	mbsebbs/newuser.c	455	5	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft    = 20;  /* Set Timeleft in users file to 20 */
+iTimeLeft	write	mbsebbs/user.c	419	2	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = 0; /* Could not find limit, so set to Zero */
+iTimeLeft	write	mbsebbs/user.c	431	3	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = LIMIT.Time;
+iTimeLeft	write	mbsebbs/user.c	433	3	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = 86400;
+iTimeLeft	write	mbsetup/m_users.c	758	17	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = LIMIT.Time;
+iTimeLeft	write	mbsetup/m_users.c	760	17	usrconfig	usrconfig.iTimeLeft	usrconfig.iTimeLeft = 86400;
+iTimeUsed	read	mbsebbs/dispfile.c	468	28	exitinfo	exitinfo.iTimeUsed	"snprintf(temp, 81, ""%d"", exitinfo.iTimeUsed);"
+iTimeUsed	read	mbsebbs/dispfile.c	504	28	exitinfo	exitinfo.iTimeUsed	"snprintf(temp, 81, ""%d"", exitinfo.iTimeUsed + exitinfo.iTimeLeft);"
+iTimeUsed	read	mbsebbs/timestats.c	85	59	exitinfo	exitinfo.iTimeUsed	"snprintf(msg, 81, ""%s %d %s"", (char *) Language(139), exitinfo.iTimeUsed, (char *) Language(471));"
+iTimeUsed	read	mbsebbs/timestats.c	93	59	exitinfo	exitinfo.iTimeUsed	"snprintf(msg, 81, ""%s %d %s"", (char *) Language(141), exitinfo.iTimeUsed + exitinfo.iTimeLeft, (char *) Language(471));"
+iTimeUsed	read-write	mbsebbs/timecheck.c	111	6	exitinfo	exitinfo.iTimeUsed	exitinfo.iTimeUsed    += Elapsed;
+iTimeUsed	write	mbsebbs/user.c	420	2	usrconfig	usrconfig.iTimeUsed	usrconfig.iTimeUsed = 0; /* Set to Zero as well  */
+iTimeUsed	write	mbsebbs/user.c	434	6	usrconfig	usrconfig.iTimeUsed	usrconfig.iTimeUsed    = 0;          /* Set time used today to Zero       */
+iTimeUsed	write	mbsetup/m_users.c	761	13	usrconfig	usrconfig.iTimeUsed	usrconfig.iTimeUsed = 0;
+iTotalCalls	read	mbsebbs/dispfile.c	464	29	exitinfo	exitinfo.iTotalCalls	"snprintf(temp, 81, ""%d"",  exitinfo.iTotalCalls);"
+iTotalCalls	read	mbsebbs/door.c	229	28	exitinfo	exitinfo.iTotalCalls	"fprintf(fp, ""%d\r\n"", exitinfo.iTotalCalls);"
+iTotalCalls	read	mbsebbs/misc.c	201	19	exitinfo	exitinfo.iTotalCalls	LCALL.Calls    = exitinfo.iTotalCalls;
+iTotalCalls	read	mbsebbs/user.c	345	9	usrconfig	usrconfig.iTotalCalls	if (usrconfig.iTotalCalls == 0)
+iTotalCalls	read	mbsebbs/userlist.c	116	87	u	u.iTotalCalls	"snprintf(msg, 81, ""%-30s%-14s%-10d"", u.sLocation, StrDateDMY(u.tLastLoginDate), u.iTotalCalls);"
+iTotalCalls	read	mbsebbs/userlist.c	137	86	u	u.iTotalCalls	"snprintf(msg, 81, ""%-30s%-14s%-10d"", u.sLocation, StrDateDMY(u.tLastLoginDate), u.iTotalCalls);"
+iTotalCalls	read	mbsetup/m_users.c	546	19	usrconfig	usrconfig.iTotalCalls	show_int( 10,68, usrconfig.iTotalCalls);
+iTotalCalls	read	mbsetup/m_users.c	1081	46	usrconfig	usrconfig.iTotalCalls	"add_webdigit(wp, (char *)""Total calls"", usrconfig.iTotalCalls);"
+iTotalCalls	read	mbutils/mbuser.c	265	10	usr	usr.iTotalCalls	if (usr.iTotalCalls == 0)
+iTotalCalls	read-write	mbnntp/auth.c	192	5	usrconfig	usrconfig.iTotalCalls	usrconfig.iTotalCalls++;
+iTotalCalls	read-write	mbsebbs/user.c	463	5	usrconfig	usrconfig.iTotalCalls	usrconfig.iTotalCalls++;
+ieASCII8	write	fortytwo-auth/src/legacy_userdb_provision.c	438	5	record	record->ieASCII8	record->ieASCII8 = 1U;
+ieASCII8	write	mbsebbs/newuser.c	522	5	usrconfig	usrconfig.ieASCII8	usrconfig.ieASCII8     = TRUE;
+ieFILE	read	mbsebbs/change.c	396	9	exitinfo	exitinfo.ieFILE	if (exitinfo.ieFILE) {
+ieFILE	read	mbsebbs/change.c	408	50	exitinfo	exitinfo.ieFILE	"Syslog('+', ""Check New Files changed to %s"", exitinfo.ieFILE ?""True"":""False"");"
+ieFILE	read	mbsebbs/dispfile.c	532	28	exitinfo	exitinfo.ieFILE	"snprintf(temp, 81, ""%s"", exitinfo.ieFILE?(char *)Language(147):(char *)Language(148));"
+ieFILE	read	mbsebbs/user.c	577	9	exitinfo	exitinfo.ieFILE	if (exitinfo.ieFILE && (!IsNew)) {
+ieFILE	read	mbsetup/m_users.c	623	21	usrconfig	usrconfig.ieFILE	show_bool(15,71,   usrconfig.ieFILE);
+ieFILE	read	mbsetup/m_users.c	1116	62	usrconfig	usrconfig.ieFILE	"add_webtable(wp, (char *)""Display newfiles"", getboolean(usrconfig.ieFILE));"
+ieFILE	write	fortytwo-auth/src/legacy_userdb_provision.c	436	5	record	record->ieFILE	record->ieFILE = registration->defaults.new_file_scan ? 1U : 0U;
+ieFILE	write	mbsebbs/change.c	397	2	exitinfo	exitinfo.ieFILE	exitinfo.ieFILE = FALSE;
+ieFILE	write	mbsebbs/change.c	401	2	exitinfo	exitinfo.ieFILE	exitinfo.ieFILE = TRUE;
+ieFILE	write	mbsebbs/newuser.c	493	14	usrconfig	usrconfig.ieFILE	case NO:    usrconfig.ieFILE = FALSE;
+ieFILE	write	mbsebbs/newuser.c	495	14	usrconfig	usrconfig.ieFILE	case YES:   usrconfig.ieFILE = TRUE;
+ieFILE	write	mbsebbs/newuser.c	506	8	usrconfig	usrconfig.ieFILE	usrconfig.ieFILE = TRUE;
+ieFILE	write	mbsebbs/newuser.c	510	8	usrconfig	usrconfig.ieFILE	usrconfig.ieFILE = FALSE;
+ieFILE	write	mbsetup/m_users.c	695	34	usrconfig	usrconfig.ieFILE	"case 23:E_BOOL(15,71,usrconfig.ieFILE,       ""Show ^New Files^ when logging in""); break;"
+ieNEWS	read	mbsebbs/change.c	720	9	exitinfo	exitinfo.ieNEWS	if (exitinfo.ieNEWS) {
+ieNEWS	read	mbsebbs/change.c	731	43	exitinfo	exitinfo.ieNEWS	"Syslog('+', ""News bullentins now %s"", exitinfo.ieNEWS?""True"":""False"");"
+ieNEWS	read	mbsebbs/dispfile.c	492	29	exitinfo	exitinfo.ieNEWS	"snprintf(temp, 81, ""%s"", exitinfo.ieNEWS?(char *)Language(147):(char *)Language(148));"
+ieNEWS	read	mbsebbs/user.c	510	9	exitinfo	exitinfo.ieNEWS	if (exitinfo.ieNEWS) {
+ieNEWS	read	mbsetup/m_users.c	622	21	usrconfig	usrconfig.ieNEWS	show_bool(14,71,   usrconfig.ieNEWS);
+ieNEWS	read	mbsetup/m_users.c	1115	58	usrconfig	usrconfig.ieNEWS	"add_webtable(wp, (char *)""Display news"", getboolean(usrconfig.ieNEWS));"
+ieNEWS	write	fortytwo-auth/src/legacy_userdb_provision.c	437	5	record	record->ieNEWS	record->ieNEWS = 1U;
+ieNEWS	write	mbsebbs/change.c	721	2	exitinfo	exitinfo.ieNEWS	exitinfo.ieNEWS = FALSE;
+ieNEWS	write	mbsebbs/change.c	725	2	exitinfo	exitinfo.ieNEWS	exitinfo.ieNEWS = TRUE;
+ieNEWS	write	mbsebbs/newuser.c	519	5	usrconfig	usrconfig.ieNEWS	usrconfig.ieNEWS       = TRUE;
+ieNEWS	write	mbsetup/m_users.c	694	34	usrconfig	usrconfig.ieNEWS	"case 22:E_BOOL(14,71,usrconfig.ieNEWS,       ""Show ^News Bulletins^ when logging in""); break;"
+sComment	metadata	fortytwo-auth/src/legacy_userdb.c	668	46	record	record.sComment	sizeof(record.sComment)) ||
+sComment	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1200	46	record	record.sComment	sizeof(record.sComment)) ||
+sComment	metadata	fortytwo-auth/src/legacy_userdb_provision.c	2375	44	record	record.sComment	sizeof(record.sComment)) &&
+sComment	read	fortytwo-auth/src/legacy_userdb.c	667	39	record	record.sComment	!fixed_text_is_terminated(record.sComment,
+sComment	read	fortytwo-auth/src/legacy_userdb.c	693	21	record	record.sComment	record.sComment, &audit->registration_marker_present,
+sComment	read	fortytwo-auth/src/legacy_userdb_provision.c	1199	39	record	record.sComment	!fixed_text_is_terminated(record.sComment,
+sComment	read	fortytwo-auth/src/legacy_userdb_provision.c	1217	20	record	record.sComment	if (strcmp(record.sComment, expected_record_marker) == 0 &&
+sComment	read	fortytwo-auth/src/legacy_userdb_provision.c	2374	37	record	record.sComment	fixed_text_is_terminated(record.sComment,
+sComment	read	fortytwo-auth/src/legacy_userdb_provision.c	2380	19	record	record.sComment	strcmp(record.sComment, expected_record_marker) == 0 &&
+sComment	read	mbsebbs/door.c	267	28	exitinfo	exitinfo.sComment	"fprintf(fp, ""%s\r\n"", exitinfo.sComment);"
+sComment	read	mbsetup/m_users.c	539	22	usrconfig	usrconfig.sComment	show_str( 18,17,63, usrconfig.sComment);
+sComment	read	mbsetup/m_users.c	1076	42	usrconfig	usrconfig.sComment	"add_webtable(wp, (char *)""Comment"", usrconfig.sComment);"
+sComment	write	fortytwo-auth/src/legacy_userdb_provision.c	418	12	record	record->sComment	memcpy(record->sComment, record_marker, strlen(record_marker) + 1U);
+sComment	write	mbsetup/m_users.c	152	5	user	user->sComment[sizeof(user->sComment) - 1]	user->sComment[sizeof(user->sComment) - 1] = '\0';
+sComment	write	mbsetup/m_users.c	864	26	usrconfig	usrconfig.sComment	"case 9 :E_STR( 18,17,62,usrconfig.sComment,       ""A ^Comment^ for this user""); break;"
+sDataPhone	read	mbsebbs/change.c	687	42	exitinfo	exitinfo.sDataPhone	"Syslog('+', ""Old data phone \""%s\"""", exitinfo.sDataPhone);"
+sDataPhone	read	mbsebbs/change.c	709	42	exitinfo	exitinfo.sDataPhone	"Syslog('+', ""New data phone \""%s\"""", exitinfo.sDataPhone);"
+sDataPhone	read	mbsebbs/dispfile.c	444	28	exitinfo	exitinfo.sDataPhone	"snprintf(temp, 81, ""%s"", exitinfo.sDataPhone);"
+sDataPhone	read	mbsebbs/door.c	226	28	exitinfo	exitinfo.sDataPhone	"fprintf(fp, ""%s\r\n"", exitinfo.sDataPhone);"
+sDataPhone	read	mbsebbs/newuser.c	917	29	u	u.sDataPhone	(strlen(u.sDataPhone) &&  (strcmp(u.sDataPhone, Number) == 0))) {
+sDataPhone	read	mbsebbs/newuser.c	917	55	u	u.sDataPhone	(strlen(u.sDataPhone) &&  (strcmp(u.sDataPhone, Number) == 0))) {
+sDataPhone	read	mbsebbs/newuser.c	919	110	u	u.sDataPhone	"Syslog('b', ""Dupe phones ref: \""%s\"" voice: \""%s\"" data: \""%s\"""", Number, u.sVoicePhone, u.sDataPhone);"
+sDataPhone	read	mbsetup/m_users.c	605	21	usrconfig	usrconfig.sDataPhone	show_str(12,17,19, usrconfig.sDataPhone);
+sDataPhone	read	mbsetup/m_users.c	1100	45	usrconfig	usrconfig.sDataPhone	"add_webtable(wp, (char *)""Data phone"", usrconfig.sDataPhone);"
+sDataPhone	write	mbsebbs/change.c	704	13	exitinfo	exitinfo.sDataPhone	strcpy(exitinfo.sDataPhone, temp);
+sDataPhone	write	mbsebbs/newuser.c	239	10	usrconfig	usrconfig.sDataPhone	strcpy(usrconfig.sDataPhone, usrconfig.sVoicePhone);
+sDataPhone	write	mbsebbs/newuser.c	249	10	usrconfig	usrconfig.sDataPhone	strcpy(usrconfig.sDataPhone, temp);
+sDataPhone	write	mbsetup/m_users.c	147	5	user	user->sDataPhone[sizeof(user->sDataPhone) - 1]	user->sDataPhone[sizeof(user->sDataPhone) - 1] = '\0';
+sDataPhone	write	mbsetup/m_users.c	647	37	usrconfig	usrconfig.sDataPhone	"case 7: E_STR(12,17,16, usrconfig.sDataPhone,  ""The ^Data Phone^ number of this user""); break;"
+sDateOfBirth	read	mbsebbs/change.c	814	31	exitinfo	exitinfo.sDateOfBirth	"Syslog('+', ""Old DOB %s"", exitinfo.sDateOfBirth);"
+sDateOfBirth	read	mbsebbs/change.c	828	31	exitinfo	exitinfo.sDateOfBirth	"Syslog('+', ""New DOB %s"", exitinfo.sDateOfBirth);"
+sDateOfBirth	read	mbsebbs/dispfile.c	508	28	exitinfo	exitinfo.sDateOfBirth	"snprintf(temp, 81, ""%s"", exitinfo.sDateOfBirth);"
+sDateOfBirth	read	mbsebbs/door.c	249	34	exitinfo	exitinfo.sDateOfBirth	"fprintf(fp, ""%s\r\n"", Rdate(exitinfo.sDateOfBirth, Y2Kdoorsys));"
+sDateOfBirth	read	mbsebbs/user.c	366	19	usrconfig	usrconfig.sDateOfBirth	if (!Test_DOB(usrconfig.sDateOfBirth)) {
+sDateOfBirth	read	mbsebbs/user.c	369	33	exitinfo	exitinfo.sDateOfBirth	strcpy(usrconfig.sDateOfBirth, exitinfo.sDateOfBirth);
+sDateOfBirth	read	mbsebbs/user.c	522	14	exitinfo	exitinfo.sDateOfBirth	if ((strcmp(exitinfo.sDateOfBirth, temp)) == 0)
+sDateOfBirth	read	mbsetup/m_users.c	606	21	usrconfig	usrconfig.sDateOfBirth	show_str(13,17,10, usrconfig.sDateOfBirth);
+sDateOfBirth	read	mbsetup/m_users.c	1101	48	usrconfig	usrconfig.sDateOfBirth	"add_webtable(wp, (char *)""Date of birth"", usrconfig.sDateOfBirth);"
+sDateOfBirth	write	mbsebbs/change.c	823	12	exitinfo	exitinfo.sDateOfBirth	Setup(exitinfo.sDateOfBirth, temp);
+sDateOfBirth	write	mbsebbs/newuser.c	393	14	usrconfig	usrconfig.sDateOfBirth	strcpy(usrconfig.sDateOfBirth,temp);
+sDateOfBirth	write	mbsebbs/user.c	369	9	usrconfig	usrconfig.sDateOfBirth	strcpy(usrconfig.sDateOfBirth, exitinfo.sDateOfBirth);
+sDateOfBirth	write	mbsetup/m_users.c	151	5	user	user->sDateOfBirth[sizeof(user->sDateOfBirth) - 1]	user->sDateOfBirth[sizeof(user->sDateOfBirth) - 1] = '\0';
+sDateOfBirth	write	mbsetup/m_users.c	648	37	usrconfig	usrconfig.sDateOfBirth	"case 8: E_STR(13,17,10, usrconfig.sDateOfBirth,""The ^Date of Birth^ in DD-MM-YYYY format""); break;"
+sExpiryDate	read	mbsebbs/door.c	242	34	exitinfo	exitinfo.sExpiryDate	"fprintf(fp, ""%s\r\n"", Rdate(exitinfo.sExpiryDate, Y2Kdoorsys));"
+sExpiryDate	read	mbsebbs/user.c	376	20	usrconfig	usrconfig.sExpiryDate	SwapDate(temp, usrconfig.sExpiryDate);
+sExpiryDate	read	mbsetup/m_users.c	516	21	usrconfig	usrconfig.sExpiryDate	show_str( 8,17,10, usrconfig.sExpiryDate);
+sExpiryDate	read	mbsetup/m_users.c	1065	46	usrconfig	usrconfig.sExpiryDate	"add_webtable(wp, (char *)""Expiry date"", usrconfig.sExpiryDate);"
+sExpiryDate	write	fortytwo-auth/src/legacy_userdb_provision.c	419	12	record	record->sExpiryDate	"memcpy(record->sExpiryDate, ""00-00-0000"", sizeof(""00-00-0000""));"
+sExpiryDate	write	mbsebbs/newuser.c	402	12	usrconfig	usrconfig.sExpiryDate	"strcpy(usrconfig.sExpiryDate,""00-00-0000"");"
+sExpiryDate	write	mbsetup/m_users.c	153	5	user	user->sExpiryDate[sizeof(user->sExpiryDate) - 1]	user->sExpiryDate[sizeof(user->sExpiryDate) - 1] = '\0';
+sExpiryDate	write	mbsetup/m_users.c	858	26	usrconfig	usrconfig.sExpiryDate	"case 3 :E_STR(  8,17,10,usrconfig.sExpiryDate,    ""The ^Expiry Date^ in DD-MM-YYYY format, 00-00-0000 is no expire""); break;"
+sHandle	metadata	fortytwo-auth/src/legacy_userdb.c	666	46	record	record.sHandle	sizeof(record.sHandle)) ||
+sHandle	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1198	46	record	record.sHandle	sizeof(record.sHandle)) ||
+sHandle	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1301	44	existing	existing.sHandle	memset(existing.sHandle, 0, sizeof(existing.sHandle));
+sHandle	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1302	49	existing	existing.sHandle	"(void)snprintf(existing.sHandle, sizeof(existing.sHandle), ""%s"","
+sHandle	read	fortytwo-auth/src/legacy_userdb.c	665	39	record	record.sHandle	!fixed_text_is_terminated(record.sHandle,
+sHandle	read	fortytwo-auth/src/legacy_userdb.c	688	28	record	record.sHandle	record.sHandle);
+sHandle	read	fortytwo-auth/src/legacy_userdb.c	725	13	record	record.sHandle[0]	record.sHandle[0] != '\0' &&
+sHandle	read	fortytwo-auth/src/legacy_userdb.c	726	32	record	record.sHandle	ascii_case_compare(record.sHandle, query->display_name) == 0) {
+sHandle	read	fortytwo-auth/src/legacy_userdb_provision.c	552	13	record	record->sHandle[0]	(record->sHandle[0] != '\0' &&
+sHandle	read	fortytwo-auth/src/legacy_userdb_provision.c	553	32	record	record->sHandle	ascii_case_compare(record->sHandle, value) == 0);
+sHandle	read	fortytwo-auth/src/legacy_userdb_provision.c	1197	39	record	record.sHandle	!fixed_text_is_terminated(record.sHandle,
+sHandle	read	lib/dbuser.c	77	15	usr	usr.sHandle	((strlen(usr.sHandle) > 0) && (strcasecmp(usr.sHandle, Name) == 0)) ||
+sHandle	read	lib/dbuser.c	77	48	usr	usr.sHandle	((strlen(usr.sHandle) > 0) && (strcasecmp(usr.sHandle, Name) == 0)) ||
+sHandle	read	mbsebbs/change.c	268	29	u	u.sHandle	if ((strcasecmp(u.sHandle, Name)) == 0) {
+sHandle	read	mbsebbs/change.c	299	38	exitinfo	exitinfo.sHandle	"Syslog('+', ""Old handle \""%s\"""", exitinfo.sHandle);"
+sHandle	read	mbsebbs/change.c	324	39	exitinfo	exitinfo.sHandle	"Syslog('+', ""New handle \""%s\"""", exitinfo.sHandle);"
+sHandle	read	mbsebbs/dispfile.c	520	28	exitinfo	exitinfo.sHandle	"snprintf(temp, 81, ""%s"", exitinfo.sHandle);"
+sHandle	read	mbsebbs/door.c	253	28	exitinfo	exitinfo.sHandle	"fprintf(fp, ""%s\r\n"", exitinfo.sHandle);"
+sHandle	read	mbsebbs/door.c	299	28	exitinfo	exitinfo.sHandle	"fprintf(fp, ""%s\r\n"", exitinfo.sHandle);	    /* User's handle			*/"
+sHandle	read	mbsebbs/funcs.c	98	69	us	us.sHandle	if ((strcasecmp(Name, us.sUserName) == 0) || (strcasecmp(Name, us.sHandle) == 0)) {
+sHandle	read	mbsebbs/mail.c	167	16	exitinfo	exitinfo.sHandle	if (strlen(exitinfo.sHandle) == 0)
+sHandle	read	mbsebbs/mail.c	172	23	exitinfo	exitinfo.sHandle	pout(CYAN, BLACK, exitinfo.sHandle);
+sHandle	read	mbsebbs/mail.c	434	26	exitinfo	exitinfo.sHandle	strcpy(Msg.From, exitinfo.sHandle);
+sHandle	read	mbsebbs/mail.c	1388	68	exitinfo	exitinfo.sHandle	((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(exitinfo.sHandle, Msg.To) == 0))) {
+sHandle	read	mbsebbs/mail.c	1674	19	exitinfo	exitinfo.sHandle	strcpy(Msg.From, exitinfo.sHandle);
+sHandle	read	mbsebbs/mail.c	1857	26	exitinfo	exitinfo.sHandle	if (strcasecmp(Name, exitinfo.sHandle) == 0)
+sHandle	read	mbsebbs/mail.c	1868	20	exitinfo	exitinfo.sHandle	if (strcasecmp(p, exitinfo.sHandle) == 0)
+sHandle	read	mbsebbs/misc.c	196	35	exitinfo	exitinfo.sHandle	"snprintf(LCALL.Handle, 36, ""%s"", exitinfo.sHandle);"
+sHandle	read	mbsebbs/offline.c	874	77	exitinfo	exitinfo.sHandle	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sHandle	read	mbsebbs/offline.c	1228	36	exitinfo	exitinfo.sHandle	strncpy((char *)Inf.aliasname, exitinfo.sHandle, 43);
+sHandle	read	mbsebbs/offline.c	1878	76	exitinfo	exitinfo.sHandle	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sHandle	read	mbsebbs/offline.c	2570	76	exitinfo	exitinfo.sHandle	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sHandle	read	mbsebbs/offline.c	2947	76	exitinfo	exitinfo.sHandle	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sHandle	read	mbsebbs/userlist.c	95	54	u	u.sHandle	"if (((strcasecmp(OpData, ""/H"")) == 0) && strlen(u.sHandle))"
+sHandle	read	mbsebbs/userlist.c	96	28	u	u.sHandle	"snprintf(User, 36, ""%s"", u.sHandle);"
+sHandle	read	mbsebbs/userlist.c	105	16	u	u.sHandle	"if ((strcmp(u.sHandle, """") != 0 && *(u.sHandle) != ' '))"
+sHandle	read	mbsebbs/userlist.c	105	41	u	u.sHandle	"if ((strcmp(u.sHandle, """") != 0 && *(u.sHandle) != ' '))"
+sHandle	read	mbsebbs/userlist.c	106	35	u	u.sHandle	"snprintf(msg, 81, ""%-25s"", u.sHandle);"
+sHandle	read	mbsebbs/userlist.c	126	19	u	u.sHandle	"if ((strcasecmp(u.sHandle, """") != 0 && *(u.sHandle) != ' '))"
+sHandle	read	mbsebbs/userlist.c	126	44	u	u.sHandle	"if ((strcasecmp(u.sHandle, """") != 0 && *(u.sHandle) != ' '))"
+sHandle	read	mbsebbs/userlist.c	127	34	u	u.sHandle	"snprintf(msg, 81, ""%-25s"", u.sHandle);"
+sHandle	read	mbsebbs/whoson.c	118	51	us	us.sHandle	"if ((strcasecmp(OpData, ""/H"") == 0) && strlen(us.sHandle)) {"
+sHandle	read	mbsebbs/whoson.c	120	28	us	us.sHandle	fullname = xstrcpy(us.sHandle);
+sHandle	read	mbsebbs/whoson.c	304	49	us	us.sHandle	"if ((strcasecmp(OpData, ""/H"") == 0) && strlen(us.sHandle) && (strcasecmp(User, us.sHandle) == 0)) {"
+sHandle	read	mbsebbs/whoson.c	304	82	us	us.sHandle	"if ((strcasecmp(OpData, ""/H"") == 0) && strlen(us.sHandle) && (strcasecmp(User, us.sHandle) == 0)) {"
+sHandle	read	mbsebbs/whoson.c	325	48	exitinfo	exitinfo.sHandle	"if ((strcasecmp(OpData, ""/H"") == 0) && strlen(exitinfo.sHandle))"
+sHandle	read	mbsebbs/whoson.c	326	30	exitinfo	exitinfo.sHandle	from = xstrcpy(clencode(exitinfo.sHandle));
+sHandle	read	mbsetup/m_users.c	599	21	usrconfig	usrconfig.sHandle	show_str( 6,17,35, usrconfig.sHandle);
+sHandle	read	mbsetup/m_users.c	1094	41	usrconfig	usrconfig.sHandle	"add_webtable(wp, (char *)""Handle"", usrconfig.sHandle);"
+sHandle	read	unix/mblogin.c	606	17	usrconfig	usrconfig.sHandle	(strcasecmp(usrconfig.sHandle, username) == 0) ||
+sHandle	write	fortytwo-auth/src/legacy_userdb_provision.c	1301	16	existing	existing.sHandle	memset(existing.sHandle, 0, sizeof(existing.sHandle));
+sHandle	write	fortytwo-auth/src/legacy_userdb_provision.c	1302	24	existing	existing.sHandle	"(void)snprintf(existing.sHandle, sizeof(existing.sHandle), ""%s"","
+sHandle	write	mbsebbs/change.c	322	12	exitinfo	exitinfo.sHandle	Setup(exitinfo.sHandle, temp);
+sHandle	write	mbsebbs/newuser.c	326	14	usrconfig	usrconfig.sHandle	"strcpy(usrconfig.sHandle, """");"
+sHandle	write	mbsebbs/newuser.c	328	14	usrconfig	usrconfig.sHandle	strcpy(usrconfig.sHandle, temp);
+sHandle	write	mbsetup/m_users.c	157	5	user	user->sHandle[sizeof(user->sHandle) - 1]	user->sHandle[sizeof(user->sHandle) - 1] = '\0';
+sHandle	write	mbsetup/m_users.c	641	36	usrconfig	usrconfig.sHandle	"case 1: E_STR( 6,17,35,usrconfig.sHandle,  ""The ^Handle^ of this user""); break;"
+sLocation	read	mbnntp/auth.c	206	16	usrconfig	usrconfig.sLocation	if (strlen(usrconfig.sLocation))
+sLocation	read	mbnntp/auth.c	207	34	usrconfig	usrconfig.sLocation	UserCity(mypid, usrconfig.Name, usrconfig.sLocation);
+sLocation	read	mbsebbs/change.c	528	40	exitinfo	exitinfo.sLocation	"Syslog('+', ""Old location \""%s\"""", exitinfo.sLocation);"
+sLocation	read	mbsebbs/change.c	535	13	exitinfo	exitinfo.sLocation	pout(9, 0, exitinfo.sLocation);
+sLocation	read	mbsebbs/change.c	563	40	exitinfo	exitinfo.sLocation	"Syslog('+', ""New location \""%s\"""", exitinfo.sLocation);"
+sLocation	read	mbsebbs/dispfile.c	436	28	exitinfo	exitinfo.sLocation	"snprintf(temp, 81, ""%s"", exitinfo.sLocation);"
+sLocation	read	mbsebbs/door.c	224	28	exitinfo	exitinfo.sLocation	"fprintf(fp, ""%s\r\n"", exitinfo.sLocation);"
+sLocation	read	mbsebbs/misc.c	215	37	exitinfo	exitinfo.sLocation	"snprintf(LCALL.Location, 28, ""%s"", exitinfo.sLocation);"
+sLocation	read	mbsebbs/user.c	279	16	usrconfig	usrconfig.sLocation	if (strlen(usrconfig.sLocation))
+sLocation	read	mbsebbs/user.c	280	34	usrconfig	usrconfig.sLocation	UserCity(mypid, usrconfig.Name, usrconfig.sLocation);
+sLocation	read	mbsebbs/userlist.c	116	44	u	u.sLocation	"snprintf(msg, 81, ""%-30s%-14s%-10d"", u.sLocation, StrDateDMY(u.tLastLoginDate), u.iTotalCalls);"
+sLocation	read	mbsebbs/userlist.c	137	43	u	u.sLocation	"snprintf(msg, 81, ""%-30s%-14s%-10d"", u.sLocation, StrDateDMY(u.tLastLoginDate), u.iTotalCalls);"
+sLocation	read	mbsetup/m_limits.c	592	45	usrconfig	usrconfig.sLocation	LIMIT.Security, nr, usrconfig.sUserName, usrconfig.sLocation);
+sLocation	read	mbsetup/m_users.c	600	21	usrconfig	usrconfig.sLocation	show_str( 7,17,27, usrconfig.sLocation);
+sLocation	read	mbsetup/m_users.c	1095	43	usrconfig	usrconfig.sLocation	"add_webtable(wp, (char *)""Location"", usrconfig.sLocation);"
+sLocation	read-write	mbsebbs/door.c	354	38	exitinfo	exitinfo.sLocation	"fprintf(fp, ""%s\r\n"", tu(exitinfo.sLocation));"
+sLocation	write	mbsebbs/change.c	558	12	exitinfo	exitinfo.sLocation	Setup(exitinfo.sLocation,temp);
+sLocation	write	mbsebbs/newuser.c	280	10	usrconfig	usrconfig.sLocation	strcpy(usrconfig.sLocation, temp);
+sLocation	write	mbsetup/m_users.c	148	5	user	user->sLocation[sizeof(user->sLocation) - 1]	user->sLocation[sizeof(user->sLocation) - 1] = '\0';
+sLocation	write	mbsetup/m_users.c	642	36	usrconfig	usrconfig.sLocation	"case 2: E_STR( 7,17,27,usrconfig.sLocation,""The users ^Location^""); break;"
+sProtocol	read	mbsebbs/change.c	948	18	exitinfo	exitinfo.sProtocol	Set_Protocol(exitinfo.sProtocol);
+sProtocol	read	mbsebbs/dispfile.c	369	28	exitinfo	exitinfo.sProtocol	"snprintf(temp, 81, ""%s"", exitinfo.sProtocol);"
+sProtocol	read	mbsebbs/door.c	244	28	exitinfo	exitinfo.sProtocol	"fprintf(fp, ""%s\r\n"", exitinfo.sProtocol);"
+sProtocol	read	mbsebbs/user.c	452	18	usrconfig	usrconfig.sProtocol	Set_Protocol(usrconfig.sProtocol);
+sProtocol	read	mbsetup/m_users.c	609	21	usrconfig	usrconfig.sProtocol	show_str( 16,17,12,usrconfig.sProtocol);
+sProtocol	read	mbsetup/m_users.c	1103	43	usrconfig	usrconfig.sProtocol	"add_webtable(wp, (char *)""Protocol"", usrconfig.sProtocol);"
+sProtocol	read-write	mbsebbs/user.c	453	9	usrconfig	usrconfig.sProtocol	tlf(usrconfig.sProtocol);
+sProtocol	write	fortytwo-auth/src/legacy_userdb_provision.c	421	12	record	record->sProtocol	memcpy(record->sProtocol, registration->defaults.protocol,
+sProtocol	write	mbsebbs/change.c	1018	16	exitinfo	exitinfo.sProtocol	Setup(exitinfo.sProtocol, sProtName);
+sProtocol	write	mbsebbs/newuser.c	462	14	usrconfig	usrconfig.sProtocol	"snprintf(usrconfig.sProtocol, 21, ""%s"", (char *) Language(65));"
+sProtocol	write	mbsetup/m_users.c	156	5	user	user->sProtocol[sizeof(user->sProtocol) - 1]	user->sProtocol[sizeof(user->sProtocol) - 1] = '\0';
+sProtocol	write	mbsetup/m_users.c	670	32	usrconfig	usrconfig.sProtocol	strcpy(usrconfig.sProtocol, temp);
+sSex	read	mbsetup/m_users.c	608	21	usrconfig	usrconfig.sSex	show_str( 15,17, 7,usrconfig.sSex);
+sSex	read	mbsetup/m_users.c	655	22	usrconfig	usrconfig.sSex	show_str(15,17,7, usrconfig.sSex);
+sSex	read	mbsetup/m_users.c	658	19	usrconfig	usrconfig.sSex	"if (strcmp(usrconfig.sSex, ""Male"") == 0)"
+sSex	read	mbsetup/m_users.c	666	25	usrconfig	usrconfig.sSex	show_str(15,17,7, usrconfig.sSex);
+sSex	read	mbsetup/m_users.c	1102	38	usrconfig	usrconfig.sSex	"add_webtable(wp, (char *)""Sex"", usrconfig.sSex);"
+sSex	write	fortytwo-auth/src/legacy_userdb_provision.c	420	12	record	record->sSex	"memcpy(record->sSex, ""Unknown"", sizeof(""Unknown""));"
+sSex	write	mbsebbs/newuser.c	347	12	usrconfig	usrconfig.sSex	"snprintf(usrconfig.sSex, 8, ""Male"");"
+sSex	write	mbsebbs/newuser.c	353	12	usrconfig	usrconfig.sSex	"snprintf(usrconfig.sSex, 8, ""Female"");"
+sSex	write	mbsebbs/newuser.c	365	11	usrconfig	usrconfig.sSex	"snprintf(usrconfig.sSex, 8, ""Unknown""); /* If set off, set to Unknown */"
+sSex	write	mbsetup/m_users.c	154	5	user	user->sSex[sizeof(user->sSex) - 1]	user->sSex[sizeof(user->sSex) - 1] = '\0';
+sSex	write	mbsetup/m_users.c	659	12	usrconfig	usrconfig.sSex	"strcpy(usrconfig.sSex, ""Female"");"
+sSex	write	mbsetup/m_users.c	661	12	usrconfig	usrconfig.sSex	"strcpy(usrconfig.sSex, ""Male\0\0"");"
+sUserName	metadata	fortytwo-auth/src/legacy_userdb.c	664	46	record	record.sUserName	sizeof(record.sUserName)) ||
+sUserName	metadata	fortytwo-auth/src/legacy_userdb_provision.c	1196	46	record	record.sUserName	sizeof(record.sUserName)) ||
+sUserName	metadata	fortytwo-auth/src/legacy_userdb_provision.c	2373	44	record	record.sUserName	sizeof(record.sUserName)) &&
+sUserName	read	fortytwo-auth/src/legacy_userdb.c	663	39	record	record.sUserName	!fixed_text_is_terminated(record.sUserName,
+sUserName	read	fortytwo-auth/src/legacy_userdb.c	686	34	record	record.sUserName	"""%s"", record.sUserName);"
+sUserName	read	fortytwo-auth/src/legacy_userdb.c	718	32	record	record.sUserName	ascii_case_compare(record.sUserName, query->display_name) == 0) {
+sUserName	read	fortytwo-auth/src/legacy_userdb_provision.c	551	31	record	record->sUserName	ascii_case_compare(record->sUserName, value) == 0 ||
+sUserName	read	fortytwo-auth/src/legacy_userdb_provision.c	1195	39	record	record.sUserName	!fixed_text_is_terminated(record.sUserName,
+sUserName	read	fortytwo-auth/src/legacy_userdb_provision.c	2372	37	record	record.sUserName	fixed_text_is_terminated(record.sUserName,
+sUserName	read	fortytwo-auth/src/legacy_userdb_provision.c	2379	19	record	record.sUserName	strcmp(record.sUserName, prepared->display_name) == 0 &&
+sUserName	read	lib/dbuser.c	76	18	usr	usr.sUserName	if ((strcasecmp(usr.sUserName, Name) == 0) ||
+sUserName	read	mbfido/scan.c	176	45	usrconfig	usrconfig.sUserName	"printf(""\r%8s %-40s"", usrconfig.Name, usrconfig.sUserName);"
+sUserName	read	mbfido/storenet.c	95	17	usr	usr.sUserName	strcpy(Msg.To, usr.sUserName);
+sUserName	read	mbfido/storenet.c	164	56	usr	usr.sUserName	"Syslog('+', ""Import netmail to %s in badmail board"", usr.sUserName);"
+sUserName	read	mbfido/storenet.c	166	39	usr	usr.sUserName	"Syslog('+', ""Import netmail to %s"", usr.sUserName);"
+sUserName	read	mbfido/storenet.c	175	50	usr	usr.sUserName	"Syslog('+', ""Empty netmail for %s dropped"", usr.sUserName);"
+sUserName	read	mbsebbs/chat.c	238	30	exitinfo	exitinfo.sUserName	mname = xstrcpy(clencode(exitinfo.sUserName));
+sUserName	read	mbsebbs/dispfile.c	75	41	u	u.sUserName	if ((!u.Deleted) && (strlen(u.sUserName) > 0))
+sUserName	read	mbsebbs/dispfile.c	432	28	exitinfo	exitinfo.sUserName	"snprintf(temp, 81, ""%s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/dispfile.c	648	15	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/dispfile.c	675	15	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/door.c	223	28	exitinfo	exitinfo.sUserName	"fprintf(fp, ""%s\r\n"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/door.c	298	28	exitinfo	exitinfo.sUserName	"fprintf(fp, ""%s\r\n"", exitinfo.sUserName);	    /* User's real name			*/"
+sUserName	read	mbsebbs/door.c	344	39	exitinfo	exitinfo.sUserName	"snprintf(temp2, 36, ""%s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/email.c	522	17	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/email.c	655	17	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/email.c	759	40	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.sUserName, ascinode(Dest, 0x2f), exitinfo.sUserName);"
+sUserName	read	mbsebbs/email.c	759	82	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.sUserName, ascinode(Dest, 0x2f), exitinfo.sUserName);"
+sUserName	read	mbsebbs/email.c	761	70	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+sUserName	read	mbsebbs/email.c	891	40	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.sUserName, ascinode(Dest, 0x2f), exitinfo.sUserName);"
+sUserName	read	mbsebbs/email.c	891	82	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.sUserName, ascinode(Dest, 0x2f), exitinfo.sUserName);"
+sUserName	read	mbsebbs/email.c	893	70	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+sUserName	read	mbsebbs/file.c	1083	30	exitinfo	exitinfo.sUserName	"snprintf(temp, 81, ""%-51s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/filesub.c	815	24	exitinfo	exitinfo.sUserName	memccpy(fdb.Uploader, exitinfo.sUserName, '\0', 36);
+sUserName	read	mbsebbs/funcs.c	98	28	us	us.sUserName	if ((strcasecmp(Name, us.sUserName) == 0) || (strcasecmp(Name, us.sHandle) == 0)) {
+sUserName	read	mbsebbs/funcs.c	234	45	exitinfo	exitinfo.sUserName	"fprintf(fp,     ""    Greetings, %s\n"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/mail.c	450	20	exitinfo	exitinfo.sUserName	strcpy(Msg.From, exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	453	71	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+sUserName	read	mbsebbs/mail.c	456	23	exitinfo	exitinfo.sUserName	strcpy(Msg.From, exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	1388	27	exitinfo	exitinfo.sUserName	((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(exitinfo.sHandle, Msg.To) == 0))) {
+sUserName	read	mbsebbs/mail.c	1401	14	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	1458	14	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	1682	20	exitinfo	exitinfo.sUserName	strcpy(Msg.From, exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	1685	71	exitinfo	exitinfo.sUserName	"snprintf(Msg.From, 101, ""%s@%s (%s)"", exitinfo.Name, CFG.sysdomain, exitinfo.sUserName);"
+sUserName	read	mbsebbs/mail.c	1688	24	exitinfo	exitinfo.sUserName	strncpy(Msg.From, exitinfo.sUserName, 101);
+sUserName	read	mbsebbs/mail.c	1854	26	exitinfo	exitinfo.sUserName	if (strcasecmp(Name, exitinfo.sUserName) == 0)
+sUserName	read	mbsebbs/mail.c	1866	20	exitinfo	exitinfo.sUserName	if (strcasecmp(p, exitinfo.sUserName) == 0)
+sUserName	read	mbsebbs/mail.c	2137	20	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	2182	20	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	2268	19	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	2535	18	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/mail.c	2617	15	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/misc.c	195	37	exitinfo	exitinfo.sUserName	"snprintf(LCALL.UserName, 36, ""%s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/newuser.c	538	6	us	us.sUserName[0]	if (us.sUserName[0] == '\0') {
+sUserName	read	mbsebbs/newuser.c	915	28	u	u.sUserName	if (strcasecmp(u.sUserName, Name) != 0)
+sUserName	read	mbsebbs/newuser.c	920	73	u	u.sUserName	"Syslog('+', ""Uses the same telephone number as %s"", u.sUserName);"
+sUserName	read	mbsebbs/offline.c	165	15	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/offline.c	858	15	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/offline.c	874	28	exitinfo	exitinfo.sUserName	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sUserName	read	mbsebbs/offline.c	1227	36	exitinfo	exitinfo.sUserName	strncpy((char *)Inf.loginname, exitinfo.sUserName, 43);
+sUserName	read	mbsebbs/offline.c	1356	16	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/offline.c	1878	27	exitinfo	exitinfo.sUserName	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sUserName	read	mbsebbs/offline.c	2038	19	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/offline.c	2071	33	exitinfo	exitinfo.sUserName	"snprintf(Temp, PATH_MAX, ""%s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/offline.c	2570	27	exitinfo	exitinfo.sUserName	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sUserName	read	mbsebbs/offline.c	2822	19	exitinfo	exitinfo.sUserName	p = xstrcpy(exitinfo.sUserName);
+sUserName	read	mbsebbs/offline.c	2947	27	exitinfo	exitinfo.sUserName	if ((strcasecmp(Msg.To, exitinfo.sUserName) == 0) || (strcasecmp(Msg.To, exitinfo.sHandle) == 0)) {
+sUserName	read	mbsebbs/oneline.c	125	35	exitinfo	exitinfo.sUserName	"snprintf(ol.UserName,36,""%s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/oneline.c	410	26	exitinfo	exitinfo.sUserName	"snprintf(sUser,36,""%s"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/signature.c	132	48	exitinfo	exitinfo.sUserName	"Syslog('+', ""%s will edit his .signature"", exitinfo.sUserName);"
+sUserName	read	mbsebbs/timestats.c	57	56	exitinfo	exitinfo.sUserName	"snprintf(msg, 81, ""%s%s "", (char *) Language(134), exitinfo.sUserName);"
+sUserName	read	mbsebbs/user.c	94	51	exitinfo	exitinfo.sUserName	strcpy(SYSINFO.LastCaller,exitinfo.sUserName);
+sUserName	read	mbsebbs/user.c	238	48	usrconfig	usrconfig.sUserName	"snprintf(UserName, sizeof(UserName), ""%s"", usrconfig.sUserName);"
+sUserName	read	mbsebbs/user.c	257	48	usrconfig	usrconfig.sUserName	"snprintf(UserName, sizeof(UserName), ""%s"", usrconfig.sUserName);"
+sUserName	read	mbsebbs/userlist.c	100	28	u	u.sUserName	"snprintf(User, 36, ""%s"", u.sUserName);"
+sUserName	read	mbsebbs/userlist.c	108	35	u	u.sUserName	"snprintf(msg, 81, ""%-25s"", u.sUserName);"
+sUserName	read	mbsebbs/userlist.c	112	31	u	u.sUserName	"snprintf(msg, 81, ""%-25s"", u.sUserName);"
+sUserName	read	mbsebbs/userlist.c	124	52	u	u.sUserName	} else if ((!u.Hidden) && (!u.Deleted) && (strlen(u.sUserName) > 0)) {
+sUserName	read	mbsebbs/userlist.c	129	34	u	u.sUserName	"snprintf(msg, 81, ""%-25s"", u.sUserName);"
+sUserName	read	mbsebbs/userlist.c	133	30	u	u.sUserName	"snprintf(msg, 81, ""%-25s"", u.sUserName);"
+sUserName	read	mbsebbs/whoson.c	123	28	us	us.sUserName	fullname = xstrcpy(us.sUserName);
+sUserName	read	mbsebbs/whoson.c	307	57	us	us.sUserName	} else if ((strlen(OpData) == 0) && (strcasecmp(User, us.sUserName) == 0)) {
+sUserName	read	mbsebbs/whoson.c	330	30	exitinfo	exitinfo.sUserName	from = xstrcpy(clencode(exitinfo.sUserName));
+sUserName	read	mbsetup/m_limits.c	590	14	usrconfig	usrconfig.sUserName	if (strlen(usrconfig.sUserName) && (usrconfig.Security.level == LIMIT.Security)) {
+sUserName	read	mbsetup/m_limits.c	592	24	usrconfig	usrconfig.sUserName	LIMIT.Security, nr, usrconfig.sUserName, usrconfig.sLocation);
+sUserName	read	mbsetup/m_users.c	514	21	usrconfig	usrconfig.sUserName	show_str( 6,17,35, usrconfig.sUserName);
+sUserName	read	mbsetup/m_users.c	807	16	usrconfig	usrconfig.sUserName	if (strlen(usrconfig.sUserName) == 0) {
+sUserName	read	mbsetup/m_users.c	957	42	usrconfig	usrconfig.sUserName	if ((!usrconfig.Deleted) && strlen(usrconfig.sUserName))
+sUserName	read	mbsetup/m_users.c	962	9	usrconfig	usrconfig.sUserName	usrconfig.sUserName);
+sUserName	read	mbsetup/m_users.c	1055	56	usrconfig	usrconfig.sUserName	"fprintf(ip, ""<LI><A HREF=\""%s\"">%s</A></LI>\n"", temp, usrconfig.sUserName);"
+sUserName	read	mbsetup/m_users.c	1056	50	usrconfig	usrconfig.sUserName	"if ((wp = open_webdoc(temp, (char *)""BBS User"", usrconfig.sUserName))) {"
+sUserName	read	mbsetup/m_users.c	1062	47	usrconfig	usrconfig.sUserName	"add_webtable(wp, (char *)""Fidonet Name"", usrconfig.sUserName);"
+sUserName	read	mbutils/mbuser.c	212	29	usr	usr.sUserName	if (!usr.Deleted && strlen(usr.sUserName)) {
+sUserName	read	mbutils/mbuser.c	214	18	usr	usr.sUserName	if (!strcmp(usr.sUserName, CFG.sysop_name) && !strcmp(usr.Name, CFG.sysop))
+sUserName	read	mbutils/mbuser.c	274	9	usr	usr.sUserName[0]	(usr.sUserName[0] != '\0') && (!usr.NeverDelete)) {
+sUserName	read	mbutils/mbuser.c	275	31	usr	usr.sUserName	"Syslog('+', ""Mark user %s"", usr.sUserName);"
+sUserName	read	mbutils/mbuser.c	277	32	usr	usr.sUserName	"printf(""Mark user %s\n"", usr.sUserName);"
+sUserName	read	unix/mblogin.c	605	24	usrconfig	usrconfig.sUserName	if ((strcasecmp(usrconfig.sUserName, username) == 0) ||
+sUserName	read-write	lib/jammsg.c	144	25	_usr	_usr.sUserName	mycrc = StringCRC32(tl(_usr.sUserName));
+sUserName	read-write	lib/jammsg.c	834	31	_usr	_usr.sUserName	mycrc = StringCRC32(tl(_usr.sUserName));
+sUserName	read-write	lib/jammsg.c	850	31	_usr	_usr.sUserName	mycrc = StringCRC32(tl(_usr.sUserName));
+sUserName	read-write	mbsebbs/mail.c	2460	21	usrconfig	usrconfig.sUserName	if (StringCRC32(tl(usrconfig.sUserName)) == Crc) {
+sUserName	write	fortytwo-auth/src/legacy_userdb_provision.c	415	12	record	record->sUserName	memcpy(record->sUserName, registration->display_name,
+sUserName	write	mbsebbs/newuser.c	192	12	usrconfig	usrconfig.sUserName	strcpy(usrconfig.sUserName, FullName);
+sUserName	write	mbsetup/m_users.c	144	5	user	user->sUserName[sizeof(user->sUserName) - 1]	user->sUserName[sizeof(user->sUserName) - 1] = '\0';
+sUserName	write	mbsetup/m_users.c	847	26	usrconfig	usrconfig.sUserName	"case 1:	E_STR(  6,17,35,usrconfig.sUserName,      ""The ^First and Last name^ of this user""); break;"
+sVoicePhone	read	mbsebbs/change.c	654	43	exitinfo	exitinfo.sVoicePhone	"Syslog('+', ""Old voice phone \""%s\"""", exitinfo.sVoicePhone);"
+sVoicePhone	read	mbsebbs/change.c	676	43	exitinfo	exitinfo.sVoicePhone	"Syslog('+', ""New voice phone \""%s\"""", exitinfo.sVoicePhone);"
+sVoicePhone	read	mbsebbs/dispfile.c	440	28	exitinfo	exitinfo.sVoicePhone	"snprintf(temp, 81, ""%s"", exitinfo.sVoicePhone);"
+sVoicePhone	read	mbsebbs/door.c	225	28	exitinfo	exitinfo.sVoicePhone	"fprintf(fp, ""%s\r\n"", exitinfo.sVoicePhone);"
+sVoicePhone	read	mbsebbs/newuser.c	239	32	usrconfig	usrconfig.sVoicePhone	strcpy(usrconfig.sDataPhone, usrconfig.sVoicePhone);
+sVoicePhone	read	mbsebbs/newuser.c	916	29	u	u.sVoicePhone	if ((strlen(u.sVoicePhone) && (strcmp(u.sVoicePhone, Number) == 0)) ||
+sVoicePhone	read	mbsebbs/newuser.c	916	55	u	u.sVoicePhone	if ((strlen(u.sVoicePhone) && (strcmp(u.sVoicePhone, Number) == 0)) ||
+sVoicePhone	read	mbsebbs/newuser.c	919	95	u	u.sVoicePhone	"Syslog('b', ""Dupe phones ref: \""%s\"" voice: \""%s\"" data: \""%s\"""", Number, u.sVoicePhone, u.sDataPhone);"
+sVoicePhone	read	mbsetup/m_users.c	604	21	usrconfig	usrconfig.sVoicePhone	show_str(11,17,19, usrconfig.sVoicePhone);
+sVoicePhone	read	mbsetup/m_users.c	1099	46	usrconfig	usrconfig.sVoicePhone	"add_webtable(wp, (char *)""Voice phone"", usrconfig.sVoicePhone);"
+sVoicePhone	write	mbsebbs/change.c	671	13	exitinfo	exitinfo.sVoicePhone	strcpy(exitinfo.sVoicePhone, temp);
+sVoicePhone	write	mbsebbs/newuser.c	216	10	usrconfig	usrconfig.sVoicePhone	strcpy(usrconfig.sVoicePhone, temp);
+sVoicePhone	write	mbsetup/m_users.c	146	5	user	user->sVoicePhone[sizeof(user->sVoicePhone) - 1]	user->sVoicePhone[sizeof(user->sVoicePhone) - 1] = '\0';
+sVoicePhone	write	mbsetup/m_users.c	646	37	usrconfig	usrconfig.sVoicePhone	"case 6: E_STR(11,17,16, usrconfig.sVoicePhone, ""The ^Voice Phone^ number of this user""); break;"
+tFirstLoginDate	read	mbsebbs/dispfile.c	452	42	exitinfo	exitinfo.tFirstLoginDate	"snprintf(temp, 81, ""%s %s"", StrDateDMY(exitinfo.tFirstLoginDate), StrTimeHMS(exitinfo.tFirstLoginDate));"
+tFirstLoginDate	read	mbsebbs/dispfile.c	452	80	exitinfo	exitinfo.tFirstLoginDate	"snprintf(temp, 81, ""%s %s"", StrDateDMY(exitinfo.tFirstLoginDate), StrTimeHMS(exitinfo.tFirstLoginDate));"
+tFirstLoginDate	read	mbsetup/m_users.c	521	8	usrconfig	usrconfig.tFirstLoginDate	now = usrconfig.tFirstLoginDate;
+tFirstLoginDate	read	mbsetup/m_users.c	1067	19	usrconfig	usrconfig.tFirstLoginDate	tt = (time_t)usrconfig.tFirstLoginDate;
+tFirstLoginDate	read	mbutils/mbuser.c	266	10	usr	usr.tFirstLoginDate	Last = usr.tFirstLoginDate;
+tFirstLoginDate	write	fortytwo-auth/src/legacy_userdb_provision.c	425	5	record	record->tFirstLoginDate	record->tFirstLoginDate = (int32_t)registration->registered_at;
+tFirstLoginDate	write	mbsebbs/newuser.c	400	5	usrconfig	usrconfig.tFirstLoginDate	usrconfig.tFirstLoginDate = ltime; /* Set first login date to current date */
+tLastLoginDate	read	mbsebbs/door.c	230	34	exitinfo	exitinfo.tLastLoginDate	"fprintf(fp, ""%s\r\n"", Gdate(exitinfo.tLastLoginDate, Y2Kdoorsys));"
+tLastLoginDate	read	mbsebbs/door.c	260	34	exitinfo	exitinfo.tLastLoginDate	"fprintf(fp, ""%s\r\n"", Gdate(exitinfo.tLastLoginDate, Y2Kdoorsys)); /* Last newfiles scan date */"
+tLastLoginDate	read	mbsebbs/user.c	426	26	usrconfig	usrconfig.tLastLoginDate	if (((strcmp(StrDateDMY(usrconfig.tLastLoginDate), temp)) != 0) || IsNew) {
+tLastLoginDate	read	mbsebbs/user.c	459	50	usrconfig	usrconfig.tLastLoginDate	"snprintf(LastLoginDate, 12, ""%s"", StrDateDMY(usrconfig.tLastLoginDate));"
+tLastLoginDate	read	mbsebbs/user.c	460	49	usrconfig	usrconfig.tLastLoginDate	"snprintf(LastLoginTime, 9, ""%s"", StrTimeHMS(usrconfig.tLastLoginDate));"
+tLastLoginDate	read	mbsebbs/user.c	461	17	usrconfig	usrconfig.tLastLoginDate	LastLogin = usrconfig.tLastLoginDate;
+tLastLoginDate	read	mbsebbs/userlist.c	116	68	u	u.tLastLoginDate	"snprintf(msg, 81, ""%-30s%-14s%-10d"", u.sLocation, StrDateDMY(u.tLastLoginDate), u.iTotalCalls);"
+tLastLoginDate	read	mbsebbs/userlist.c	137	67	u	u.tLastLoginDate	"snprintf(msg, 81, ""%-30s%-14s%-10d"", u.sLocation, StrDateDMY(u.tLastLoginDate), u.iTotalCalls);"
+tLastLoginDate	read	mbsetup/m_users.c	525	8	usrconfig	usrconfig.tLastLoginDate	now = usrconfig.tLastLoginDate;
+tLastLoginDate	read	mbsetup/m_users.c	1069	19	usrconfig	usrconfig.tLastLoginDate	tt = (time_t)usrconfig.tLastLoginDate;
+tLastLoginDate	read	mbutils/mbuser.c	268	10	usr	usr.tLastLoginDate	Last = usr.tLastLoginDate;
+tLastLoginDate	write	fortytwo-auth/src/legacy_userdb_provision.c	426	5	record	record->tLastLoginDate	record->tLastLoginDate = 0;
+tLastLoginDate	write	mbnntp/auth.c	191	5	usrconfig	usrconfig.tLastLoginDate	usrconfig.tLastLoginDate = time(NULL);
+tLastLoginDate	write	mbsebbs/newuser.c	401	5	usrconfig	usrconfig.tLastLoginDate	usrconfig.tLastLoginDate = (time_t)0; /* To force setting new limits */
+tLastLoginDate	write	mbsebbs/user.c	462	5	usrconfig	usrconfig.tLastLoginDate	usrconfig.tLastLoginDate = ltime; /* Set current login to current date */
+tLastPwdChange	read	mbsetup/m_users.c	529	8	usrconfig	usrconfig.tLastPwdChange	now = usrconfig.tLastPwdChange;
+tLastPwdChange	read	mbsetup/m_users.c	1071	19	usrconfig	usrconfig.tLastPwdChange	tt = (time_t)usrconfig.tLastPwdChange;
+tLastPwdChange	write	fortytwo-auth/src/legacy_userdb_provision.c	441	5	record	record->tLastPwdChange	record->tLastPwdChange = (int32_t)registration->registered_at;
+tLastPwdChange	write	mbsebbs/change.c	224	6	exitinfo	exitinfo.tLastPwdChange	exitinfo.tLastPwdChange = time(NULL);
+tLastPwdChange	write	mbsebbs/newuser.c	458	5	usrconfig	usrconfig.tLastPwdChange	usrconfig.tLastPwdChange  = ltime; /* Days Since Last Password Change */
+xPassword	read	fortytwo-auth/src/legacy_userdb_provision.c	462	13	record	record->xPassword	record->xPassword != 0U) {
+xPassword	read	fortytwo-auth/src/legacy_userdb_provision.c	2381	12	record	record.xPassword	record.xPassword == 0U && password_zero;
+xPassword	write	fortytwo-auth/src/legacy_userdb_provision.c	424	5	record	record->xPassword	record->xPassword = 0U;

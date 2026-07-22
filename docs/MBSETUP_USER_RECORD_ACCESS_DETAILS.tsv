@@ -1,0 +1,141 @@
+KIND	PATH	LINE	COLUMN	VARIABLE	EXPRESSION	SOURCE
+metadata	fortytwo-auth/src/legacy_userdb.c	654	35	record	record	memset(&record, 0, sizeof(record));
+metadata	fortytwo-auth/src/legacy_userdb.c	655	47	record	record	if (read_exact_at(fd, &record, sizeof(record), offset) != 0) {
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	412	31	record	record	memset(record, 0, sizeof(*record));
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	1185	35	record	record	memset(&record, 0, sizeof(record));
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	1186	47	record	record	if (read_exact_at(fd, &record, sizeof(record), offset) != 0) {
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	1210	59	record	record	memcmp(&record, expected_owned_record, sizeof(record)) != 0) {
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	1294	49	existing	existing	if (read_exact_at(fd, &existing, sizeof(existing),
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	2361	52	record	record	memcpy(&record, prepared->record_bytes, sizeof(record));
+metadata	fortytwo-auth/src/legacy_userdb_provision.c	2478	50	record	record	memcpy(context.record_bytes, &record, sizeof(record));
+metadata	lib/dbuser.c	40	43	usr	usr	(usrhdr.recsize <= (int)sizeof(usr));
+metadata	lib/dbuser.c	49	25	usr	usr	memset(&usr, 0, sizeof(usr));
+metadata	lib/dbuser.c	95	26	usr	usr	memset(&usr, 0, sizeof(usr));
+metadata	lib/jammsg.c	848	32	usr	usr	memset(&_usr, 0, sizeof(usr));
+metadata	mbnntp/auth.c	138	41	usrconfig	usrconfig	((size_t)usrconfighdr.recsize > sizeof(usrconfig)) ||
+metadata	mbnntp/auth.c	150	31	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbnntp/auth.c	168	31	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbnntp/auth.c	177	31	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbnntp/auth.c	187	31	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbnntp/auth.c	201	31	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbnntp/mbnntp.c	178	34	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbsebbs/bye.c	114	44	exitinfo	exitinfo	fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+metadata	mbsebbs/bye.c	128	50	usrconfig	usrconfig	} else if (fwrite(&usrconfig, sizeof(usrconfig), 1,
+metadata	mbsebbs/exitinfo.c	103	34	exitinfo	exitinfo	if (fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+metadata	mbsebbs/exitinfo.c	135	33	exitinfo	exitinfo	if (fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+metadata	mbsebbs/exitinfo.c	157	34	exitinfo	exitinfo	if (fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+metadata	mbsebbs/misc.c	78	36	usrconfig	usrconfig	usrconfighdr.recsize = sizeof(usrconfig);
+metadata	mbsebbs/newuser.c	94	34	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbsebbs/newuser.c	95	33	exitinfo	exitinfo	memset(&exitinfo, 0, sizeof(exitinfo));
+metadata	mbsebbs/newuser.c	551	31	usrconfig	usrconfig	fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
+metadata	mbsebbs/user.c	471	28	usrconfig	usrconfig	fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
+metadata	mbsetup/m_users.c	81	61	usrconfig	usrconfig	if (header.recsize <= 0 || header.recsize > (int)sizeof(usrconfig)) {
+metadata	mbsetup/m_users.c	122	35	usrconfig	usrconfig	usrconfighdr.recsize = sizeof(usrconfig);
+metadata	mbsetup/m_users.c	172	45	usrconfig	usrconfig	usrconfighdr.recsize != (int)sizeof(usrconfig)) {
+metadata	mbsetup/m_users.c	199	34	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbsetup/m_users.c	218	45	usrconfig	usrconfig	usrconfighdr.recsize != (int)sizeof(usrconfig)) {
+metadata	mbsetup/m_users.c	232	35	usrconfig	usrconfig	if (fwrite(&usrconfig, sizeof(usrconfig), 1, fil) != 1 ||
+metadata	mbsetup/m_users.c	369	35	usrconfig	usrconfig	usrconfighdr.recsize = sizeof(usrconfig);
+metadata	mbsetup/m_users.c	376	38	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+metadata	mbsetup/m_users.c	383	39	usrconfig	usrconfig	if (fwrite(&usrconfig, sizeof(usrconfig), 1, fout) != 1) {
+metadata	mbsetup/m_users.c	409	42	usrconfig	usrconfig	UsrUpdated = (oldsize != (int)sizeof(usrconfig));
+metadata	mbsetup/m_users.c	813	53	usrconfig	usrconfig	crc = upd_crc32((char *)&usrconfig, crc, sizeof(usrconfig));
+metadata	mbsetup/m_users.c	821	53	usrconfig	usrconfig	crc1 = upd_crc32((char *)&usrconfig, crc1, sizeof(usrconfig));
+metadata	mbutils/mbuser.c	227	27	usr	usr	if (oldsize != sizeof(usr)) {
+metadata	mbutils/mbuser.c	233	29	usr	usr	usrhdr.recsize = sizeof(usr);
+metadata	mbutils/mbuser.c	242	28	usr	usr	memset(&usr, 0, sizeof(usr));
+metadata	mbutils/mbuser.c	245	22	usr	usr	fwrite(&usr, sizeof(usr), 1, fout);
+metadata	mbutils/mbuser.c	246	25	usr	usr	memset(&usr, 0, sizeof(usr));
+metadata	mbutils/mbuser.c	260	28	usr	usr	while (fread(&usr, sizeof(usr), 1, fout)  == 1) {
+metadata	mbutils/mbuser.c	282	24	usr	usr	fseek(fout, - sizeof(usr), SEEK_CUR);
+metadata	mbutils/mbuser.c	287	23	usr	usr	fwrite(&usr, sizeof(usr), 1, fout);
+metadata	mbutils/mbuser.c	302	28	usr	usr	while (fread(&usr, sizeof(usr), 1, fout) == 1) {
+metadata	mbutils/mbuser.c	339	24	usr	usr	fseek(fout, - sizeof(usr), SEEK_CUR);
+metadata	mbutils/mbuser.c	343	26	usr	usr	memset(&usr, 0, sizeof(usr));
+metadata	mbutils/mbuser.c	348	23	usr	usr	fwrite(&usr, sizeof(usr), 1, fout);
+metadata	mbutils/mbuser.c	372	28	usr	usr	while (fread(&usr, sizeof(usr), 1,fout) == 1) {
+metadata	mbutils/mbuser.c	375	26	usr	usr	fwrite(&usr, sizeof(usr), 1, fin);
+metadata	unix/mblogin.c	600	34	usrconfig	usrconfig	usrconfighdr.recsize > sizeof(usrconfig)) {
+record-read	fortytwo-auth/src/legacy_userdb_provision.c	449	61	record	record	const unsigned char *bytes = (const unsigned char *)record;
+record-read	fortytwo-auth/src/legacy_userdb_provision.c	1210	21	record	record	memcmp(&record, expected_owned_record, sizeof(record)) != 0) {
+record-read	fortytwo-auth/src/legacy_userdb_provision.c	1233	41	record	record	(record_identifier_matches(&record,
+record-read	fortytwo-auth/src/legacy_userdb_provision.c	1235	41	record	record	record_identifier_matches(&record,
+record-read	fortytwo-auth/src/legacy_userdb_provision.c	1308	49	existing	existing	fd, (const unsigned char *)&existing,
+record-read	fortytwo-auth/src/legacy_userdb_provision.c	2478	35	record	record	memcpy(context.record_bytes, &record, sizeof(record));
+record-read	mbnntp/auth.c	196	11	usrconfig	usrconfig	(fwrite(&usrconfig, usrconfighdr.recsize, 1, fp) != 1)) {
+record-read	mbnntp/rfc2ftn.c	771	12	usrconfig	usrconfig	fwrite(&usrconfig, usrconfighdr.recsize, 1, qfp);
+record-read	mbsebbs/bye.c	117	25	exitinfo	exitinfo	usrconfig = exitinfo;
+record-read	mbsebbs/bye.c	128	32	usrconfig	usrconfig	} else if (fwrite(&usrconfig, sizeof(usrconfig), 1,
+record-read	mbsebbs/exitinfo.c	95	16	usrconfig	usrconfig	exitinfo = usrconfig;
+record-read	mbsebbs/exitinfo.c	103	17	exitinfo	exitinfo	if (fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+record-read	mbsebbs/exitinfo.c	157	17	exitinfo	exitinfo	if (fwrite(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+record-read	mbsebbs/newuser.c	551	13	usrconfig	usrconfig	fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
+record-read	mbsebbs/user.c	471	10	usrconfig	usrconfig	fwrite(&usrconfig, sizeof(usrconfig), 1, pUsrConfig);
+record-read	mbsetup/m_users.c	232	17	usrconfig	usrconfig	if (fwrite(&usrconfig, sizeof(usrconfig), 1, fil) != 1 ||
+record-read	mbsetup/m_users.c	383	21	usrconfig	usrconfig	if (fwrite(&usrconfig, sizeof(usrconfig), 1, fout) != 1) {
+record-read	mbsetup/m_users.c	813	30	usrconfig	usrconfig	crc = upd_crc32((char *)&usrconfig, crc, sizeof(usrconfig));
+record-read	mbsetup/m_users.c	821	29	usrconfig	usrconfig	crc1 = upd_crc32((char *)&usrconfig, crc1, sizeof(usrconfig));
+record-read	mbutils/mbuser.c	245	10	usr	usr	fwrite(&usr, sizeof(usr), 1, fout);
+record-read	mbutils/mbuser.c	287	11	usr	usr	fwrite(&usr, sizeof(usr), 1, fout);
+record-read	mbutils/mbuser.c	348	11	usr	usr	fwrite(&usr, sizeof(usr), 1, fout);
+record-read	mbutils/mbuser.c	375	14	usr	usr	fwrite(&usr, sizeof(usr), 1, fin);
+record-read-write	mbsetup/m_users.c	206	33	usrconfig	usrconfig	TerminateUserRecordStrings(&usrconfig);
+record-read-write	mbsetup/m_users.c	231	33	usrconfig	usrconfig	TerminateUserRecordStrings(&usrconfig);
+record-read-write	mbsetup/m_users.c	382	37	usrconfig	usrconfig	TerminateUserRecordStrings(&usrconfig);
+record-write	fortytwo-auth/src/legacy_userdb.c	654	17	record	record	memset(&record, 0, sizeof(record));
+record-write	fortytwo-auth/src/legacy_userdb.c	655	32	record	record	if (read_exact_at(fd, &record, sizeof(record), offset) != 0) {
+record-write	fortytwo-auth/src/legacy_userdb_provision.c	412	12	record	record	memset(record, 0, sizeof(*record));
+record-write	fortytwo-auth/src/legacy_userdb_provision.c	1185	17	record	record	memset(&record, 0, sizeof(record));
+record-write	fortytwo-auth/src/legacy_userdb_provision.c	1186	32	record	record	if (read_exact_at(fd, &record, sizeof(record), offset) != 0) {
+record-write	fortytwo-auth/src/legacy_userdb_provision.c	1294	32	existing	existing	if (read_exact_at(fd, &existing, sizeof(existing),
+record-write	fortytwo-auth/src/legacy_userdb_provision.c	2361	13	record	record	memcpy(&record, prepared->record_bytes, sizeof(record));
+record-write	fortytwo-auth/src/legacy_userdb_provision.c	2448	37	record	record	if (build_record(registration, &record) != 0) {
+record-write	lib/dbuser.c	49	10	usr	usr	memset(&usr, 0, sizeof(usr));
+record-write	lib/dbuser.c	95	11	usr	usr	memset(&usr, 0, sizeof(usr));
+record-write	lib/dbuser.c	105	16	usr	usr	while (fread(&usr, (size_t)usrhdr.recsize, 1, fil) == 1) {
+record-write	lib/jammsg.c	143	19	_usr	_usr	while (fread(&_usr, _usrhdr.recsize, 1, fp) == 1) {
+record-write	lib/jammsg.c	833	18	_usr	_usr	while (fread(&_usr, _usrhdr.recsize, 1, usrF) == 1) {
+record-write	lib/jammsg.c	848	16	_usr	_usr	memset(&_usr, 0, sizeof(usr));
+record-write	lib/jammsg.c	849	19	_usr	_usr	if (fread(&_usr, _usrhdr.recsize, 1, usrF) == 1) {
+record-write	mbfido/mbmsg.c	340	16	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pAreas) == 1) {
+record-write	mbfido/scan.c	170	16	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pAreas) == 1) {
+record-write	mbnntp/auth.c	150	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbnntp/auth.c	151	13	usrconfig	usrconfig	if (fread(&usrconfig, usrconfighdr.recsize, 1, fp) != 1)
+record-write	mbnntp/auth.c	168	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbnntp/auth.c	177	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbnntp/auth.c	187	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbnntp/auth.c	201	10	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbnntp/mbnntp.c	178	13	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbnntp/rfc2ftn.c	768	18	usrconfig	usrconfig	if (fread(&usrconfig, usrconfighdr.recsize, 1, qfp) == 1) {
+record-write	mbsebbs/bye.c	114	27	exitinfo	exitinfo	fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1) {
+record-write	mbsebbs/bye.c	117	13	usrconfig	usrconfig	usrconfig = exitinfo;
+record-write	mbsebbs/change.c	267	23	u	u	while (fread(&u, uhdr.recsize, 1, fp) == 1) {
+record-write	mbsebbs/dispfile.c	74	23	u	u	while (fread(&u, uhdr.recsize, 1, pUsrConfig) == 1)
+record-write	mbsebbs/exitinfo.c	88	16	usrconfig	usrconfig	if (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) != 1) {
+record-write	mbsebbs/exitinfo.c	95	5	exitinfo	exitinfo	exitinfo = usrconfig;
+record-write	mbsebbs/exitinfo.c	135	16	exitinfo	exitinfo	if (fread(&exitinfo, sizeof(exitinfo), 1, pExitinfo) != 1)
+record-write	mbsebbs/funcs.c	97	17	us	us	while (fread(&us, ushdr.recsize, 1, fp) == 1) {
+record-write	mbsebbs/mail.c	2459	19	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) == 1) {
+record-write	mbsebbs/mail.c	2476	9	usrconfig	usrconfig	fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig);
+record-write	mbsebbs/newuser.c	94	13	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbsebbs/newuser.c	95	13	exitinfo	exitinfo	memset(&exitinfo, 0, sizeof(exitinfo));
+record-write	mbsebbs/newuser.c	537	20	us	us	while ((fread(&us, usrconfighdr.recsize, 1, pUsrConfig) == 1) && (!Found)) {
+record-write	mbsebbs/newuser.c	914	23	u	u	while (fread(&u, uhdr.recsize, 1, fp) == 1) {
+record-write	mbsebbs/user.c	196	19	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, pUsrConfig) == 1) {
+record-write	mbsebbs/userlist.c	93	19	u	u	while (fread(&u, uhdr.recsize, 1, pUsrConfig) == 1) {
+record-write	mbsebbs/whoson.c	116	18	us	us	while (fread(&us, ushdr.recsize, 1, fp) == 1) {
+record-write	mbsebbs/whoson.c	303	20	us	us	while (fread(&us, ushdr.recsize, 1, fp) == 1) {
+record-write	mbsetup/m_limits.c	588	20	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, up) == 1) {
+record-write	mbsetup/m_users.c	199	13	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbsetup/m_users.c	200	16	usrconfig	usrconfig	if (fread(&usrconfig, (size_t)usrconfighdr.recsize, 1, fil) != 1) {
+record-write	mbsetup/m_users.c	376	17	usrconfig	usrconfig	memset(&usrconfig, 0, sizeof(usrconfig));
+record-write	mbsetup/m_users.c	377	20	usrconfig	usrconfig	if (fread(&usrconfig, oldsize, 1, fin) != 1) {
+record-write	mbutils/mbuser.c	210	19	usr	usr	while (fread(&usr, oldsize, 1,fin) == 1) {
+record-write	mbutils/mbuser.c	242	13	usr	usr	memset(&usr, 0, sizeof(usr));
+record-write	mbutils/mbuser.c	243	19	usr	usr	while (fread(&usr, oldsize, 1,fin) == 1) {
+record-write	mbutils/mbuser.c	246	10	usr	usr	memset(&usr, 0, sizeof(usr));
+record-write	mbutils/mbuser.c	260	16	usr	usr	while (fread(&usr, sizeof(usr), 1, fout)  == 1) {
+record-write	mbutils/mbuser.c	302	16	usr	usr	while (fread(&usr, sizeof(usr), 1, fout) == 1) {
+record-write	mbutils/mbuser.c	343	11	usr	usr	memset(&usr, 0, sizeof(usr));
+record-write	mbutils/mbuser.c	372	16	usr	usr	while (fread(&usr, sizeof(usr), 1,fout) == 1) {
+record-write	unix/mblogin.c	604	18	usrconfig	usrconfig	while (fread(&usrconfig, usrconfighdr.recsize, 1, ufp) == 1) {
